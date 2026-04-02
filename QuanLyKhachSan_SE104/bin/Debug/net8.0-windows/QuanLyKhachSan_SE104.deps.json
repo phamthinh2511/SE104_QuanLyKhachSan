@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "QuanLyKhachSan_SE104/1.0.0": {
+        "runtime": {
+          "QuanLyKhachSan_SE104.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "QuanLyKhachSan_SE104/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
