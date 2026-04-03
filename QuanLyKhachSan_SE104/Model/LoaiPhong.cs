@@ -11,5 +11,7 @@ namespace QuanLyKhachSan_SE104.Model
         public int SoGiuong { get; set; }
         public int SoNguoiToiDa { get; set; }
         public decimal PhuPhiThemGio { get; set; }
+
+        public ICollection<Phong> Phongs { get; set; }
     }
 }

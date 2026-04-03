@@ -17,5 +17,8 @@ namespace QuanLyKhachSan_SE104.Model
         public int PhuongThucThanhToan { get; set; } // 0=Tiền mặt, 1=Thẻ, 2=Chuyển khoản
         public string GhiChu { get; set; }
         public string TrangThaiThanhToan { get; set; }
+
+        public DatPhong DatPhong { get; set; }
+        public NhanVien NhanVien { get; set; }
     }
 }

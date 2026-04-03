@@ -10,5 +10,7 @@ namespace QuanLyKhachSan_SE104.Model
         public string TenDichVu { get; set; }
         public decimal DonGia { get; set; }
         public string MoTa { get; set; }
+
+        public ICollection<ChiTietDichVu> ChiTietDichVus { get; set; }
     }
 }

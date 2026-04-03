@@ -1,18 +1,19 @@
-﻿using System.Collections.ObjectModel;
+﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Utilities;
+using QuanLyKhachSan_SE104.View.BaoCao;
+using QuanLyKhachSan_SE104.View.Dashboard;
+using QuanLyKhachSan_SE104.View.DatPhong;
+using QuanLyKhachSan_SE104.View.DichVu;
+using QuanLyKhachSan_SE104.View.HoaDon;
+using QuanLyKhachSan_SE104.View.KhachHang;
+using QuanLyKhachSan_SE104.View.NhanVien;
+using QuanLyKhachSan_SE104.View.Phong;
+using QuanLyKhachSan_SE104.View.SuDungDichVu;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using System.Windows.Input;
-using QuanLyKhachSan_SE104.Utilities;
-using QuanLyKhachSan_SE104.View.Dashboard;
-using QuanLyKhachSan_SE104.View.KhachHang;
-using QuanLyKhachSan_SE104.View.Phong;
-using QuanLyKhachSan_SE104.View.DatPhong;
-using QuanLyKhachSan_SE104.View.DichVu;
-using QuanLyKhachSan_SE104.View.SuDungDichVu;
-using QuanLyKhachSan_SE104.View.NhanVien;
-using QuanLyKhachSan_SE104.View.HoaDon;
-using QuanLyKhachSan_SE104.View.BaoCao;
 
 
 namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
@@ -126,6 +127,17 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             });
             // Chọn trang đầu tiên mặc định
             CurrentPage = Pages[0];
+
+            //try
+            //{
+            //    var db = new QuanLyKhachSanContext();
+            //    var count = db.TaiKhoans.Count();
+            //    System.Windows.MessageBox.Show(count.ToString());
+            //}
+            //catch (Exception ex)
+            //{
+            //    System.Windows.MessageBox.Show("Lỗi kết nối: " + ex.Message);
+            //}
         }
 
         // ── Cập nhật badge từ code (gọi khi có data mới) ──
