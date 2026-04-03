@@ -12,5 +12,7 @@ namespace QuanLyKhachSan_SE104.Model
         public string CCCD_Passport { get; set; }
         public string SDT { get; set; }
         public string DiaChi { get; set; }
+
+        public ICollection<DatPhong> DatPhongs { get; set; }
     }
 }
