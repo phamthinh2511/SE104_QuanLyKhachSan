@@ -3,10 +3,204 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:QuanLyKhachSan_SE104.View.DatPhong"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
+             d:DesignHeight="700" d:DesignWidth="1100"
+             Background="{StaticResource BackgroundLightBrush}">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="BookingRoomCardTemplate">
+            <Border x:Name="Card"
+                    Width="210" Height="120"
+                    Margin="0,0,12,12"
+                    CornerRadius="12"
+                    Background="White"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    Cursor="Hand">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="{Binding TenPhong}" FontSize="18" FontWeight="Bold" Foreground="#1E293B"/>
+
+                    <TextBlock Grid.Row="1" Text="{Binding LoaiPhong.TenLoaiPhong}" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+
+                    <TextBlock Grid.Row="2" Text="{Binding Tang.SoTang, StringFormat='Tầng {0}'}" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+
+                    <Grid Grid.Row="3" Margin="0,5,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="{Binding LoaiPhong.GiaMacDinh, StringFormat='{}{0:#,0}₫'}" FontSize="13" FontWeight="SemiBold" Foreground="#3B82F6"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBlock Text="●" Foreground="#4CAF50" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Trống" FontSize="10" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <DataTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Card" Property="BorderBrush" Value="#3B82F6"/>
+                </Trigger>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="Card" Property="BorderBrush" Value="#3B82F6"/>
+                    <Setter TargetName="Card" Property="BorderThickness" Value="2"/>
+                    <Setter TargetName="Card" Property="Background" Value="#F0F7FF"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <Style x:Key="SelectableRoomItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Margin="0,0,10,0" Background="White" CornerRadius="15" Padding="25">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.05"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="Thông Tin Khách Hàng" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text="Họ Tên" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.HoTen}" Margin="0,0,0,15"/>
+
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <ComboBox Style="{StaticResource ModernComboBox}" SelectedIndex="0">
+                                <ComboBoxItem Content="Nam"/>
+                                <ComboBoxItem Content="Nữ"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.QuocTich}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="CCCD / Passport" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.CCCD_Passport}" Margin="0,0,0,15"/>
+                    <TextBlock Text="Số Điện Thoại" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.SDT}" Margin="0,0,0,15"/>
+                    <TextBlock Text="Địa Chỉ" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.DiaChi}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Margin="10,0,0,0" Background="White" CornerRadius="15" Padding="25">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.05"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Thông Tin Đặt Phòng" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Ngày Nhận Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <DatePicker SelectedDate="{Binding CheckInDate}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Ngày Trả Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <DatePicker SelectedDate="{Binding CheckOutDate}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Tầng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <ComboBox Style="{StaticResource ModernComboBox}" ItemsSource="{Binding ListTang}" SelectedItem="{Binding SelectedTang}" DisplayMemberPath="SoTang"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Loại Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <ComboBox Style="{StaticResource ModernComboBox}" ItemsSource="{Binding ListLoaiPhong}" SelectedItem="{Binding SelectedLoaiPhong}" DisplayMemberPath="TenLoaiPhong"/>
+                        </StackPanel>
+                        <Button Grid.Column="3" Style="{StaticResource PrimaryButton}" Content="Tìm" VerticalAlignment="Bottom" Height="40" Command="{Binding SearchAvailableRoomsCommand}"/>
+                    </Grid>
+
+                    <Grid Grid.Row="3">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Phòng trống khả dụng:" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
+
+                        <Border Grid.Row="1" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC">
+                            <ListBox Background="Transparent"
+                                     BorderThickness="0"
+                                     ItemsSource="{Binding AvailableRooms}"
+                                     SelectedItem="{Binding SelectedRoom}"
+                                     ItemTemplate="{StaticResource BookingRoomCardTemplate}"
+                                     ItemContainerStyle="{StaticResource SelectableRoomItemStyle}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Margin="10,10,0,0"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" 
+                Content="XÁC NHẬN ĐẶT PHÒNG" Width="300" Height="50" FontSize="15" 
+                FontWeight="Bold" VerticalAlignment="Center" Margin="0,25,0,0" Background="#0F172A"
+                Command="{Binding ConfirmBookingCommand}"/>
     </Grid>
 </UserControl>
