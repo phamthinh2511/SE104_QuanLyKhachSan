@@ -1,5 +1,6 @@
 ﻿using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
+using QuanLyKhachSan_SE104.View;
 using QuanLyKhachSan_SE104.View.BaoCao;
 using QuanLyKhachSan_SE104.View.Dashboard;
 using QuanLyKhachSan_SE104.View.DatPhong;
@@ -124,6 +125,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 Title = "Báo Cáo",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new BaoCaoPage()
+            });
+
+            Pages.Add(new NavigationItem
+            {
+                Icon = "📋",
+                Title = "Trả Phòng",
+                BadgeCount = 1,   // 1 cập nhật mới
+                PageContent = new TraPhongPage()
             });
             // Chọn trang đầu tiên mặc định
             CurrentPage = Pages[0];
