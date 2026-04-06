@@ -12,17 +12,32 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using QuanLyKhachSan_SE104.ViewModel.DatPhong; 
 
 namespace QuanLyKhachSan_SE104.View.DatPhong
 {
-    /// <summary>
-    /// Interaction logic for DatPhongPage.xaml
-    /// </summary>
     public partial class DatPhongPage : UserControl
     {
         public DatPhongPage()
         {
-            InitializeComponent();
+            InitializeComponent(); 
+
+            this.DataContext = new DatPhongViewModel();
+        }
+
+        private void RoomItem_Click(object sender, MouseButtonEventArgs e)
+        {
+            var item = sender as ListBoxItem;
+            if (item == null) return;
+
+            if (item.IsSelected)
+            {
+                item.IsSelected = false; 
+            }
+            else
+            {
+                item.IsSelected = true;
+            }
         }
     }
 }
