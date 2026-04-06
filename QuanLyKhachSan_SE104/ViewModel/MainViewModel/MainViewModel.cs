@@ -1,5 +1,6 @@
-﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
+using QuanLyKhachSan_SE104.View;
 using QuanLyKhachSan_SE104.View.BaoCao;
 using QuanLyKhachSan_SE104.View.Dashboard;
 using QuanLyKhachSan_SE104.View.DatPhong;
@@ -82,13 +83,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             });
             Pages.Add(new NavigationItem
             {
-                Title = "Checkin",
+                Title = "",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new NhanPhongPage()
             });
             Pages.Add(new NavigationItem
             {
-                Title = "Checkout",
+                Icon = "📋",
+                Title = "Trả Phòng",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new TraPhongPage()
             });
