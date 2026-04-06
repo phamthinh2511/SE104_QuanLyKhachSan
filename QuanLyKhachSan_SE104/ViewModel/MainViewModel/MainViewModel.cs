@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
 using QuanLyKhachSan_SE104.View;
 using QuanLyKhachSan_SE104.View.BaoCao;
@@ -10,6 +10,8 @@ using QuanLyKhachSan_SE104.View.KhachHang;
 using QuanLyKhachSan_SE104.View.NhanVien;
 using QuanLyKhachSan_SE104.View.Phong;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
+using QuanLyKhachSan_SE104.View.NhanPhong;
+using QuanLyKhachSan_SE104.View.TraPhong; 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -66,14 +68,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
 
             Pages.Add(new NavigationItem
             {
-                Icon = "👥",
-                Title = "Khách hàng",
-                BadgeCount = 0,
-                PageContent = new KhachHangPage()
-            });
-
-            Pages.Add(new NavigationItem
-            {
                 Icon = "🛏",
                 Title = "Phòng",
                 BadgeCount = 3,   // 3 phòng cần dọn
@@ -86,6 +80,26 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 Title = "Đặt phòng",
                 BadgeCount = 12,  // 12 booking mới
                 PageContent = new DatPhongPage()
+            });
+            Pages.Add(new NavigationItem
+            {
+                Title = "",
+                BadgeCount = 1,   // 1 cập nhật mới
+                PageContent = new NhanPhongPage()
+            });
+            Pages.Add(new NavigationItem
+            {
+                Icon = "📋",
+                Title = "Trả Phòng",
+                BadgeCount = 1,   // 1 cập nhật mới
+                PageContent = new TraPhongPage()
+            });
+            Pages.Add(new NavigationItem
+            {
+                Icon = "👥",
+                Title = "Khách hàng",
+                BadgeCount = 0,
+                PageContent = new KhachHangPage()
             });
 
             Pages.Add(new NavigationItem
@@ -127,13 +141,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 PageContent = new BaoCaoPage()
             });
 
-            Pages.Add(new NavigationItem
-            {
-                Icon = "📋",
-                Title = "Trả Phòng",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new TraPhongPage()
-            });
             // Chọn trang đầu tiên mặc định
             CurrentPage = Pages[0];
 
