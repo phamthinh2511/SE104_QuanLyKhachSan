@@ -23,7 +23,7 @@ namespace QuanLyKhachSan_SE104.View.Dashboard
         public DashboardPage()
         {
             InitializeComponent();
-            this.DataContext = new QuanLyKhachSan_SE104.ViewModel.Dashboard.DashboardViewModel();
+            
         }
 
     }

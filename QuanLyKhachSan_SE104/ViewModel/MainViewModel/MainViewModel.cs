@@ -11,7 +11,7 @@ using QuanLyKhachSan_SE104.View.NhanVien;
 using QuanLyKhachSan_SE104.View.Phong;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
-using QuanLyKhachSan_SE104.View.TraPhong; 
+
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;

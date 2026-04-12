@@ -164,7 +164,7 @@ namespace QuanLyKhachSan_SE104.ViewModel
                             var phong = db.Phongs.Find(ctdp.MaPhong);
                             if (phong != null)
                             {
-                                phong.TrangThaiThue = 0;
+                                phong.TrangThai = 0;
                                 phong.TrangThaiDonDep = 2;
                             }
                         }
