@@ -1,28 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using QuanLyKhachSan_SE104.ViewModel.DichVuVM;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace QuanLyKhachSan_SE104.View.DichVu
 {
-    /// <summary>
-    /// Interaction logic for DichVuPage.xaml
-    /// </summary>
-    public partial class DichVuPage : UserControl
+    public partial class DichVuPage : Window
     {
         public DichVuPage()
         {
             InitializeComponent();
+            var vm = new DichVuViewModel();
+            // Gán CloseAction để ViewModel có thể đóng Window
+            vm.CloseAction = () => this.Close();
+            this.DataContext = vm;
         }
     }
 }

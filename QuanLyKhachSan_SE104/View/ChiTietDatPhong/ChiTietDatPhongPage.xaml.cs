@@ -10,20 +10,19 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace QuanLyKhachSan_SE104.View.Phong
+
+using QuanLyKhachSan_SE104.ViewModel.DatPhong;
+
+namespace QuanLyKhachSan_SE104.View.ChiTietDatPhong
 {
-    /// <summary>
-    /// Interaction logic for PhongPage.xaml
-    /// </summary>
-    public partial class PhongPage : UserControl
+    public partial class ChiTietDatPhongPage : UserControl
     {
-        public PhongPage()
+        public ChiTietDatPhongPage()
         {
             InitializeComponent();
-            this.DataContext = new QuanLyKhachSan_SE104.ViewModel.PhongVM.PhongViewModel();
+            this.DataContext = new DatPhongListViewModel();
         }
     }
 }

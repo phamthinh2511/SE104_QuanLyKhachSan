@@ -76,8 +76,34 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <Button Grid.Column="2" Content="Nhận Phòng" Style="{StaticResource PrimaryButton}" 
-                                Width="130" Height="42" Click="ShowPopup_Click" Tag="{Binding MaChiTietDatPhong}"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <!-- Nút Chi tiết -->
+                                        <Button Content="Chi tiết"
+                                            Width="90" Height="42"
+                                            Margin="0,0,10,0"
+                                            Cursor="Hand"
+                                            Tag="{Binding}"
+                                            Click="ShowChiTiet_Click">          
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="bd" CornerRadius="8" Background="#E2E8F0">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="bd" Property="Background" Value="#CBD5E1"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+
+                                        <!-- Nút Nhận Phòng giữ nguyên -->
+                                        <Button Content="Nhận Phòng" Style="{StaticResource PrimaryButton}" 
+                                            Width="130" Height="42" 
+                                            Click="ShowPopup_Click" 
+                                            Tag="{Binding MaChiTietDatPhong}"/>
+                                    </StackPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>
