@@ -14,6 +14,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Thanh tìm kiếm -->
         <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="15" Margin="0,0,0,15">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.05"/>
@@ -23,7 +24,6 @@
                          Tag="Tìm số phòng..." 
                          Style="{StaticResource SearchTextBoxStyle}"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
-
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <ComboBox Style="{StaticResource ModernComboBox}" Width="160" Margin="0,0,10,0" SelectedIndex="0">
                         <ComboBoxItem Content="Tất cả các tầng"/>
@@ -35,49 +35,47 @@
             </DockPanel>
         </Border>
 
+        <!-- Thanh filter trạng thái -->
         <UniformGrid Grid.Row="1" Columns="7" Margin="-3,0,-3,20">
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="White"
                     Command="{Binding FilterCommand}" CommandParameter="All">
                 <TextBlock Text="{Binding CountTatCa, StringFormat='Tất cả ({0})'}" FontWeight="SemiBold"/>
             </Button>
-
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#4CAF50"
                     Command="{Binding FilterCommand}" CommandParameter="0">
                 <TextBlock Text="{Binding CountTrong, StringFormat='Trống ({0})'}" FontWeight="SemiBold"/>
             </Button>
-
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#FF7043"
                     Command="{Binding FilterCommand}" CommandParameter="2">
                 <TextBlock Text="{Binding CountDangO, StringFormat='Đang ở ({0})'}" FontWeight="SemiBold"/>
             </Button>
-
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="Orange"
                     Command="{Binding FilterCommand}" CommandParameter="3">
                 <TextBlock Text="{Binding CountQuaHan, StringFormat='Quá Hạn ({0})'}" FontWeight="SemiBold"/>
             </Button>
-
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="Yellow"
                     Command="{Binding FilterCommand}" CommandParameter="1">
                 <TextBlock Text="{Binding CountDaDat, StringFormat='Đã đặt ({0})'}" FontWeight="SemiBold"/>
             </Button>
-
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#42A5F5"
                     Command="{Binding FilterCommand}" CommandParameter="4">
                 <TextBlock Text="{Binding CountCanDonDep, StringFormat='Cần Dọn ({0})'}" FontWeight="SemiBold"/>
             </Button>
 
+            <!-- FIX: Đổi CountCanDonDep → CountBaoTri -->
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#90A4AE"
                     Command="{Binding FilterCommand}" CommandParameter="5">
-                <TextBlock Text="{Binding CountCanDonDep, StringFormat='Bảo Trì ({0})'}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding CountBaoTri, StringFormat='Bảo Trì ({0})'}" FontWeight="SemiBold"/>
             </Button>
         </UniformGrid>
 
+        <!-- Danh sách phòng -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding ListPhong}" 
-                         ItemTemplate="{StaticResource RoomCardTemplate}">
+                          ItemTemplate="{StaticResource RoomCardTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
+                        <WrapPanel Orientation="Horizontal"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
