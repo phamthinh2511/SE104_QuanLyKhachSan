@@ -13,17 +13,13 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace QuanLyKhachSan_SE104.View.Phong
+namespace QuanLyKhachSan_SE104.View
 {
-    /// <summary>
-    /// Interaction logic for PhongPage.xaml
-    /// </summary>
-    public partial class PhongPage : UserControl
+    public partial class TraPhongPage : UserControl
     {
-        public PhongPage()
+        public TraPhongPage()
         {
             InitializeComponent();
-            this.DataContext = new QuanLyKhachSan_SE104.ViewModel.PhongVM.PhongViewModel();
         }
     }
 }

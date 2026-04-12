@@ -1,5 +1,6 @@
-﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
+using QuanLyKhachSan_SE104.View;
 using QuanLyKhachSan_SE104.View.BaoCao;
 using QuanLyKhachSan_SE104.View.Dashboard;
 using QuanLyKhachSan_SE104.View.DatPhong;
@@ -10,7 +11,7 @@ using QuanLyKhachSan_SE104.View.NhanVien;
 using QuanLyKhachSan_SE104.View.Phong;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
-using QuanLyKhachSan_SE104.View.TraPhong; 
+
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -82,13 +83,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             });
             Pages.Add(new NavigationItem
             {
-                Title = "Checkin",
+                Title = "",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new NhanPhongPage()
             });
             Pages.Add(new NavigationItem
             {
-                Title = "Checkout",
+                Icon = "📋",
+                Title = "Trả Phòng",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new TraPhongPage()
             });
