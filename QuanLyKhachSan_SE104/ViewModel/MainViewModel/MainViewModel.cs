@@ -11,7 +11,7 @@ using QuanLyKhachSan_SE104.View.NhanVien;
 using QuanLyKhachSan_SE104.View.Phong;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
-using QuanLyKhachSan_SE104.View.TraPhong; 
+// TraPhongPage nằm trong namespace QuanLyKhachSan_SE104.View (đã import ở trên)
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -83,16 +83,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             });
             Pages.Add(new NavigationItem
             {
-                Title = "",
-                BadgeCount = 1,   // 1 cập nhật mới
+                Icon = "🛎",
+                Title = "Nhận phòng",
+                BadgeCount = 1,
                 PageContent = new NhanPhongPage()
-            });
-            Pages.Add(new NavigationItem
-            {
-                Icon = "📋",
-                Title = "Trả Phòng",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new TraPhongPage()
             });
             Pages.Add(new NavigationItem
             {
@@ -162,6 +156,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
         {
             foreach (var p in Pages)
                 if (p.Title == pageTitle) { p.BadgeCount = count; break; }
+        }
+
+        public void NavigateTo(string pageTitle)
+        {
+            var page = Pages.FirstOrDefault(p => p.Title == pageTitle);
+            if (page != null) CurrentPage = page;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
