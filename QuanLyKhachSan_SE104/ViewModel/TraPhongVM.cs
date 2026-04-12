@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
 using System;
 using System.Collections.Generic;
@@ -55,13 +55,65 @@ namespace QuanLyKhachSan_SE104.ViewModel
 
         public string CurrentTime => DateTime.Now.ToString("dd/MM/yyyy HH:mm");
 
+        // ── Hóa đơn popup ──
+        private bool _isHoaDonOpen;
+        public bool IsHoaDonOpen
+        {
+            get => _isHoaDonOpen;
+            set { _isHoaDonOpen = value; OnPropertyChanged(); }
+        }
+
+        private string _hoaDonTenKhach;
+        public string HoaDonTenKhach
+        {
+            get => _hoaDonTenKhach;
+            set { _hoaDonTenKhach = value; OnPropertyChanged(); }
+        }
+
+        private string _hoaDonSoPhong;
+        public string HoaDonSoPhong
+        {
+            get => _hoaDonSoPhong;
+            set { _hoaDonSoPhong = value; OnPropertyChanged(); }
+        }
+
+        private string _hoaDonThoiGian;
+        public string HoaDonThoiGian
+        {
+            get => _hoaDonThoiGian;
+            set { _hoaDonThoiGian = value; OnPropertyChanged(); }
+        }
+
+        private decimal _hoaDonTienPhong;
+        public decimal HoaDonTienPhong
+        {
+            get => _hoaDonTienPhong;
+            set { _hoaDonTienPhong = value; OnPropertyChanged(); }
+        }
+
+        private decimal _hoaDonTienDichVu;
+        public decimal HoaDonTienDichVu
+        {
+            get => _hoaDonTienDichVu;
+            set { _hoaDonTienDichVu = value; OnPropertyChanged(); }
+        }
+
+        private decimal _hoaDonTongTien;
+        public decimal HoaDonTongTien
+        {
+            get => _hoaDonTongTien;
+            set { _hoaDonTongTien = value; OnPropertyChanged(); }
+        }
+
         public ICommand ConfirmCheckoutCommand { get; set; }
+        public ICommand CloseHoaDonCommand { get; set; }
 
         public TraPhongVM()
         {
             ListDichVuSuDung = new ObservableCollection<ChiTietDichVu>();
             LoadData();
             ConfirmCheckoutCommand = new RelayCommand<object>((p) => { ExecuteCheckout(); });
+            CloseHoaDonCommand = new RelayCommand<object>((p) => { IsHoaDonOpen = false; });
         }
 
         void LoadData()
@@ -102,7 +154,10 @@ namespace QuanLyKhachSan_SE104.ViewModel
 
                     foreach (var ctdp in datPhong.ChiTietDatPhongs)
                     {
-                        tongTienPhong += ctdp.GiaDat;
+                        // Tính tiền phòng theo số giờ (làm tròn lên)
+                        var soGio = (decimal)Math.Ceiling((DateTime.Now - ctdp.NgayCheckIn).TotalHours);
+                        if (soGio < 1) soGio = 1;
+                        tongTienPhong += soGio * ctdp.GiaDat;
 
                         foreach (var dv in ctdp.ChiTietDichVus)
                         {
@@ -133,6 +188,9 @@ namespace QuanLyKhachSan_SE104.ViewModel
                     {
                         var datPhong = db.DatPhongs
                                          .Include(d => d.ChiTietDatPhongs)
+                                            .ThenInclude(c => c.Phong)
+                                         .Include(d => d.ChiTietDatPhongs)
+                                            .ThenInclude(c => c.ChiTietDichVus)
                                          .FirstOrDefault(d => d.MaKhachHang == SelectedKhachHang.MaKhachHang && d.TrangThaiDat == 2);
 
                         if (datPhong == null)
@@ -141,12 +199,29 @@ namespace QuanLyKhachSan_SE104.ViewModel
                             return;
                         }
 
+                        // ── Tính tiền phòng theo giờ, tiền dịch vụ ──
+                        decimal tongTienPhong = 0;
+                        decimal tongTienDichVu = 0;
+                        string soPhongs = "";
+                        foreach (var ctdp in datPhong.ChiTietDatPhongs)
+                        {
+                            var soGio = (decimal)Math.Ceiling((DateTime.Now - ctdp.NgayCheckIn).TotalHours);
+                            if (soGio < 1) soGio = 1;
+                            tongTienPhong += soGio * ctdp.GiaDat;
+
+                            if (ctdp.Phong != null)
+                                soPhongs += (soPhongs.Length == 0 ? "" : ", ") + ctdp.Phong.TenPhong;
+
+                            foreach (var dv in ctdp.ChiTietDichVus)
+                                tongTienDichVu += dv.SoLuong * dv.DonGia;
+                        }
+
                         var hoaDon = new HoaDon
                         {
                             MaDatPhong = datPhong.MaDatPhong,
                             MaNhanVien = 1,
-                            TongTienPhong = 0,
-                            TongTienDichVu = 0,
+                            TongTienPhong = tongTienPhong,
+                            TongTienDichVu = tongTienDichVu,
                             PhuPhi = 0,
                             TienCoc = datPhong.TienCoc,
                             TongThanhToan = TongTienThanhToan,
@@ -173,7 +248,15 @@ namespace QuanLyKhachSan_SE104.ViewModel
 
                         db.SaveChanges();
                         transaction.Commit();
-                        MessageBox.Show("Trả phòng thành công!");
+
+                        // ── Hiển thị popup hóa đơn ──
+                        HoaDonTenKhach = SelectedKhachHang.HoTen;
+                        HoaDonSoPhong = soPhongs;
+                        HoaDonThoiGian = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                        HoaDonTienPhong = tongTienPhong;
+                        HoaDonTienDichVu = tongTienDichVu;
+                        HoaDonTongTien = TongTienThanhToan;
+                        IsHoaDonOpen = true;
 
                         SelectedKhachHang = null;
                         ListDichVuSuDung.Clear();
