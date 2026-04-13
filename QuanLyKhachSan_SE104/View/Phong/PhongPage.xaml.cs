@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace QuanLyKhachSan_SE104.View.Phong
+namespace QuanLyKhachSan_SE104.View.PhongView
 {
     /// <summary>
     /// Interaction logic for PhongPage.xaml
