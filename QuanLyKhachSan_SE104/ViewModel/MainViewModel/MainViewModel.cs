@@ -8,9 +8,10 @@ using QuanLyKhachSan_SE104.View.DichVu;
 using QuanLyKhachSan_SE104.View.HoaDon;
 using QuanLyKhachSan_SE104.View.KhachHang;
 using QuanLyKhachSan_SE104.View.NhanVien;
-using QuanLyKhachSan_SE104.View.Phong;
+using QuanLyKhachSan_SE104.View.PhongView;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
+using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -83,7 +84,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             });
             Pages.Add(new NavigationItem
             {
-                Title = "",
+                Icon = "📅",
+                Title = "Chi Tiết Đặt phòng",
+                BadgeCount = 12,  
+                PageContent = new ChiTietDatPhongPage()
+            });
+            Pages.Add(new NavigationItem
+            {
+                Title = "Nhận phòng",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new NhanPhongPage()
             });
@@ -100,14 +108,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 Title = "Khách hàng",
                 BadgeCount = 0,
                 PageContent = new KhachHangPage()
-            });
-
-            Pages.Add(new NavigationItem
-            {
-                Icon = "🧹",
-                Title = "Dịch vụ",
-                BadgeCount = 5,   // 5 yêu cầu chưa xử lý
-                PageContent = new DichVuPage()
             });
 
             Pages.Add(new NavigationItem

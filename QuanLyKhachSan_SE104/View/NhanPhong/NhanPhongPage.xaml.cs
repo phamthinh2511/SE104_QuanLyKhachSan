@@ -1,24 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using QuanLyKhachSan_SE104.ViewModel;
+using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
+
+// Alias tránh conflict
+using ModelChiTiet = QuanLyKhachSan_SE104.Model.ChiTietDatPhong;
 
 namespace QuanLyKhachSan_SE104.View.NhanPhong
 {
-    /// <summary>
-    /// Interaction logic for NhanPhongPage.xaml
-    /// </summary>
     public partial class NhanPhongPage : UserControl
     {
         public NhanPhongPage()
@@ -26,6 +15,7 @@ namespace QuanLyKhachSan_SE104.View.NhanPhong
             InitializeComponent();
             this.DataContext = new NhanPhongViewModel();
         }
+
         private void ShowPopup_Click(object sender, RoutedEventArgs e)
         {
             PopupOverlay.Visibility = Visibility.Visible;
@@ -34,6 +24,20 @@ namespace QuanLyKhachSan_SE104.View.NhanPhong
         private void ClosePopup_Click(object sender, RoutedEventArgs e)
         {
             PopupOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowChiTiet_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is ModelChiTiet chiTiet)
+            {
+                if (chiTiet.DatPhong == null) return;
+
+                var win = new ChiTietDatPhongWindow(chiTiet.DatPhong)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+                win.ShowDialog();
+            }
         }
     }
 }

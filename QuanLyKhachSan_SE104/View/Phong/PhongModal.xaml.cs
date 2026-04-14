@@ -1,79 +1,77 @@
-﻿using System.Windows;
-using QuanLyKhachSan_SE104.ViewModel.PhongVM;
+﻿using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.ViewModel.PhongVM;
+using System.Windows;
 
-namespace QuanLyKhachSan_SE104.View.PhongView
-{
+namespace QuanLyKhachSan_SE104.View.PhongView {
     /// <summary>
     /// Interaction logic for PhongModal.xaml
     /// </summary>
     public partial class PhongModal : Window
     {
-        private PhongViewModel _phong;
-
+        // Sử dụng Property để Binding dễ hơn nếu cần
         public Phong PhongInfo { get; set; }
-
         public List<LoaiPhong> DanhSachLoaiPhong { get; set; }
-
         private Phong _originPhong;
 
         public PhongModal(Phong p = null)
         {
             InitializeComponent();
+
+            // Load danh sách loại phòng từ DataBase
             using (var context = new QuanLyKhachSanContext())
             {
-                this.DanhSachLoaiPhong = context.LoaiPhongs.ToList();
+                this.DanhSachLoaiPhong = context.LoaiPhongs.AsNoTracking().ToList();
             }
-            // Tạo mới phòng
+
+            // Khởi tạo
             if (p == null)
             {
-                Phong PhongInfo = new Phong();
+                this.PhongInfo = new Phong { TrangThai = 0, TrangThaiDonDep = 0 }; // Giá trị mặc định
+                _originPhong = null;
             }
-            // Sửa bằng cách truyền tham số trung gian
             else
             {
-                PhongInfo = p;
-                _originPhong = new Phong 
+                this.PhongInfo = p;
+                // Clone object để so sánh thay đổi
+                _originPhong = new Phong
                 {
                     MaPhong = p.MaPhong,
                     TenPhong = p.TenPhong,
-                    LoaiPhong = p.LoaiPhong,
+                    MaLoaiPhong = p.MaLoaiPhong,
                     SoTang = p.SoTang,
                     TrangThai = p.TrangThai,
                     TrangThaiDonDep = p.TrangThaiDonDep
                 };
             }
-            // Kết nối D.Liệu
-            this.DataContext = new PhongModalViewModel(PhongInfo, DanhSachLoaiPhong);
+
+            // Kết nối DataContext
+            this.DataContext = new PhongModalViewModel(this.PhongInfo, this.DanhSachLoaiPhong);
         }
+
         private bool IsDataChanged()
         {
-            if (_originPhong == null)
-                return false;
-
+            // Nếu là thêm mới và đã nhập tên thì coi như có thay đổi
             var vm = this.DataContext as PhongModalViewModel;
             if (vm == null) return false;
 
-            // So sánh qua ViewModel thay vì lấy UI Textbox (Chuẩn MVVM)
-            if (vm.MaPhong != _originPhong.MaPhong) return true;
-            if (vm.TenPhong?.Trim() != _originPhong.TenPhong?.Trim()) return true;
-            if (vm.SoTang != _originPhong.SoTang) return true;
-            if (vm.Loaiphong?.MaLoaiPhong != _originPhong.MaLoaiPhong) return true;
-            if (vm.TrangThaiValue != _originPhong.TrangThai) return true;
-            if (vm.TrangThaiDonDepValue != _originPhong.TrangThaiDonDep) return true;
+            if (_originPhong == null)
+                return !string.IsNullOrWhiteSpace(vm.TenPhong);
 
-            return false;
+            // So sánh dữ liệu cũ và mới
+            return vm.TenPhong?.Trim() != _originPhong.TenPhong?.Trim() ||
+                   vm.SoTang != _originPhong.SoTang ||
+                   vm.LoaiPhong?.MaLoaiPhong != _originPhong.MaLoaiPhong ||
+                   vm.TrangThaiValue != _originPhong.TrangThai ||
+                   vm.TrangThaiDonDepValue != _originPhong.TrangThaiDonDep;
         }
-        private void button_Close(object sender, RoutedEventArgs e) 
-        {
-            this.Close();
-        }
+
         private void button_Save(object sender, RoutedEventArgs e)
         {
             try
             {
                 var vm = this.DataContext as PhongModalViewModel;
-                if (vm == null || string.IsNullOrWhiteSpace(vm.TenPhong) || vm.Loaiphong == null)
+                if (vm == null || string.IsNullOrWhiteSpace(vm.TenPhong) || vm.LoaiPhong == null)
                 {
                     MessageBox.Show("Vui lòng nhập đầy đủ tên phòng và loại phòng!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -83,11 +81,11 @@ namespace QuanLyKhachSan_SE104.View.PhongView
                 {
                     if (_originPhong == null)
                     {
-                        // Thêm mới
+                        // THÊM MỚI (Vẫn giữ nguyên)
                         var newPhong = new Phong
                         {
                             TenPhong = vm.TenPhong.Trim(),
-                            MaLoaiPhong = vm.Loaiphong.MaLoaiPhong,
+                            MaLoaiPhong = vm.LoaiPhong.MaLoaiPhong,
                             SoTang = vm.SoTang,
                             TrangThai = vm.TrangThaiValue,
                             TrangThaiDonDep = vm.TrangThaiDonDepValue
@@ -96,76 +94,62 @@ namespace QuanLyKhachSan_SE104.View.PhongView
                     }
                     else
                     {
-                        // Cập nhật
+                        // CẬP NHẬT (SỬA LẠI PHẦN NÀY)
                         var updatePhong = context.Phongs.FirstOrDefault(p => p.MaPhong == vm.MaPhong);
                         if (updatePhong != null)
                         {
                             updatePhong.TenPhong = vm.TenPhong.Trim();
-                            updatePhong.MaLoaiPhong = vm.Loaiphong.MaLoaiPhong;
+                            updatePhong.MaLoaiPhong = vm.LoaiPhong.MaLoaiPhong;
                             updatePhong.SoTang = vm.SoTang;
                             updatePhong.TrangThai = vm.TrangThaiValue;
                             updatePhong.TrangThaiDonDep = vm.TrangThaiDonDepValue;
+
+                            // Ép EF Core ghi nhận object này đã bị chỉnh sửa
+                            context.Phongs.Update(updatePhong);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Không tìm thấy phòng trong CSDL để sửa!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
                         }
                     }
-                    context.SaveChanges();
+
+                    // Kiểm tra xem có bao nhiêu dòng dữ liệu bị thay đổi trong DB
+                    int changes = context.SaveChanges();
+                    if (changes == 0)
+                    {
+                        MessageBox.Show("Không có dữ liệu mới nào được lưu. Có thể bạn chưa thay đổi gì so với ban đầu.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Lưu thông tin thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
 
-                MessageBox.Show("Lưu thông tin phòng thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                this.DialogResult = true; // Trả về true cho Window cha biết là đã thay đổi Data
+                this.DialogResult = true;
                 this.Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Có lỗi xảy ra khi lưu: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi hệ thống khi lưu: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void RestoreOriginalData()
-        {
-            if (_originPhong != null)
-            {
-                var vm = this.DataContext as PhongModalViewModel;
-                if (vm != null)
-                {
-                    vm.MaPhong = _originPhong.MaPhong;
-                    vm.TenPhong = _originPhong.TenPhong;
-                    vm.SoTang = _originPhong.SoTang;
-                    vm.Loaiphong = vm.DanhSachLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == _originPhong.MaLoaiPhong);
-                    vm.TrangThaiValue = _originPhong.TrangThai;
-                    vm.TrangThaiDonDepValue = _originPhong.TrangThaiDonDep;
-                }
-            }
-        }
+
         private void button_Cancel(object sender, RoutedEventArgs e)
         {
-            // ===== 1. Không có thay đổi =====
             if (!IsDataChanged())
             {
-                MessageBox.Show(
-                    "Chưa có dữ liệu nào để đặt lại",
-                    "Thông báo",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                this.Close();
                 return;
             }
 
-            // ===== 2. Có thay đổi → hỏi =====
-            var result = MessageBox.Show(
-                "Bạn có muốn đặt lại dữ liệu về trạng thái đã lưu gần nhất không?",
-                "Xác nhận đặt lại",
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question);
-
-            // ===== 3. OK → đặt lại =====
-            if (result == MessageBoxResult.OK)
+            var result = MessageBox.Show("Bạn có muốn hủy bỏ các thay đổi và đóng cửa sổ?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
             {
-                RestoreOriginalData();
-                MessageBox.Show(
-                    "Dữ liệu đã được đặt lại về trạng thái đã lưu.",
-                    "Hoàn tất",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                this.Close();
             }
-            // Cancel → không làm gì
         }
+
+        private void button_Close(object sender, RoutedEventArgs e) => this.Close();
     }
 }

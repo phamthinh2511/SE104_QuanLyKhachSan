@@ -4,7 +4,7 @@
     <!-- =================== COLORS =================== -->
     <!-- =================== COLORS =================== -->
     <SolidColorBrush x:Key="ComboBox.Static.Background" Color="#F8FAFC"/>
-    <SolidColorBrush x:Key="ComboBox.Static.Border" Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="ComboBox.Static.Border" Color="#1E293B"/>
     <SolidColorBrush x:Key="ComboBox.MouseOver.Border" Color="#3B82F6"/>
     <SolidColorBrush x:Key="ComboBox.Focused.Border" Color="#1E293B"/>
 

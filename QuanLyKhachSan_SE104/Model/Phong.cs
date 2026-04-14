@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuanLyKhachSan_SE104.Model
 {
@@ -6,13 +7,21 @@ namespace QuanLyKhachSan_SE104.Model
     {
         [Key]
         public int MaPhong { get; set; }
+
         public string TenPhong { get; set; }
+
         public int MaLoaiPhong { get; set; }
+
         public int SoTang { get; set; }
-        public int TrangThai { get; set; } // 0: Trống, 1: Đã đặt, 2: Đang ở
-        public int TrangThaiDonDep { get; set; } // 0: Sạch, 1: Đang dọn, 2: Cần dọn, 3: Bảo trì
+
+        // Thêm [Column] nếu bạn chưa chạy Migration để đổi tên cột trong Database
+        [Column("TrangThaiThue")]
+        public int TrangThai { get; set; }
+
+        public int TrangThaiDonDep { get; set; }
 
         public LoaiPhong LoaiPhong { get; set; }
+
         public ICollection<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
     }
 }

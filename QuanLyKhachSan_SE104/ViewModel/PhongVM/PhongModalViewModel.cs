@@ -21,7 +21,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         }
 
         private LoaiPhong _loaiPhong;
-        public LoaiPhong Loaiphong
+        public LoaiPhong LoaiPhong
         {
             get { return _loaiPhong; }
             set { _loaiPhong = value; OnPropertyChanged(); }
@@ -53,17 +53,28 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         {
             get
             {
-                if (_trangThai == 0) return "Trống";
-                if (_trangThai == 1) return "Đã đặt";
-                if (_trangThai == 2) return "Đang ở";
-                return "Bảo trì";
+                switch (_trangThai)
+                {
+                    case 0: return "Trống";
+                    case 1: return "Đã đặt";
+                    case 2: return "Đang ở";
+                    case 3: return "Quá hạn";
+                    case 4: return "Cần dọn";
+                    case 5: return "Bảo trì";
+                    default: return "Bảo trì";
+                }
             }
             set
             {
-                if (value == "Trống") _trangThai = 0;
-                else if (value == "Đã đặt") _trangThai = 1;
-                else if (value == "Đang ở") _trangThai = 2;
-                else if (value == "Bảo trì") _trangThai = 3;
+                switch (value)
+                {
+                    case "Trống": _trangThai = 0; break;
+                    case "Đã đặt": _trangThai = 1; break;
+                    case "Đang ở": _trangThai = 2; break;
+                    case "Quá hạn": _trangThai = 3; break;
+                    case "Cần dọn": _trangThai = 4; break;
+                    case "Bảo trì": _trangThai = 5; break;
+                }
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TrangThaiValue));
             }
@@ -97,7 +108,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         {
             DanhSachLoaiPhong = dsLoaiPhong;
 
-            if (p != null && p.MaPhong != 0)
+            if (p != null)
             {
                 MaPhong = p.MaPhong;
                 TenPhong = p.TenPhong;
@@ -107,7 +118,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
                 if (DanhSachLoaiPhong != null)
                 {
-                    Loaiphong = DanhSachLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == p.MaLoaiPhong);
+                    LoaiPhong = DanhSachLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == p.MaLoaiPhong);
                 }
             }
         }
