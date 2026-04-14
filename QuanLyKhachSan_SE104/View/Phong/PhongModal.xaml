@@ -68,6 +68,7 @@
                                 VerticalAlignment="Center">
                             <TextBox BorderThickness="0" 
                                      x:Name="txtbox_MaPhong"
+                                     IsEnabled="False"
                                  Background="Transparent" 
                                  VerticalAlignment="Center"
                                  Text="{Binding MaPhong, UpdateSourceTrigger=PropertyChanged}"
