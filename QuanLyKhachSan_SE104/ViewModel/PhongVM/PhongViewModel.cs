@@ -1,10 +1,12 @@
-﻿using QuanLyKhachSan_SE104.Model;
+﻿using Microsoft.EntityFrameworkCore;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
+using QuanLyKhachSan_SE104.View.PhongView;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Input;
 using System.Windows;
+using System.Windows.Input;
 
 namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 {
@@ -45,6 +47,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         public ICommand DoiPhongCommand { get; }
         public ICommand DoiTrangThaiDonDepCommand { get; }
         public ICommand HuyDatPhongCommand { get; }
+        public ICommand EditRoomCommand { get; }
+        public ICommand AddRoomCommand { get; }
 
         public PhongViewModel()
         {
@@ -113,6 +117,25 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                     System.Windows.MessageBox.Show($"Đã hủy đặt phòng {p.TenPhong}");
                 }
             });
+            EditRoomCommand = new RelayCommand<Phong>((p) => {
+                if (p != null)
+                {
+                    // Danh sách phòng chung
+                    var editDialog = new PhongModal(p);
+                    if (editDialog.ShowDialog() == true)
+                    {
+                        // Reload lại dữ liệu sau khi save thành công
+                        LoadData();
+                    }
+                }
+            });
+            AddRoomCommand = new RelayCommand<object>((p) => {
+                var addDialog = new PhongModal(null);
+                if (addDialog.ShowDialog() == true)
+                {
+                    LoadData();
+                }
+            });
         }
 
         private void ApplyFilter(string filter)
@@ -140,16 +163,23 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         private void LoadData()
         {
-            _allPhongs = new ObservableCollection<Phong>
+            using (var context = new QuanLyKhachSanContext())
             {
-                new Phong { TenPhong = "101", TrangThai = 0, LoaiPhong = new LoaiPhong { TenLoaiPhong = "Standard",  GiaMacDinh = 300000  } },
-                new Phong { TenPhong = "102", TrangThai = 2, LoaiPhong = new LoaiPhong { TenLoaiPhong = "Deluxe",    GiaMacDinh = 500000  } },
-                new Phong { TenPhong = "103", TrangThai = 1, LoaiPhong = new LoaiPhong { TenLoaiPhong = "VIP",       GiaMacDinh = 1200000 } },
-                new Phong { TenPhong = "104", TrangThai = 3, LoaiPhong = new LoaiPhong { TenLoaiPhong = "VIP",       GiaMacDinh = 1200000 } },
-                new Phong { TenPhong = "106", TrangThai = 4, LoaiPhong = new LoaiPhong { TenLoaiPhong = "VIP",       GiaMacDinh = 1200000 } },
-                new Phong { TenPhong = "105", TrangThai = 5, LoaiPhong = new LoaiPhong { TenLoaiPhong = "VIP",       GiaMacDinh = 1200000 } },
-            };
+                // Load từ Database, Include LoaiPhong để hiển thị được TenLoaiPhong
+                _allPhongs = new ObservableCollection<Phong>(
+                    context.Phongs.Include(p => p.LoaiPhong).ToList()
+                );
+            }
             ListPhong = new ObservableCollection<Phong>(_allPhongs);
+
+            // Báo cho UI biết để cập nhật lại các con số thống kê trên Filter Buttons
+            OnPropertyChanged(nameof(CountTatCa));
+            OnPropertyChanged(nameof(CountTrong));
+            OnPropertyChanged(nameof(CountDaDat));
+            OnPropertyChanged(nameof(CountDangO));
+            OnPropertyChanged(nameof(CountQuaHan));
+            OnPropertyChanged(nameof(CountCanDonDep));
+            OnPropertyChanged(nameof(CountBaoTri));
         }
 
         // ── INotifyPropertyChanged ────────────────────────
