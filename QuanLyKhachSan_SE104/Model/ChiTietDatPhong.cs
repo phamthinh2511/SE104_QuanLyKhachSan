@@ -11,6 +11,7 @@ namespace QuanLyKhachSan_SE104.Model
         public DateTime NgayCheckIn { get; set; }
         public DateTime NgayCheckOut { get; set; }
         public decimal GiaDat { get; set; }
+        public int SoNguoi { get; set; }
 
         public DatPhong DatPhong { get; set; }
         public Phong Phong { get; set; }

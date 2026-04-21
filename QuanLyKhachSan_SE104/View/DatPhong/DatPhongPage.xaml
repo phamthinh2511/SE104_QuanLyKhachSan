@@ -102,10 +102,9 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <ComboBox Style="{StaticResource ModernComboBox}" SelectedIndex="0">
-                                <ComboBoxItem Content="Nam"/>
-                                <ComboBoxItem Content="Nữ"/>
-                            </ComboBox>
+                            <ComboBox Style="{StaticResource ModernComboBox}"
+                                ItemsSource="{Binding ListGioiTinh}"
+                                SelectedItem="{Binding NewCustomer.GioiTinh}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
@@ -144,11 +143,11 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Ngày Nhận Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <DatePicker SelectedDate="{Binding CheckInDate}"/>
+                            <DatePicker SelectedDate="{Binding NgayCheckIn, Mode=TwoWay}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Ngày Trả Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <DatePicker SelectedDate="{Binding CheckOutDate}"/>
+                            <DatePicker SelectedDate="{Binding NgayCheckOut, Mode=TwoWay}"/>
                         </StackPanel>
                     </Grid>
 
@@ -161,13 +160,15 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Tầng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <ComboBox Style="{StaticResource ModernComboBox}" ItemsSource="{Binding ListTang}" SelectedItem="{Binding SelectedTang}" DisplayMemberPath="SoTang"/>
+                            <ComboBox Style="{StaticResource ModernComboBox}"
+                                ItemsSource="{Binding ListTang}"
+                                SelectedItem="{Binding SelectedTang}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Loại Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
                             <ComboBox Style="{StaticResource ModernComboBox}" ItemsSource="{Binding ListLoaiPhong}" SelectedItem="{Binding SelectedLoaiPhong}" DisplayMemberPath="TenLoaiPhong"/>
                         </StackPanel>
-                        <Button Grid.Column="3" Style="{StaticResource PrimaryButton}" Content="Tìm" VerticalAlignment="Bottom" Height="40" Command="{Binding SearchAvailableRoomsCommand}"/>
+                        <Button Grid.Column="3" Style="{StaticResource PrimaryButton}" Content="Tìm" VerticalAlignment="Bottom" Height="40" Command="{Binding SearchRoomsCommand}"/>
                     </Grid>
 
                     <Grid Grid.Row="3">
@@ -201,6 +202,6 @@
         <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" 
                 Content="XÁC NHẬN ĐẶT PHÒNG" Width="300" Height="50" FontSize="15" 
                 FontWeight="Bold" VerticalAlignment="Center" Margin="0,25,0,0" Background="#0F172A"
-                Command="{Binding ConfirmBookingCommand}"/>
+                Command="{Binding SaveCommand}"/>
     </Grid>
 </UserControl>

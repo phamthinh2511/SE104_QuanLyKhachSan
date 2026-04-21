@@ -1,26 +1,26 @@
 ﻿using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
-using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
 using QuanLyKhachSan_SE104.View.DatPhong;
-using System;
-using System.Collections.Generic;
+using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Linq;
+using System.Collections.Generic;
 
-// Alias tránh conflict tên DatPhong (namespace vs Model)
 using ModelDatPhong = QuanLyKhachSan_SE104.Model.DatPhong;
 
 namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 {
     public class DatPhongListViewModel : INotifyPropertyChanged
     {
-        // ── Data ──────────────────────────────────────────
-        private List<ModelDatPhong> _allDatPhong;
+        private List<ModelDatPhong> _allBookings;
+        private QuanLyKhachSanContext _context;
 
+        // 1. Khớp với ItemsSource="{Binding ListDatPhong}"
         private ObservableCollection<ModelDatPhong> _listDatPhong;
         public ObservableCollection<ModelDatPhong> ListDatPhong
         {
@@ -28,119 +28,125 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
             set { _listDatPhong = value; OnPropertyChanged(); }
         }
 
-        // ── Search ────────────────────────────────────────
+        // 2. Khớp với Text="{Binding SearchText}"
         private string _searchText;
         public string SearchText
         {
             get => _searchText;
-            set { _searchText = value; OnPropertyChanged(); ExecuteSearch(); }
+            set
+            {
+                _searchText = value;
+                OnPropertyChanged();
+                ExecuteSearch();
+            }
         }
 
-        // ── Commands ──────────────────────────────────────
-        public ICommand XemChiTietCommand { get; }
-        public ICommand XoaCommand { get; }
-        public ICommand DatPhongCommand { get; }
+        // 3. Khớp với các Command trong XAML
+        public ICommand DatPhongCommand { get; }    // Nút "Đặt phòng" màu xanh
+        public ICommand XemChiTietCommand { get; }  // Nút "..."
+        public ICommand XoaCommand { get; }         // Nút "✕"
 
         public DatPhongListViewModel()
         {
+            _context = new QuanLyKhachSanContext();
+
+            // Khởi tạo các Command với tên khớp XAML
+            DatPhongCommand = new RelayCommand<object>(OpenCreateBooking);
+            XemChiTietCommand = new RelayCommand<ModelDatPhong>(OpenBooking);
+            XoaCommand = new RelayCommand<ModelDatPhong>(DeleteBooking);
+
             LoadData();
+        }
 
-            // Mở popup chi tiết phiếu thuê
-            XemChiTietCommand = new RelayCommand<ModelDatPhong>(dp =>
-            {
-                if (dp == null) return;
-                var win = new ChiTietDatPhongWindow(dp);
-                win.ShowDialog();
-            });
+        private void LoadData()
+        {
+            // Sử dụng một context duy nhất hoặc khởi tạo mới tùy kiến trúc, 
+            // nhưng nên load đầy đủ Include để tránh lỗi Binding nested property (KhachHang.HoTen)
+            var data = _context.DatPhongs
+                .Include(x => x.KhachHang)
+                .Include(x => x.NhanVien)
+                .Include(x => x.ChiTietDatPhongs)
+                    .ThenInclude(ct => ct.Phong)
+                .ToList();
 
-            // Xóa phiếu thuê
-            XoaCommand = new RelayCommand<ModelDatPhong>(dp =>
-            {
-                if (dp == null) return;
-                var result = MessageBox.Show(
-                    $"Xác nhận xóa phiếu thuê #{dp.MaDatPhong}?",
-                    "Xác nhận xóa",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    _allDatPhong.Remove(dp);
-                    ExecuteSearch();
-                }
-            });
-
-            // Mở form đặt phòng mới
-            DatPhongCommand = new RelayCommand<object>(_ =>
-            {
-                var win = new Window
-                {
-                    Title = "Đặt Phòng",
-                    Height = 700,
-                    Width = 1100,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Owner = Application.Current.MainWindow,
-                    ResizeMode = ResizeMode.NoResize,
-                    Content = new DatPhongPage() 
-                };
-                win.ShowDialog();
-            });
+            _allBookings = data;
+            ListDatPhong = new ObservableCollection<ModelDatPhong>(_allBookings);
         }
 
         private void ExecuteSearch()
         {
             if (string.IsNullOrWhiteSpace(SearchText))
             {
-                ListDatPhong = new ObservableCollection<ModelDatPhong>(_allDatPhong);
+                ListDatPhong = new ObservableCollection<ModelDatPhong>(_allBookings);
                 return;
             }
 
-            var lower = SearchText.Trim().ToLower();
-            ListDatPhong = new ObservableCollection<ModelDatPhong>(
-                _allDatPhong.Where(dp =>
-                    dp.KhachHang?.HoTen?.ToLower().Contains(lower) == true)
-            );
+            var keyword = SearchText.ToLower();
+            var result = _allBookings.Where(x =>
+                x.MaDatPhong.ToString().Contains(keyword) ||
+                (x.KhachHang != null && x.KhachHang.HoTen.ToLower().Contains(keyword))
+            ).ToList();
+
+            ListDatPhong = new ObservableCollection<ModelDatPhong>(result);
         }
 
-        private void LoadData()
+        private void OpenBooking(ModelDatPhong booking)
         {
-            // TODO: Thay bằng load từ DB
-            _allDatPhong = new List<ModelDatPhong>
+            if (booking == null) return;
+
+            // Truyền booking sang Window chi tiết
+            var window = new ChiTietDatPhongWindow(booking);
+            window.ShowDialog();
+
+            LoadData(); // Load lại sau khi đóng popup nếu có sửa đổi
+        }
+
+        private void DeleteBooking(ModelDatPhong booking)
+        {
+            if (booking == null) return;
+
+            var confirm = MessageBox.Show(
+                $"Xóa phiếu #{booking.MaDatPhong}?",
+                "Xác nhận xóa",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (confirm == MessageBoxResult.Yes)
             {
-                new ModelDatPhong
+                try
                 {
-                    MaDatPhong = 20, NgayDat = new DateTime(2021,10,29),
-                    KhachHang = new KhachHang { HoTen = "Mai Thị G" },
-                    NhanVien  = new NhanVien  { HoTen = "Nguyễn Văn Duy" },
-                    ChiTietDatPhongs = new List<ChiTietDatPhong>
+                    var entity = _context.DatPhongs.Find(booking.MaDatPhong);
+                    if (entity != null)
                     {
-                        new ChiTietDatPhong { MaPhong=101, NgayCheckIn=new DateTime(2021,11,1), NgayCheckOut=new DateTime(2021,11,3) }
+                        _context.DatPhongs.Remove(entity);
+                        _context.SaveChanges();
+                        LoadData();
                     }
-                },
-                new ModelDatPhong
+                }
+                catch (System.Exception ex)
                 {
-                    MaDatPhong = 21, NgayDat = new DateTime(2021,10,29),
-                    KhachHang = new KhachHang { HoTen = "Nguyễn Việt Quang" },
-                    NhanVien  = new NhanVien  { HoTen = "Nguyễn Văn Duy" },
-                    ChiTietDatPhongs = new List<ChiTietDatPhong>()
-                },
-                new ModelDatPhong
-                {
-                    MaDatPhong = 22, NgayDat = new DateTime(2021,11,1),
-                    KhachHang = new KhachHang { HoTen = "Trần Hoàng Gia" },
-                    NhanVien  = new NhanVien  { HoTen = "Nguyễn Văn Duy" },
-                    ChiTietDatPhongs = new List<ChiTietDatPhong>
-                    {
-                        new ChiTietDatPhong { MaPhong=102, NgayCheckIn=new DateTime(2021,11,1), NgayCheckOut=new DateTime(2021,11,5) }
-                    }
-                },
+                    MessageBox.Show("Không thể xóa: " + ex.Message);
+                }
+            }
+        }
+
+        private void OpenCreateBooking(object obj)
+        {
+            var window = new Window
+            {
+                Title = "Đặt phòng mới",
+                Width = 1100,
+                Height = 700,
+                Content = new DatPhongPage(),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Application.Current.MainWindow
             };
 
-            ListDatPhong = new ObservableCollection<ModelDatPhong>(_allDatPhong);
+            window.ShowDialog();
+            LoadData();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string n = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
