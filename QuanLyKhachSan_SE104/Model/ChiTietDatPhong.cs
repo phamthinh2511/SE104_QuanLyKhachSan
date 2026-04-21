@@ -16,8 +16,6 @@ namespace QuanLyKhachSan_SE104.Model
         public DatPhong DatPhong { get; set; }
         public Phong Phong { get; set; }
 
-        public int SoNguoi { get; set; }
-
         public ICollection<ChiTietDichVu> ChiTietDichVus { get; set; }
     }
 }
