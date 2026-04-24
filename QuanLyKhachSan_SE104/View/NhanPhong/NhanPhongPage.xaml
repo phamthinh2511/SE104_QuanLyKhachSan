@@ -7,6 +7,10 @@
                  d:DesignHeight="600" d:DesignWidth="1000"
                  Background="{StaticResource BackgroundLightBrush}">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+    
     <Grid Margin="30">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -52,38 +56,29 @@
 
                                     <StackPanel Grid.Column="1" Margin="20,0,0,0">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding DatPhong.KhachHang.TenKhachHang}" 
-                                           FontWeight="Bold" FontSize="17" Foreground="{StaticResource PrimaryBrush}"/>
-
+                                            <TextBlock Text="{Binding TenKhachHang}" FontWeight="Bold" FontSize="17" Foreground="{StaticResource PrimaryBrush}"/>
                                             <Border Background="#DBEAFE" CornerRadius="6" Padding="8,2" Margin="12,0">
-                                                <TextBlock Text="{Binding Phong.LoaiPhong.TenLoaiPhong}" 
-                                               FontSize = "10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                                                <TextBlock Text="{Binding TenLoaiPhong}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
                                             </Border>
                                         </StackPanel>
 
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                             <TextBlock Text="Số phòng: " Foreground="{StaticResource SecondaryBrush}"/>
-                                            <TextBlock Text="{Binding Phong.TenPhong}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}"/>
-
+                                            <TextBlock Text="{Binding TenPhong}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}"/>
                                             <TextBlock Text="  •  " Foreground="#CBD5E1"/>
-
                                             <TextBlock Text="Ngày nhận: " Foreground="{StaticResource SecondaryBrush}"/>
-                                            <TextBlock Text="{Binding NgayCheckIn, StringFormat='dd/MM/yyyy HH:mm'}" Foreground="{StaticResource SecondaryBrush}"/>
-
+                                            <TextBlock Text="{Binding NgayCheckInDuKien, StringFormat='dd/MM/yyyy HH:mm'}" Foreground="{StaticResource SecondaryBrush}"/>
                                             <TextBlock Text="  •  " Foreground="#CBD5E1"/>
                                             <TextBlock Text="Tiền cọc: " Foreground="{StaticResource SecondaryBrush}"/>
-                                            <TextBlock Text="{Binding DatPhong.TienCoc, StringFormat='{}{0:#,0} VNĐ'}" FontWeight="SemiBold" Foreground="#16A34A"/>
+                                            <TextBlock Text="{Binding TienCoc, StringFormat='{}{0:#,0} VNĐ'}" FontWeight="SemiBold" Foreground="#16A34A"/>
                                         </StackPanel>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                         <!-- Nút Chi tiết -->
-                                        <Button Content="Chi tiết"
-                                            Width="90" Height="42"
-                                            Margin="0,0,10,0"
-                                            Cursor="Hand"
-                                            Tag="{Binding}"
-                                            Click="ShowChiTiet_Click">          
+                                        <Button Content="Chi tiết" Width="90" Height="42" Margin="0,0,10,0" Cursor="Hand"
+                                            Command="{Binding DataContext.ShowChiTietCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}">                                            
                                             <Button.Template>
                                                 <ControlTemplate TargetType="Button">
                                                     <Border x:Name="bd" CornerRadius="8" Background="#E2E8F0">
@@ -99,10 +94,9 @@
                                         </Button>
 
                                         <!-- Nút Nhận Phòng giữ nguyên -->
-                                        <Button Content="Nhận Phòng" Style="{StaticResource PrimaryButton}" 
-                                            Width="130" Height="42" 
-                                            Click="ShowPopup_Click" 
-                                            Tag="{Binding MaChiTietDatPhong}"/>
+                                        <Button Content="Nhận Phòng" Style="{StaticResource PrimaryButton}" Width="130" Height="42" 
+                                            Command="{Binding DataContext.ShowCheckInPopupCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -112,8 +106,14 @@
             </ScrollViewer>
         </Border>
 
-        <Grid x:Name="PopupOverlay" Grid.RowSpan="2" Visibility="Collapsed" Margin="15">
-            <Border Style="{StaticResource PopupOverlayStyle}" MouseDown="ClosePopup_Click"/>
+        <Grid x:Name="PopupOverlay" Grid.RowSpan="2" Margin="15"
+            Visibility="{Binding IsCheckInPopupVisible, Converter={StaticResource BoolToVis}}">
+
+            <Border Style="{StaticResource PopupOverlayStyle}">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick" Command="{Binding ClosePopupCommand}" />
+                </Border.InputBindings>
+            </Border>
 
             <Border Width="400" Style="{StaticResource PopupContentBorderStyle}">
                 <StackPanel>
@@ -122,21 +122,75 @@
                        Foreground="{StaticResource SecondaryBrush}" Margin="0,5,0,25" TextWrapping="Wrap"/>
 
                     <TextBlock Text="Số người thực tế" Margin="0,0,0,6" Foreground="{StaticResource SecondaryBrush}" FontSize="13"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="2" Margin="0,0,0,20"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Margin="0,0,0,20"
+                        Text="{Binding SoNguoiThucTe, UpdateSourceTrigger=PropertyChanged}" />
 
                     <TextBlock Text="Giấy tờ tùy thân (CCCD/Passport)" Margin="0,0,0,6" Foreground="{StaticResource SecondaryBrush}" FontSize="13"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Tag="Nhập số CCCD..." Margin="0,0,0,25"/>
-
+                    <TextBox Style="{StaticResource ModernTextBox}" Tag="Nhập số CCCD..." Margin="0,0,0,25"
+                        Text="{Binding CccdThucTe, UpdateSourceTrigger=PropertyChanged}" />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Button Content="Bỏ qua" Background="Transparent" Foreground="{StaticResource SecondaryBrush}" 
-                        BorderThickness="0" Click="ClosePopup_Click" Cursor="Hand"/>
+                            BorderThickness="0" Cursor="Hand"
+                            Command="{Binding ClosePopupCommand}"/>
                         <Button Grid.Column="1" Content="Hoàn Tất" Style="{StaticResource PrimaryButton}" 
-                        Background="{StaticResource PrimaryBrush}" Height="45"/>
+                            Background="{StaticResource PrimaryBrush}" Height="45"
+                            Command="{Binding ConfirmCheckInCommand}"/>
                     </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+        <Grid x:Name="PopupChiTietOverlay" Grid.RowSpan="2" 
+      Visibility="{Binding IsDetailPopupVisible, Converter={StaticResource BoolToVis}}" 
+      Margin="15">
+
+            <Border Style="{StaticResource PopupOverlayStyle}">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick" Command="{Binding ClosePopupCommand}" />
+                </Border.InputBindings>
+            </Border>
+
+            <Border Width="500" Style="{StaticResource PopupContentBorderStyle}">
+                <StackPanel>
+                    <TextBlock Text="Chi Tiết Phiếu Đặt Phòng" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="35"/>
+                            <RowDefinition Height="35"/>
+                            <RowDefinition Height="35"/>
+                            <RowDefinition Height="35"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Khách hàng:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding SelectedBooking.TenKhachHang}" Margin="15,0,0,0" VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Row="1" Text="Loại phòng:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedBooking.TenLoaiPhong}" Margin="15,0,0,0" VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Row="2" Text="Phòng sắp xếp:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedBooking.TenPhong}" Margin="15,0,0,0" VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Row="3" Text="Ngày đặt vào:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedBooking.NgayCheckInDuKien, StringFormat='dd/MM/yyyy HH:mm'}" Margin="15,0,0,0" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Button Content="Đóng" Background="#64748B" Foreground="White" 
+                    Height="40" Width="120" HorizontalAlignment="Right" Cursor="Hand"
+                    Command="{Binding ClosePopupCommand}">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                 </StackPanel>
             </Border>
         </Grid>
