@@ -52,7 +52,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 
             // Khởi tạo các Command với tên khớp XAML
             DatPhongCommand = new RelayCommand<object>(OpenCreateBooking);
-            XemChiTietCommand = new RelayCommand<ModelDatPhong>(OpenBooking);
+            //XemChiTietCommand = new RelayCommand<ModelDatPhong>(OpenBooking);
             XoaCommand = new RelayCommand<ModelDatPhong>(DeleteBooking);
 
             LoadData();
@@ -90,16 +90,16 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
             ListDatPhong = new ObservableCollection<ModelDatPhong>(result);
         }
 
-        private void OpenBooking(ModelDatPhong booking)
-        {
-            if (booking == null) return;
+        //private void OpenBooking(ModelDatPhong booking)
+        //{
+        //    if (booking == null) return;
 
-            // Truyền booking sang Window chi tiết
-            var window = new ChiTietDatPhongWindow(booking);
-            window.ShowDialog();
+        //    // Truyền booking sang Window chi tiết
+        //    var window = new ChiTietDatPhongWindow(booking);
+        //    window.ShowDialog();
 
-            LoadData(); // Load lại sau khi đóng popup nếu có sửa đổi
-        }
+        //    LoadData(); // Load lại sau khi đóng popup nếu có sửa đổi
+        //}
 
         private void DeleteBooking(ModelDatPhong booking)
         {
