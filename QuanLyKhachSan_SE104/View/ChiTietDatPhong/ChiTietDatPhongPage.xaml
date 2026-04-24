@@ -166,7 +166,7 @@
 
                                         <!-- Tên khách -->
                                         <TextBlock Grid.Column="1"
-                                                   Text="{Binding KhachHang.HoTen}"
+                                                   Text="{Binding TenKhachHang}"
                                                    FontSize="13" Foreground="#374151"
                                                    VerticalAlignment="Center"
                                                    HorizontalAlignment="Center"/>
@@ -180,7 +180,7 @@
 
                                         <!-- Nhân viên -->
                                         <TextBlock Grid.Column="3"
-                                                   Text="{Binding NhanVien.HoTen}"
+                                                   Text="{Binding TenNhanVien}"
                                                    FontSize="13" Foreground="#374151"
                                                    VerticalAlignment="Center"
                                                    HorizontalAlignment="Center"/>
