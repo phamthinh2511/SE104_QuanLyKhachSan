@@ -172,11 +172,15 @@
                     </Grid>
 
                     <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="220" />
+                        </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Phòng trống khả dụng:" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Column="0" Text="Phòng trống khả dụng:" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
 
                         <Border Grid.Row="1" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC">
                             <ListBox Background="Transparent"
@@ -192,6 +196,26 @@
                                         <WrapPanel Margin="10,10,0,0"/>
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
+                            </ListBox>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Phòng đã chọn:" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
+                        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC">
+                            <ListBox ItemsSource="{Binding SelectedRoomsList}" BorderThickness="0" Background="Transparent">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding RoomName}" FontWeight="Medium" Foreground="#1E293B"/>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <TextBox Text="{Binding Capacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" Height="25" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="0" Foreground="#64748B"/>
+                                                <TextBlock Text=" người" Foreground="#64748B" FontSize="11" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
                             </ListBox>
                         </Border>
                     </Grid>
