@@ -9,9 +9,8 @@ namespace QuanLyKhachSan_SE104.View.DichVu
         {
             InitializeComponent();
             var vm = new DichVuViewModel();
-            // Gán CloseAction để ViewModel có thể đóng Window
             vm.CloseAction = () => this.Close();
-            this.DataContext = vm;
+            DataContext = vm;
         }
     }
 }
