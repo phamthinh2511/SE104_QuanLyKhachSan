@@ -12,17 +12,6 @@ using QuanLyKhachSan_SE104.Utilities;
 
 namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 {
-    // VM for DatPhongPage.xaml
-    // Bindings:
-    //   NewCustomer.HoTen / .GioiTinh / .QuocTich / .CCCD_Passport / .SDT / .DiaChi
-    //   NgayCheckIn, NgayCheckOut
-    //   ListGioiTinh, ListTang, ListLoaiPhong
-    //   SelectedTang, SelectedLoaiPhong
-    //   SearchRoomsCommand
-    //   AvailableRooms (card list)
-    //   SelectedRoom
-    //   SelectedRoomsList  → RoomName, Capacity
-    //   SaveCommand
     public class DatPhongViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -81,24 +70,26 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
             set { _availableRooms = value; OnPropertyChanged(); }
         }
 
-        // ── Single selected room (ListBox SelectedItem) ───────────
+        // ── SelectedRoom ─────────────────────────────────────────
+        // Never set this to null inside SyncSelectedRoomsList.
+        // CanExecuteSave depends on SelectedRoomsList.Count, not this property.
+        // Single-click adds the room to the right panel list.
         private Phong _selectedRoom;
         public Phong SelectedRoom
         {
             get => _selectedRoom;
             set
             {
+                if (_selectedRoom == value) return;
                 _selectedRoom = value;
                 OnPropertyChanged();
-                // Keep SelectedRoomsList in sync
-                SyncSelectedRoomsList();
-                //((RelayCommand)SaveCommand).RaiseCanExecuteChanged();
+                if (_selectedRoom != null)
+                    AddRoomToList(_selectedRoom);
                 CommandManager.InvalidateRequerySuggested();
             }
         }
 
         // ── Selected rooms list (right panel) ────────────────────
-        // Binding: SelectedRoomsList → RoomName, Capacity (TwoWay)
         private ObservableCollection<SelectedRoomItem> _selectedRoomsList = new();
         public ObservableCollection<SelectedRoomItem> SelectedRoomsList
         {
@@ -110,6 +101,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
         public ICommand SearchRoomsCommand { get; }
         public ICommand SaveCommand { get; }
 
+        // Dedicated command for double-click toggle.
+        // Receives the card's Phong as CommandParameter so it always
+        // knows exactly which room was double-clicked — no confusion
+        // between room A and room B.
+        public ICommand ToggleRoomCommand { get; }
+
         public DatPhongViewModel()
         {
             _context = new QuanLyKhachSanContext();
@@ -119,6 +116,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 
             SearchRoomsCommand = new RelayCommand(ExecuteSearchRooms);
             SaveCommand = new RelayCommand(ExecuteSave, CanExecuteSave);
+            ToggleRoomCommand = new RelayCommand<Phong>(ExecuteToggleRoom);
         }
 
         private void LoadInitialData()
@@ -166,8 +164,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 
                 var result = query.ToList();
                 AvailableRooms.Clear();
+                SelectedRoomsList.Clear();
+                _selectedRoom = null;
+                OnPropertyChanged(nameof(SelectedRoom));
+
                 foreach (var r in result)
                     AvailableRooms.Add(r);
+
+                CommandManager.InvalidateRequerySuggested();
             }
             catch (Exception ex)
             {
@@ -175,35 +179,74 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
             }
         }
 
-        // Keep the right-panel list in sync whenever SelectedRoom changes.
-        // Currently DatPhongPage.xaml supports selecting one room at a time via ListBox.
-        // The right panel (SelectedRoomsList) shows that one room with an editable Capacity.
-        private void SyncSelectedRoomsList()
+        // Single-click: add to right panel only if not already there.
+        private void AddRoomToList(Phong phong)
         {
-            SelectedRoomsList.Clear();
-            if (_selectedRoom == null) return;
-
-            SelectedRoomsList.Add(new SelectedRoomItem
+            if (!SelectedRoomsList.Any(x => x.MaPhong == phong.MaPhong))
             {
-                MaPhong = _selectedRoom.MaPhong,
-                RoomName = _selectedRoom.TenPhong,
-                Capacity = 1   // default; user can edit in the right panel TextBox
-            });
+                SelectedRoomsList.Add(new SelectedRoomItem
+                {
+                    MaPhong = phong.MaPhong,
+                    RoomName = phong.TenPhong,
+                    Capacity = 1
+                });
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
 
+        // Double-click: remove if present, add if not.
+        // CommandParameter = the Phong bound to the card → always the correct room.
+        private void ExecuteToggleRoom(Phong phong)
+        {
+            if (phong == null) return;
+
+            var existing = SelectedRoomsList.FirstOrDefault(x => x.MaPhong == phong.MaPhong);
+            if (existing != null)
+            {
+                SelectedRoomsList.Remove(existing);
+
+                // Clear ListBox selection if we just removed the selected card
+                if (_selectedRoom?.MaPhong == phong.MaPhong)
+                {
+                    _selectedRoom = null;
+                    OnPropertyChanged(nameof(SelectedRoom));
+                }
+            }
+            else
+            {
+                AddRoomToList(phong);
+            }
+
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        // Check SelectedRoomsList.Count instead of SelectedRoom != null.
+        // SelectedRoom can legitimately be null (e.g. after a search reset) even
+        // when rooms are in the right panel — using Count is the correct guard.
         private bool CanExecuteSave()
-            => SelectedRoom != null && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
+            => SelectedRoomsList.Count > 0 && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
 
         private void ExecuteSave()
         {
+            foreach (var item in SelectedRoomsList)
+            {
+                var phong = _context.Phongs.Include(p => p.LoaiPhong)
+                                    .FirstOrDefault(p => p.MaPhong == item.MaPhong);
+                if (phong != null && item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
+                {
+                    MessageBox.Show(
+                        $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người. Vui lòng chỉnh lại!",
+                        "Lỗi nhập liệu");
+                    return;
+                }
+            }
+
             using var transaction = _context.Database.BeginTransaction();
             try
             {
-                // 1. Save customer
                 _context.KhachHangs.Add(NewCustomer);
                 _context.SaveChanges();
 
-                // 2. Create booking header
                 var booking = new Model.DatPhong
                 {
                     MaKhachHang = NewCustomer.MaKhachHang,
@@ -215,11 +258,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
                 _context.DatPhongs.Add(booking);
                 _context.SaveChanges();
 
-                // 3. Create detail rows for all selected rooms
                 foreach (var roomItem in SelectedRoomsList)
                 {
                     var phong = AvailableRooms.First(r => r.MaPhong == roomItem.MaPhong);
-                    var detail = new QuanLyKhachSan_SE104.Model.ChiTietDatPhong
+                    _context.ChiTietDatPhongs.Add(new QuanLyKhachSan_SE104.Model.ChiTietDatPhong
                     {
                         MaDatPhong = booking.MaDatPhong,
                         MaPhong = roomItem.MaPhong,
@@ -227,14 +269,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
                         NgayCheckOut = NgayCheckOut,
                         GiaDat = phong.LoaiPhong.GiaMacDinh,
                         SoNguoi = roomItem.Capacity
-                    };
-                    _context.ChiTietDatPhongs.Add(detail);
+                    });
                 }
 
                 _context.SaveChanges();
                 transaction.Commit();
 
-                MessageBox.Show($"Đặt phòng {SelectedRoom.TenPhong} thành công!", "Thông báo");
+                var roomNames = string.Join(", ", SelectedRoomsList.Select(r => r.RoomName));
+                MessageBox.Show($"Đặt phòng thành công: {roomNames}", "Thông báo");
                 ResetForm();
             }
             catch (Exception ex)
@@ -249,7 +291,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
             NewCustomer = new KhachHang();
             AvailableRooms.Clear();
             SelectedRoomsList.Clear();
-            SelectedRoom = null;
+            _selectedRoom = null;
+            OnPropertyChanged(nameof(SelectedRoom));
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 }

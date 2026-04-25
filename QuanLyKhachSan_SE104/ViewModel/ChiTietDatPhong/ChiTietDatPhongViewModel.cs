@@ -62,7 +62,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhong
             LoadData();
         }
 
-        private void LoadData()
+        public void LoadData()
         {
             try
             {

@@ -30,7 +30,7 @@ namespace QuanLyKhachSan_SE104.View.ChiTietDatPhong
             vm.NavigateToDatPhong += () =>
             {
                 // 1. Tạo một "cái vỏ" Window trực tiếp bằng code
-                Window popupWindow = new Window
+                var popupWindow = new Window
                 {
                     Title = "Thông Tin Đặt Phòng",
                     Width = 1100,
@@ -43,6 +43,9 @@ namespace QuanLyKhachSan_SE104.View.ChiTietDatPhong
 
                 // 3. Hiển thị nó lên
                 popupWindow.ShowDialog();
+                // after the popup closes. Reload so the new booking appears
+                // immediately without restarting the app.
+                vm.LoadData();
             };
 
             // 2. Lắng nghe sự kiện mở cửa sổ Chi Tiết
