@@ -20,9 +20,18 @@ namespace QuanLyKhachSan_SE104.View.DatPhong
     {
         public DatPhongPage()
         {
-            InitializeComponent(); 
+            InitializeComponent();
 
-            this.DataContext = new DatPhongViewModel();
+            var vm = new DatPhongViewModel();
+            this.DataContext = vm;
+
+            // Wire CloseAction now that we have the VM directly —
+            // no need to wait for the Loaded event anymore.
+            vm.CloseAction = () =>
+            {
+                Window parentWindow = Window.GetWindow(this);
+                parentWindow?.Close();
+            };
         }
 
         private void RoomItem_Click(object sender, MouseButtonEventArgs e)
