@@ -17,6 +17,12 @@
                     BorderBrush="#E2E8F0"
                     BorderThickness="1"
                     Cursor="Hand">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftDoubleClick"
+                          Command="{Binding DataContext.ToggleRoomCommand, 
+                                    RelativeSource={RelativeSource AncestorType=ListBox}}"
+                          CommandParameter="{Binding}"/>
+                </Border.InputBindings>
                 <Grid Margin="15">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
