@@ -7,7 +7,7 @@ namespace QuanLyKhachSan_SE104.Model
         [Key]
         public int MaKhachHang { get; set; }
         public string HoTen { get; set; }
-        public bool GioiTinh { get; set; } // 0 = Nam, 1 = Nữ
+        public string GioiTinh { get; set; }
         public string QuocTich { get; set; }
         public string CCCD_Passport { get; set; }
         public string SDT { get; set; }

@@ -100,6 +100,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
         // ── Commands ──────────────────────────────────────────────
         public ICommand SearchRoomsCommand { get; }
         public ICommand SaveCommand { get; }
+        public Action CloseAction { get; set; }
 
         // Dedicated command for double-click toggle.
         // Receives the card's Phong as CommandParameter so it always
@@ -122,7 +123,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
         private void LoadInitialData()
         {
             try
-            {
+             {
                 var tangs = _context.Phongs
                     .Select(p => p.SoTang)
                     .Distinct()
@@ -277,7 +278,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 
                 var roomNames = string.Join(", ", SelectedRoomsList.Select(r => r.RoomName));
                 MessageBox.Show($"Đặt phòng thành công: {roomNames}", "Thông báo");
-                ResetForm();
+                // gọi action để đóng cửa sổ sau khi lưu thành công
+                CloseAction?.Invoke();
             }
             catch (Exception ex)
             {
@@ -288,7 +290,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
 
         private void ResetForm()
         {
-            NewCustomer = new KhachHang();
+            NewCustomer = new KhachHang { GioiTinh = "Nam" };
             AvailableRooms.Clear();
             SelectedRoomsList.Clear();
             _selectedRoom = null;

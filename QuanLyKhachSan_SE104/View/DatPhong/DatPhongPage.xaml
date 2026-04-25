@@ -110,7 +110,8 @@
                             <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
                             <ComboBox Style="{StaticResource ModernComboBox}"
                                 ItemsSource="{Binding ListGioiTinh}"
-                                SelectedItem="{Binding NewCustomer.GioiTinh}"/>
+                                SelectedItem="{Binding NewCustomer.GioiTinh}"
+                                Validation.ErrorTemplate="{x:Null}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
