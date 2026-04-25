@@ -12,6 +12,7 @@ using QuanLyKhachSan_SE104.View.PhongView;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
 using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
+using QuanLyKhachSan_SE104.View.DanhMuc;
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -112,14 +113,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
 
             Pages.Add(new NavigationItem
             {
-                Icon = "📓",
-                Title = "Yêu cầu dịch vụ",
-                BadgeCount = 5,   // 5 yêu cầu chưa xử lý
-                PageContent = new SuDungDichVuPage()
-            });
-
-            Pages.Add(new NavigationItem
-            {
                 Icon = "💰",
                 Title = "Hóa Đơn",
                 BadgeCount = 0,
@@ -139,6 +132,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 Title = "Báo Cáo",
                 BadgeCount = 1,   // 1 cập nhật mới
                 PageContent = new BaoCaoPage()
+            });
+            Pages.Add(new NavigationItem
+            {
+                Icon = "📋",
+                Title = "Danh Mục",
+                BadgeCount = 1,   // 1 cập nhật mới
+                PageContent = new QuanLyKhachSan_SE104.View.DanhMuc.DanhMuc()
             });
 
             // Chọn trang đầu tiên mặc định

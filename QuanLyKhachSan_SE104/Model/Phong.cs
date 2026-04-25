@@ -22,6 +22,8 @@ namespace QuanLyKhachSan_SE104.Model
 
         public LoaiPhong LoaiPhong { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
         public ICollection<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
     }
 }

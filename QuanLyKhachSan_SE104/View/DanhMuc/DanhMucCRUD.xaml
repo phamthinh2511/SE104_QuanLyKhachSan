@@ -1,0 +1,379 @@
+﻿<Window x:Class="QuanLyKhachSan_SE104.View.DanhMuc.DanhMucCRUD"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thêm / Sửa"
+        Height="520" Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style x:Key="FormActionButton" TargetType="Button">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="10"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FormLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style x:Key="FormField" TargetType="TextBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd" CornerRadius="8"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="bd" Property="BorderThickness" Value="1.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FormComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton IsChecked="{Binding IsDropDownOpen, Mode=TwoWay,
+                                          RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bd" CornerRadius="8"
+                                                Background="White"
+                                                BorderBrush="#E2E8F0"
+                                                BorderThickness="1">
+                                            <Grid Margin="12,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="20"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ContentPresenter Grid.Column="0"
+                                                    Content="{Binding SelectionBoxItem,
+                                                    RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                    VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="▾"
+                                                           Foreground="#94A3B8"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup IsOpen="{Binding IsDropDownOpen,
+                                   RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Bottom" AllowsTransparency="True">
+                                <Border Background="White" CornerRadius="8"
+                                        BorderBrush="#E2E8F0" BorderThickness="1"
+                                        Margin="0,4,0,0"
+                                        MinWidth="{Binding ActualWidth,
+                                        RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ItemsPresenter/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="20" Background="White" Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.18"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="70"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER -->
+            <Border Grid.Row="0" CornerRadius="20,20,0,0" Background="#1E293B">
+                <Grid Margin="24,0">
+                    <TextBlock Text="{Binding TieuDe}"
+                               FontSize="18" FontWeight="Bold" Foreground="White"
+                               VerticalAlignment="Center"/>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Width="32" Height="32"
+                            Command="{Binding ThoatCommand}"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="bd" CornerRadius="16" Background="Transparent">
+                                    <TextBlock Text="✕" FontSize="14" FontWeight="Bold"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#FFFFFF22"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- BODY — form fields -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,20">
+                <StackPanel>
+
+                    <!-- ══ LOẠI PHÒNG ══ -->
+                    <StackPanel Visibility="{Binding IsLoaiPhong,
+                                Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource FormLabel}" Text="Tên loại phòng *"/>
+                        <TextBox Style="{StaticResource FormField}"
+                                 Text="{Binding TenLoaiPhong, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,16"/>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Giá mặc định (₫) *"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding GiaMacDinh, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Phụ phí thêm giờ (₫)"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding PhuPhiThemGio, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Số giường"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding SoGiuong, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Sức chứa tối đa"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding SoNguoiToiDa, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- ══ PHÒNG ══ -->
+                    <StackPanel Visibility="{Binding IsPhong,
+                                Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource FormLabel}" Text="Tên phòng *"/>
+                        <TextBox Style="{StaticResource FormField}"
+                                 Text="{Binding TenPhong, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,16"/>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Loại phòng *"/>
+                                <ComboBox Style="{StaticResource FormComboBox}"
+                                          ItemsSource="{Binding DanhSachLoaiPhong}"
+                                          SelectedValue="{Binding MaLoaiPhong}"
+                                          SelectedValuePath="MaLoaiPhong"
+                                          DisplayMemberPath="TenLoaiPhong"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Tầng"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding SoTang, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- ══ DỊCH VỤ ══ -->
+                    <StackPanel Visibility="{Binding IsDichVu,
+                                Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource FormLabel}" Text="Tên dịch vụ *"/>
+                        <TextBox Style="{StaticResource FormField}"
+                                 Text="{Binding TenDichVu, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,16"/>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Loại dịch vụ"/>
+                                <ComboBox Style="{StaticResource FormComboBox}"
+                                          SelectedIndex="{Binding LoaiDichVu}">
+                                    <ComboBoxItem Content="Thức ăn"/>
+                                    <ComboBoxItem Content="Đồ uống"/>
+                                    <ComboBoxItem Content="Giặt ủi"/>
+                                    <ComboBoxItem Content="Khác"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Đơn giá (₫) *"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding DonGia, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource FormLabel}" Text="Mô tả"/>
+                        <TextBox Style="{StaticResource FormField}"
+                                 Text="{Binding MoTa, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="80"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 VerticalContentAlignment="Top"
+                                 Padding="12,10"/>
+                    </StackPanel>
+
+                    <!-- ══ KHÁCH HÀNG ══ -->
+                    <StackPanel Visibility="{Binding IsKhachHang,
+                                Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource FormLabel}" Text="Họ tên *"/>
+                        <TextBox Style="{StaticResource FormField}"
+                                 Text="{Binding HoTen, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,16"/>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Giới tính"/>
+                                <ComboBox Style="{StaticResource FormComboBox}"
+                                          SelectedIndex="{Binding GioiTinh}">
+                                    <ComboBoxItem Content="Nam"/>
+                                    <ComboBoxItem Content="Nữ"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Quốc tịch"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding QuocTich, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="CCCD / Passport *"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding CCCD_Passport, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Số điện thoại"/>
+                                <TextBox Style="{StaticResource FormField}"
+                                         Text="{Binding SDT, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource FormLabel}" Text="Địa chỉ"/>
+                        <TextBox Style="{StaticResource FormField}"
+                                 Text="{Binding DiaChi, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- FOOTER -->
+            <Border Grid.Row="2" CornerRadius="0,0,20,20"
+                    Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Style="{StaticResource FormActionButton}"
+                            Background="#1E293B" Foreground="White"
+                            Content="{Binding NhanLuu}"
+                            Command="{Binding LuuCommand}"
+                            Margin="0,0,12,0"/>
+                    <Button Style="{StaticResource FormActionButton}"
+                            Background="#F1F5F9" Foreground="#64748B"
+                            Content="Hủy"
+                            Command="{Binding ThoatCommand}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
