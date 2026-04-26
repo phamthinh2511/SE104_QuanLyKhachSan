@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +23,7 @@ namespace QuanLyKhachSan_SE104.View.KhachHang
         public KhachHangPage()
         {
             InitializeComponent();
+            this.DataContext = new ViewModel.KhachHangVM.KhachHangViewModel();
         }
     }
 }
