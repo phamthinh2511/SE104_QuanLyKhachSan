@@ -134,8 +134,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
             set { _hoTen = value; OnPropertyChanged(); }
         }
 
-        private int _gioiTinh;
-        public int GioiTinh
+        private string _gioiTinh;
+        public string GioiTinh
         {
             get => _gioiTinh;
             set { _gioiTinh = value; OnPropertyChanged(); }
@@ -265,7 +265,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
             NhanLuu = "💾  Lưu thay đổi";
 
             HoTen = item.HoTen;
-            GioiTinh = item.GioiTinh ? 1 : 0;
+            GioiTinh = item.GioiTinh;
             QuocTich = item.QuocTich;
             CCCD_Passport = item.CCCD_Passport;
             SDT = item.SDT;
@@ -404,7 +404,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
                             if (e != null)
                             {
                                 e.HoTen = HoTen;
-                                e.GioiTinh = GioiTinh == 1;
+                                e.GioiTinh = GioiTinh;
                                 e.QuocTich = QuocTich;
                                 e.CCCD_Passport = CCCD_Passport;
                                 e.SDT = SDT;
@@ -425,7 +425,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
                             var newItem = new KhachHang
                             {
                                 HoTen = HoTen,
-                                GioiTinh = GioiTinh == 1,
+                                GioiTinh = GioiTinh,
                                 QuocTich = QuocTich,
                                 CCCD_Passport = CCCD_Passport,
                                 SDT = SDT,
