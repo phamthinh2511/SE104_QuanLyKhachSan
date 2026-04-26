@@ -277,161 +277,28 @@
 
     <DataTemplate x:Key="RoomCardTemplate" DataType="{x:Type model:Phong}">
         <Border x:Name="RoomCard" Width="200" Height="160" Margin="0,0,15,15"
-            CornerRadius="12" Background="White" BorderThickness="1" BorderBrush="#E2E8F0"
-            Cursor="Hand"
-            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+        CornerRadius="12" Background="White" BorderThickness="1" BorderBrush="#E2E8F0"
+        Cursor="Hand">
+            <Border.InputBindings>
+                <MouseBinding MouseAction="LeftClick"
+                  Command="{Binding DataContext.MoChiTietPhongCommand,
+                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                  CommandParameter="{Binding}"/>
+            </Border.InputBindings>
 
-            <!--
-            FIX QUAN TRỌNG: ContextMenu nằm ngoài Visual Tree nên KHÔNG thể dùng
-            RelativeSource AncestorType=ItemsControl.
-            Giải pháp: Dùng Tag của Border để truyền DataContext (ViewModel) vào,
-            rồi bind Command qua PlacementTarget.Tag trong ContextMenu.
-        -->
-            
-            <Border.ContextMenu>
-                <ContextMenu Utilities:PhongContextMenuHelper.DataContextProxy=
-                             "{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
-
-                    <!-- ══ PHÒNG TRỐNG (TrangThai == 0) ══ -->
-                    <MenuItem Header="🛎️  Check-in khách lẻ"
-                          Command="{Binding CheckInCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="0">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                    <MenuItem Header="🧹  Đổi trạng thái dọn dẹp"
-                          Command="{Binding DoiTrangThaiDonDepCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="0">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                    <!-- ══ PHÒNG ĐÃ ĐẶT (TrangThai == 1) ══ -->
-                    <MenuItem Header="✅  Check-in cho khách đã đặt"
-                          Command="{Binding CheckInCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="1">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                    <MenuItem Header="❌  Hủy đặt phòng"
-                          Foreground="Red"
-                          Command="{Binding HuyDatPhongCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="1">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                    <!-- ══ PHÒNG ĐANG Ở (TrangThai == 2) ══ -->
-                    <MenuItem Header="☕  Thêm dịch vụ"
-                          Command="{Binding AddServiceCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="2">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                    <MenuItem Header="🔄  Đổi phòng"
-                          Command="{Binding DoiPhongCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="2">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                    <MenuItem Header="📤  Check-out" FontWeight="Bold"
-                          Command="{Binding CheckOutCommand}"
-                          CommandParameter="{Binding PlacementTarget.DataContext, 
-                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                        <MenuItem.Style>
-                            <Style TargetType="MenuItem">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.TrangThai,
-                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="2">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </MenuItem.Style>
-                    </MenuItem>
-
-                </ContextMenu>
-            </Border.ContextMenu>
-
-            <!-- Phần còn lại của card giữ nguyên -->
             <Grid>
                 <Border x:Name="StatusSideBar" Width="6" HorizontalAlignment="Left" CornerRadius="12,0,0,12"/>
                 <Button Panel.ZIndex="10"
-                        HorizontalAlignment="Right" 
-                        VerticalAlignment="Top"
-                        Margin="0,8,8,0"
-                        Width="30" Height="30"
-                        Cursor="Hand"
-                        ToolTip="Chỉnh sửa thông tin phòng"
-                        Command="{Binding DataContext.EditRoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                        CommandParameter="{Binding}"
-                        Background="Transparent" 
-                        BorderThickness="0">
+                    HorizontalAlignment="Right" 
+                    VerticalAlignment="Top"
+                    Margin="0,8,8,0"
+                    Width="30" Height="30"
+                    Cursor="Hand"
+                    ToolTip="Chỉnh sửa thông tin phòng"
+                    Command="{Binding DataContext.EditRoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                    CommandParameter="{Binding}"
+                    Background="Transparent" 
+                    BorderThickness="0">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Opacity" Value="0.6"/>
@@ -455,35 +322,35 @@
 
                     <DockPanel Grid.Row="0" LastChildFill="False">
                         <TextBlock Text="{Binding TenPhong}" FontSize="22" FontWeight="Bold" 
-                               Foreground="#1E293B" DockPanel.Dock="Left"/>
+                           Foreground="#1E293B" DockPanel.Dock="Left"/>
                         <TextBlock Text="🛏️" FontSize="18" Foreground="#94A3B8" 
-                               DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                           DockPanel.Dock="Right" VerticalAlignment="Center"/>
                     </DockPanel>
 
                     <TextBlock Grid.Row="1" Text="{Binding LoaiPhong.TenLoaiPhong}" 
-                           Foreground="#64748B" FontSize="11" Margin="0,2,0,0"/>
+                       Foreground="#64748B" FontSize="11" Margin="0,2,0,0"/>
 
                     <StackPanel Grid.Row="2" VerticalAlignment="Center" Margin="0,8,0,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="GuestName" Text="Trống" FontSize="13" 
-                                   Foreground="#94A3B8" FontStyle="Italic" TextTrimming="CharacterEllipsis"/>
+                               Foreground="#94A3B8" FontStyle="Italic" TextTrimming="CharacterEllipsis"/>
                             <TextBlock x:Name="GuestSeparator" Text=" - " FontSize="13" 
-                                   Foreground="#94A3B8" FontStyle="Italic" Visibility="Collapsed"/>
+                               Foreground="#94A3B8" FontStyle="Italic" Visibility="Collapsed"/>
                             <TextBlock x:Name="CheckoutTime" Text="" FontSize="13" 
-                                   Foreground="#94A3B8" FontStyle="Italic"/>
+                               Foreground="#94A3B8" FontStyle="Italic"/>
                         </StackPanel>
                     </StackPanel>
 
                     <Grid Grid.Row="3" Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                             <TextBlock Text="{Binding LoaiPhong.GiaMacDinh, StringFormat='{}{0:#,0}₫'}" 
-                                   FontSize="13" FontWeight="SemiBold" Foreground="#3B82F6"/>
+                               FontSize="13" FontWeight="SemiBold" Foreground="#3B82F6"/>
                             <TextBlock Text="/đêm" FontSize="10" Foreground="#94A3B8" 
-                                   VerticalAlignment="Bottom" Margin="2,0,0,1"/>
+                               VerticalAlignment="Bottom" Margin="2,0,0,1"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock x:Name="StatusIcon" Text="●" FontSize="10" 
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                               VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock x:Name="StatusText" Text="Sẵn sàng" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                     </Grid>
@@ -492,62 +359,61 @@
         </Border>
 
         <DataTemplate.Triggers>
-            <!-- FIX: Đổi TrangThaiThue → TrangThai để nhất quán với Model -->
             <DataTrigger Binding="{Binding TrangThai}" Value="0">
-                <Setter TargetName="RoomCard"     Property="Background"   Value="#F1F8E9"/>
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#F1F8E9"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#4CAF50"/>
-                <Setter TargetName="StatusText"   Property="Text"         Value="TRỐNG"/>
-                <Setter TargetName="StatusText"   Property="Foreground"   Value="#2E7D32"/>
-                <Setter TargetName="StatusIcon"   Property="Foreground"   Value="#4CAF50"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="TRỐNG"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#2E7D32"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#4CAF50"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="1">
-                <Setter TargetName="RoomCard"     Property="Background"   Value="#FFFDE7"/>
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#FFFDE7"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#FBC02D"/>
-                <Setter TargetName="StatusText"   Property="Text"         Value="ĐÃ ĐẶT"/>
-                <Setter TargetName="StatusText"   Property="Foreground"   Value="#827717"/>
-                <Setter TargetName="StatusIcon"   Property="Foreground"   Value="#FBC02D"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="ĐÃ ĐẶT"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#827717"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#FBC02D"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="2">
-                <Setter TargetName="RoomCard"     Property="Background"   Value="#FFF3E0"/>
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#FFF3E0"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#FF7043"/>
-                <Setter TargetName="StatusText"   Property="Text"         Value="ĐANG Ở"/>
-                <Setter TargetName="StatusText"   Property="Foreground"   Value="#E64A19"/>
-                <Setter TargetName="StatusIcon"   Property="Foreground"   Value="#FF7043"/>
-                <Setter TargetName="GuestName"    Property="Text"         Value="Khách đang ở"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="ĐANG Ở"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#E64A19"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#FF7043"/>
+                <Setter TargetName="GuestName"     Property="Text"        Value="Khách đang ở"/>
                 <Setter TargetName="GuestSeparator" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="GuestName"    Property="Foreground"   Value="#1E293B"/>
-                <Setter TargetName="GuestName"    Property="FontStyle"    Value="Normal"/>
+                <Setter TargetName="GuestName"     Property="Foreground"  Value="#1E293B"/>
+                <Setter TargetName="GuestName"     Property="FontStyle"   Value="Normal"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="3">
-                <Setter TargetName="RoomCard"     Property="Background"   Value="#FFF0F0"/>
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#FFF0F0"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#F44336"/>
-                <Setter TargetName="StatusText"   Property="Text"         Value="QUÁ HẠN"/>
-                <Setter TargetName="StatusText"   Property="Foreground"   Value="#C62828"/>
-                <Setter TargetName="StatusIcon"   Property="Foreground"   Value="#F44336"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="QUÁ HẠN"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#C62828"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#F44336"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="4">
-                <Setter TargetName="RoomCard"     Property="Background"   Value="#E3F2FD"/>
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#E3F2FD"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#42A5F5"/>
-                <Setter TargetName="StatusText"   Property="Text"         Value="CẦN DỌN"/>
-                <Setter TargetName="StatusText"   Property="Foreground"   Value="#1565C0"/>
-                <Setter TargetName="StatusIcon"   Property="Foreground"   Value="#42A5F5"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="CẦN DỌN"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#1565C0"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#42A5F5"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="5">
-                <Setter TargetName="RoomCard"     Property="Background"   Value="#ECEFF1"/>
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#ECEFF1"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#90A4AE"/>
-                <Setter TargetName="StatusText"   Property="Text"         Value="BẢO TRÌ"/>
-                <Setter TargetName="StatusText"   Property="Foreground"   Value="#546E7A"/>
-                <Setter TargetName="StatusIcon"   Property="Foreground"   Value="#90A4AE"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="BẢO TRÌ"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#546E7A"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#90A4AE"/>
             </DataTrigger>
 
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="RoomCard" Property="BorderBrush"    Value="#42A5F5"/>
-                <Setter TargetName="RoomCard" Property="BorderThickness" Value="1.5"/>
+                <Setter TargetName="RoomCard" Property="BorderBrush"     Value="#42A5F5"/>
+                <Setter TargetName="RoomCard" Property="BorderThickness"  Value="1.5"/>
             </Trigger>
         </DataTemplate.Triggers>
     </DataTemplate>
@@ -740,6 +606,141 @@
         <Setter Property="Effect">
             <Setter.Value>
                 <DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.2"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ==================== DATAGRID ==================== -->
+    <Style TargetType="DataGrid">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="GridLinesVisibility" Value="None"/>
+        <Setter Property="RowHeight" Value="48"/>
+        <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="CanUserDeleteRows" Value="False"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+        <Setter Property="RowDetailsVisibilityMode" Value="Collapsed"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="FontFamily" Value="{StaticResource MainFont}"/>
+    </Style>
+
+    <Style TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Margin" Value="0,1"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#EFF6FF"/>
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="#DBEAFE"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="DataGridCell">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="#1E293B"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="Transparent" Padding="12,0">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Foreground" Value="#1E293B"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="#64748B"/>
+        <Setter Property="Background" Value="#F8FAFC"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Nút Xóa trong DataGrid -->
+    <Style x:Key="DeleteButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#FEE2E2"/>
+        <Setter Property="Foreground" Value="#DC2626"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Width" Value="60"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#DC2626"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Nút Sửa trong DataGrid -->
+    <Style x:Key="EditButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#EFF6FF"/>
+        <Setter Property="Foreground" Value="#2563EB"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Width" Value="60"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#2563EB"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>

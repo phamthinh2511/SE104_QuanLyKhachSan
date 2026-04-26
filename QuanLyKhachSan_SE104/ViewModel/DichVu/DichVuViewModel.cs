@@ -116,6 +116,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
         public ICommand ThoatCommand { get; }
 
         // Action để đóng Window từ bên ngoài
+        public int MaChiTietDatPhong { get; set; }
         public Action CloseAction { get; set; }
 
         public DichVuViewModel()

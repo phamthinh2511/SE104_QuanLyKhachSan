@@ -2,19 +2,26 @@
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.ViewModel.PhongVM;
 using System.Windows;
+using System.Collections.Generic;
+using System.Linq;
+using System;
 
-namespace QuanLyKhachSan_SE104.View.PhongView {
+// ĐẶT BIỆT DANH (ALIAS) Ở ĐÂY ĐỂ TRÁNH XUNG ĐỘT
+using ModelPhong = QuanLyKhachSan_SE104.Model.Phong;
+
+namespace QuanLyKhachSan_SE104.View.PhongView
+{
     /// <summary>
     /// Interaction logic for PhongModal.xaml
     /// </summary>
     public partial class PhongModal : Window
     {
-        // Sử dụng Property để Binding dễ hơn nếu cần
-        public Phong PhongInfo { get; set; }
+        // Sử dụng ModelPhong thay cho Phong
+        public ModelPhong PhongInfo { get; set; }
         public List<LoaiPhong> DanhSachLoaiPhong { get; set; }
-        private Phong _originPhong;
+        private ModelPhong _originPhong;
 
-        public PhongModal(Phong p = null)
+        public PhongModal(ModelPhong p = null)
         {
             InitializeComponent();
 
@@ -27,14 +34,14 @@ namespace QuanLyKhachSan_SE104.View.PhongView {
             // Khởi tạo
             if (p == null)
             {
-                this.PhongInfo = new Phong { TrangThai = 0, TrangThaiDonDep = 0 }; // Giá trị mặc định
+                this.PhongInfo = new ModelPhong { TrangThai = 0, TrangThaiDonDep = 0 }; // Giá trị mặc định
                 _originPhong = null;
             }
             else
             {
                 this.PhongInfo = p;
                 // Clone object để so sánh thay đổi
-                _originPhong = new Phong
+                _originPhong = new ModelPhong
                 {
                     MaPhong = p.MaPhong,
                     TenPhong = p.TenPhong,
@@ -81,8 +88,8 @@ namespace QuanLyKhachSan_SE104.View.PhongView {
                 {
                     if (_originPhong == null)
                     {
-                        // THÊM MỚI (Vẫn giữ nguyên)
-                        var newPhong = new Phong
+                        // THÊM MỚI (Dùng ModelPhong)
+                        var newPhong = new ModelPhong
                         {
                             TenPhong = vm.TenPhong.Trim(),
                             MaLoaiPhong = vm.LoaiPhong.MaLoaiPhong,
@@ -94,7 +101,7 @@ namespace QuanLyKhachSan_SE104.View.PhongView {
                     }
                     else
                     {
-                        // CẬP NHẬT (SỬA LẠI PHẦN NÀY)
+                        // CẬP NHẬT
                         var updatePhong = context.Phongs.FirstOrDefault(p => p.MaPhong == vm.MaPhong);
                         if (updatePhong != null)
                         {
