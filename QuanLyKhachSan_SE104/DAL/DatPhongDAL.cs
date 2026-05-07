@@ -32,6 +32,7 @@ namespace QuanLyKhachSan_SE104.DAL
                 FROM datphongs dp
                 JOIN khachhangs kh ON dp.MaKhachHang = kh.MaKhachHang
                 JOIN nhanviens nv  ON dp.MaNhanVien  = nv.MaNhanVien
+                WHERE dp.TrangThaiDat = 1
                 ORDER BY dp.NgayDat ASC";
 
             using var cmd = new MySqlCommand(query, conn);

@@ -63,10 +63,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.DatPhong
             // Sử dụng một context duy nhất hoặc khởi tạo mới tùy kiến trúc, 
             // nhưng nên load đầy đủ Include để tránh lỗi Binding nested property (KhachHang.HoTen)
             var data = _context.DatPhongs
+                .AsNoTracking()
                 .Include(x => x.KhachHang)
                 .Include(x => x.NhanVien)
                 .Include(x => x.ChiTietDatPhongs)
                     .ThenInclude(ct => ct.Phong)
+                .Where(x => x.TrangThaiDat == 1)
                 .ToList();
 
             _allBookings = data;
