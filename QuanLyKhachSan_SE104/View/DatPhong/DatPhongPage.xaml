@@ -3,11 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:QuanLyKhachSan_SE104.Utilities"
              mc:Ignorable="d" 
              d:DesignHeight="700" d:DesignWidth="1100"
              Background="{StaticResource BackgroundLightBrush}">
 
     <UserControl.Resources>
+        <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <DataTemplate x:Key="BookingRoomCardTemplate">
             <Border x:Name="Card"
                     Width="210" Height="120"
@@ -98,7 +102,7 @@
                 <StackPanel>
                     <TextBlock Text="Thông Tin Khách Hàng" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
                     <TextBlock Text="Họ Tên" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.HoTen}" Margin="0,0,0,15"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.HoTen}" IsReadOnly="{Binding IsCustomerReadOnly}" Margin="0,0,0,15"/>
 
                     <Grid Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
@@ -109,22 +113,22 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
                             <ComboBox Style="{StaticResource ModernComboBox}"
-                                ItemsSource="{Binding ListGioiTinh}"
-                                SelectedItem="{Binding NewCustomer.GioiTinh}"
-                                Validation.ErrorTemplate="{x:Null}"/>
+                      ItemsSource="{Binding ListGioiTinh}"
+                      SelectedItem="{Binding NewCustomer.GioiTinh}"
+                      IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.QuocTich}"/>
+                            <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.QuocTich}" IsReadOnly="{Binding IsCustomerReadOnly}"/>
                         </StackPanel>
                     </Grid>
 
                     <TextBlock Text="CCCD / Passport" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.CCCD_Passport}" Margin="0,0,0,15"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.CCCD_Passport}" IsReadOnly="{Binding IsCustomerReadOnly}" Margin="0,0,0,15"/>
                     <TextBlock Text="Số Điện Thoại" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.SDT}" Margin="0,0,0,15"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.SDT}" IsReadOnly="{Binding IsCustomerReadOnly}" Margin="0,0,0,15"/>
                     <TextBlock Text="Địa Chỉ" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.DiaChi}"/>
+                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.DiaChi}" IsReadOnly="{Binding IsCustomerReadOnly}"/>
                 </StackPanel>
             </Border>
 

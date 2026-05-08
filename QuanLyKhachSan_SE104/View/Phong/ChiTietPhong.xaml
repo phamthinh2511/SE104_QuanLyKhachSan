@@ -107,6 +107,9 @@
                             <DataTrigger Binding="{Binding Phong.TrangThai}" Value="2">
                                 <Setter Property="Background" Value="#7C3AED"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Phong.TrangThai}" Value="3">
+                                <Setter Property="Background" Value="#C0392B"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -145,6 +148,9 @@
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Phong.TrangThai}" Value="2">
                                                 <Setter Property="Text" Value="ĐANG Ở"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Phong.TrangThai}" Value="3">
+                                                <Setter Property="Text" Value="QUÁ HẠN"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -191,6 +197,9 @@
                             <DataTrigger Binding="{Binding Phong.TrangThai}" Value="2">
                                 <Setter Property="Visibility" Value="Visible"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Phong.TrangThai}" Value="3">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -208,7 +217,7 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock Style="{StaticResource InfoLabelStyle}" Text="👤  Khách hàng"/>
                         <TextBlock Style="{StaticResource InfoValueStyle}"
-                                   Text="{Binding ChiTietDatPhong.DatPhong.KhachHang.TenKhachHang}"
+                                   Text="{Binding ChiTietDatPhong.DatPhong.KhachHang.HoTen}"
                                    TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
@@ -361,6 +370,9 @@
                                 <DataTrigger Binding="{Binding Phong.TrangThai}" Value="2">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding Phong.TrangThai}" Value="3">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
@@ -376,14 +388,25 @@
                         <!-- Tiêu đề + nút Thêm dịch vụ -->
                         <Grid Grid.Row="0" Margin="0,0,0,10">
                             <TextBlock Text="Dịch vụ đã sử dụng"
-                                       FontSize="14" FontWeight="Bold" Foreground="#1B5E20"
-                                       VerticalAlignment="Center"/>
+                            FontSize="14" FontWeight="Bold" Foreground="#1B5E20"
+                            VerticalAlignment="Center"/>
+
                             <Button HorizontalAlignment="Right"
-                                    Style="{StaticResource ActionButtonStyle}"
                                     Background="#16A34A" Foreground="White"
                                     Content="☕  Thêm dịch vụ"
                                     Command="{Binding ThemDichVuCommand}"
-                                    CommandParameter="{Binding Phong}"/>
+                                    CommandParameter="{Binding Phong}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Phong.TrangThai}" Value="3">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
 
                         <!-- Header cột -->
@@ -410,7 +433,7 @@
         BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,4,0,0">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,4">
 
-                                <ItemsControl ItemsSource="{Binding ChiTietDatPhong.ChiTietDichVus}">
+                                <ItemsControl ItemsSource="{Binding DanhSachDichVu}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Border x:Name="row" Margin="6,3" Padding="10,8" CornerRadius="8">
@@ -433,7 +456,7 @@
                                                         <ColumnDefinition Width="110"/>
                                                     </Grid.ColumnDefinitions>
 
-                                                    <TextBlock Text="{Binding DichVu.TenDichVu}"
+                                                    <TextBlock Text="{Binding TenDichVu}"
                                                        FontSize="13" Foreground="#1E293B"
                                                        VerticalAlignment="Center"/>         
 
@@ -557,6 +580,9 @@
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Phong.TrangThai}" Value="2">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Phong.TrangThai}" Value="3">
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                 </Style.Triggers>
