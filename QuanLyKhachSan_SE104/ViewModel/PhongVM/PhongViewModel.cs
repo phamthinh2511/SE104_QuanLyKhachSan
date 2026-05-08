@@ -27,15 +27,45 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             get => _listPhong;
             set { _listPhong = value; OnPropertyChanged(); }
         }
+        // ── Filter combos ─────────────────────────────────
+        private ObservableCollection<int> _listTang = new();
+        public ObservableCollection<int> ListTang
+        {
+            get => _listTang;
+            set { _listTang = value; OnPropertyChanged(); }
+        }
+
+        private ObservableCollection<LoaiPhong> _listLoaiPhong = new();
+        public ObservableCollection<LoaiPhong> ListLoaiPhong
+        {
+            get => _listLoaiPhong;
+            set { _listLoaiPhong = value; OnPropertyChanged(); }
+        }
+
+        private int? _selectedTang;
+        public int? SelectedTang
+        {
+            get => _selectedTang;
+            set { _selectedTang = value; OnPropertyChanged(); ApplyFilter(); }
+        }
+
+        private LoaiPhong _selectedLoaiPhong;
+        public LoaiPhong SelectedLoaiPhong
+        {
+            get => _selectedLoaiPhong;
+            set { _selectedLoaiPhong = value; OnPropertyChanged(); ApplyFilter(); }
+        }
 
         // ── Thống kê ──────────────────────────────────────
+        // Rental status (TrangThai)
         public int CountTatCa => _allPhongs?.Count ?? 0;
         public int CountTrong => _allPhongs?.Count(p => p.TrangThai == 0) ?? 0;
         public int CountDaDat => _allPhongs?.Count(p => p.TrangThai == 1) ?? 0;
         public int CountDangO => _allPhongs?.Count(p => p.TrangThai == 2) ?? 0;
         public int CountQuaHan => _allPhongs?.Count(p => p.TrangThai == 3) ?? 0;
-        public int CountCanDonDep => _allPhongs?.Count(p => p.TrangThai == 4) ?? 0;
-        public int CountBaoTri => _allPhongs?.Count(p => p.TrangThai == 5) ?? 0;
+        // Cleaning status (TrangThaiDonDep)
+        public int CountCanDonDep => _allPhongs?.Count(p => p.TrangThaiDonDep == 2) ?? 0;
+        public int CountBaoTri => _allPhongs?.Count(p => p.TrangThaiDonDep == 3) ?? 0;
 
         // ── Search ────────────────────────────────────────
         private string _searchText;
@@ -44,6 +74,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             get => _searchText;
             set { _searchText = value; OnPropertyChanged(); ExecuteSearch(); }
         }
+        // Filter token format:
+        //   "All"     = show everything
+        //   "thue:N"  = filter by TrangThaiThue == N
+        //   "don:N"   = filter by TrangThaiDonDep == N
+        private string _currentStatusFilter = "All";
 
         // ── Commands ──────────────────────────────────────
         public ICommand FilterCommand { get; }
@@ -62,9 +97,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             LoadData();
 
             // Lọc theo trạng thái
-            FilterCommand = new RelayCommand<string>(p =>
+            FilterCommand = new RelayCommand<string>(filter =>
             {
-                ApplyFilter(p);
+                _currentStatusFilter = filter ?? "All";
+                ApplyFilter();
             });
 
             // Check-in (Khách lẻ hoặc khách đã đặt)
@@ -149,20 +185,18 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (phong == null) return;
                 ChiTietDatPhongModel chiTiet = null;
 
-                // Nếu phòng đang có khách hoặc đã đặt, lấy thông tin chi tiết
-                if (phong.TrangThai == 1 || phong.TrangThai == 2)
+                if (phong.TrangThai == 1 || phong.TrangThai == 2 || phong.TrangThai == 3)
                 {
-                    using (var context = new QuanLyKhachSanContext())
-                    {
-                        chiTiet = context.ChiTietDatPhongs
+                    using var ctx = new QuanLyKhachSanContext();
+                    chiTiet = ctx.ChiTietDatPhongs
                             .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
                             .Include(c => c.ChiTietDichVus).ThenInclude(dv => dv.DichVu)
                             .FirstOrDefault(c => c.MaPhong == phong.MaPhong
-                                              && c.NgayCheckOut >= DateTime.Today);
-                    }
+                                && (c.DatPhong.TrangThaiDat == 1    // Đã đặt
+                                || c.DatPhong.TrangThaiDat == 2     // Đang ở
+                                || c.DatPhong.TrangThaiDat == 3));  // Quá hạn
                 }
 
-                // Giả sử đường dẫn View của bạn là QuanLyKhachSan_SE104.View.Phong.ChiTietPhong
                 var win = new QuanLyKhachSan_SE104.View.Phong.ChiTietPhong(phong, chiTiet);
                 win.Owner = Application.Current.MainWindow;
                 win.ShowDialog();
@@ -171,12 +205,34 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         }
 
         // ── Helper Methods ────────────────────────────────
-        private void ApplyFilter(string filter)
+        private void ApplyFilter()
         {
-            if (string.IsNullOrEmpty(filter) || filter == "All")
-                ListPhong = new ObservableCollection<PhongModel>(_allPhongs);
-            else if (int.TryParse(filter, out int status))
-                ListPhong = new ObservableCollection<PhongModel>(_allPhongs.Where(x => x.TrangThai == status));
+            var result = _allPhongs.AsEnumerable();
+
+            switch (_currentStatusFilter)
+            {
+                case "thue:0": result = result.Where(p => p.TrangThai == 0); break;
+                case "thue:1": result = result.Where(p => p.TrangThai == 1); break;
+                case "thue:2": result = result.Where(p => p.TrangThai == 2); break;
+                case "thue:3": result = result.Where(p => p.TrangThai == 3); break;
+                case "don:2": result = result.Where(p => p.TrangThaiDonDep == 2); break;
+                case "don:3": result = result.Where(p => p.TrangThaiDonDep == 3); break;
+                    // "All" or unknown: no status filter
+            }
+
+            if (SelectedTang.HasValue)
+                result = result.Where(p => p.SoTang == SelectedTang.Value);
+
+            if (SelectedLoaiPhong != null)
+                result = result.Where(p => p.MaLoaiPhong == SelectedLoaiPhong.MaLoaiPhong);
+
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var kw = SearchText.Trim().ToLower();
+                result = result.Where(p => p.TenPhong?.ToLower().Contains(kw) == true);
+            }
+
+            ListPhong = new ObservableCollection<PhongModel>(result);
         }
 
         private void ExecuteSearch()
@@ -195,14 +251,34 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         public void LoadData()
         {
-            using (var context = new QuanLyKhachSanContext())
+            using var ctx = new QuanLyKhachSanContext();
+            // Auto-mark overdue rooms 
+            var overdueChiTiets = ctx.ChiTietDatPhongs
+                .Include(ct => ct.DatPhong)
+                .Include(ct => ct.Phong)
+                .Where(ct =>
+                    ct.NgayCheckOut < DateTime.Now &&
+                    (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
+                    ct.Phong.TrangThai != 3)
+                .ToList();
+
+            foreach (var ct in overdueChiTiets)
             {
-                _allPhongs = new ObservableCollection<PhongModel>(
-                    context.Phongs.Include(p => p.LoaiPhong).ToList()
-                );
+                ct.Phong.TrangThai = 3; // Quá hạn
             }
+
+            if (overdueChiTiets.Any())
+                ctx.SaveChanges();
+            _allPhongs = new ObservableCollection<PhongModel>(
+                ctx.Phongs.Include(p => p.LoaiPhong).ToList());
+
+            ListTang = new ObservableCollection<int>(
+                _allPhongs.Select(p => p.SoTang).Distinct().OrderBy(t => t));
+            ListLoaiPhong = new ObservableCollection<LoaiPhong>(ctx.LoaiPhongs.ToList());
+
             ListPhong = new ObservableCollection<PhongModel>(_allPhongs);
 
+            ApplyFilter();
             // Cập nhật UI cho các Badge/Button thống kê
             OnPropertyChanged(nameof(CountTatCa));
             OnPropertyChanged(nameof(CountTrong));

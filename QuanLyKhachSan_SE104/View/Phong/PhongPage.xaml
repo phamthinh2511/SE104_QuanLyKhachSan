@@ -27,12 +27,20 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="Tạo phòng" Style="{StaticResource PrimaryButton}"
                             Command="{Binding AddRoomCommand}"></Button>
-                    <ComboBox Style="{StaticResource ModernComboBox}" Width="160" Margin="0,0,10,0" SelectedIndex="0">
-                        <ComboBoxItem Content="Tất cả các tầng"/>
+                    <ComboBox Style="{StaticResource ModernComboBox}" Width="160" Margin="0,0,10,0"
+                              ItemsSource="{Binding ListTang}"
+                              SelectedItem="{Binding SelectedTang}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StringFormat='Tầng {0}'}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <ComboBox Style="{StaticResource ModernComboBox}" Width="160" SelectedIndex="0">
-                        <ComboBoxItem Content="Tất cả loại phòng"/>
-                    </ComboBox>
+
+                    <ComboBox Style="{StaticResource ModernComboBox}" Width="160"
+                            ItemsSource="{Binding ListLoaiPhong}"
+                            SelectedItem="{Binding SelectedLoaiPhong}"
+                            DisplayMemberPath="TenLoaiPhong"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -44,29 +52,29 @@
                 <TextBlock Text="{Binding CountTatCa, StringFormat='Tất cả ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#4CAF50"
-                    Command="{Binding FilterCommand}" CommandParameter="0">
+                    Command="{Binding FilterCommand}" CommandParameter="thue:0">
                 <TextBlock Text="{Binding CountTrong, StringFormat='Trống ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#FF7043"
-                    Command="{Binding FilterCommand}" CommandParameter="2">
+                    Command="{Binding FilterCommand}" CommandParameter="thue:2">
                 <TextBlock Text="{Binding CountDangO, StringFormat='Đang ở ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="Orange"
-                    Command="{Binding FilterCommand}" CommandParameter="3">
+                    Command="{Binding FilterCommand}" CommandParameter="thue:3">
                 <TextBlock Text="{Binding CountQuaHan, StringFormat='Quá Hạn ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="Yellow"
-                    Command="{Binding FilterCommand}" CommandParameter="1">
+                    Command="{Binding FilterCommand}" CommandParameter="thue:1">
                 <TextBlock Text="{Binding CountDaDat, StringFormat='Đã đặt ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#42A5F5"
-                    Command="{Binding FilterCommand}" CommandParameter="4">
+                    Command="{Binding FilterCommand}" CommandParameter="don:2">
                 <TextBlock Text="{Binding CountCanDonDep, StringFormat='Cần Dọn ({0})'}" FontWeight="SemiBold"/>
             </Button>
 
             <!-- FIX: Đổi CountCanDonDep → CountBaoTri -->
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#90A4AE"
-                    Command="{Binding FilterCommand}" CommandParameter="5">
+                    Command="{Binding FilterCommand}" CommandParameter="don:3">
                 <TextBlock Text="{Binding CountBaoTri, StringFormat='Bảo Trì ({0})'}" FontWeight="SemiBold"/>
             </Button>
         </UniformGrid>
