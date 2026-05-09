@@ -32,15 +32,31 @@
                               SelectedItem="{Binding SelectedTang}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding StringFormat='Tầng {0}'}"/>
+                                <TextBlock x:Name="txtTang">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding StringFormat='Tầng {0}'}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="-1">
+                                                    <Setter Property="Text" Value="Tất cả các tầng"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
                     <ComboBox Style="{StaticResource ModernComboBox}" Width="160"
-                            ItemsSource="{Binding ListLoaiPhong}"
-                            SelectedItem="{Binding SelectedLoaiPhong}"
-                            DisplayMemberPath="TenLoaiPhong"/>
+                              ItemsSource="{Binding ListLoaiPhong}"
+                              SelectedItem="{Binding SelectedLoaiPhong}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding TenLoaiPhong}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
             </DockPanel>
         </Border>
