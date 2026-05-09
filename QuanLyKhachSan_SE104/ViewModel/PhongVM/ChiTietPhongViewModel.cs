@@ -1,4 +1,5 @@
-﻿using QuanLyKhachSan_SE104.DTO;
+﻿using QuanLyKhachSan_SE104.DAL;
+using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
 using QuanLyKhachSan_SE104.View.DatPhong;
@@ -39,6 +40,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         public string TongTienDichVuText
             => $"{DanhSachDichVu?.Sum(x => x.ThanhTien) ?? 0:#,0}₫";
+
+        private readonly DichVuDAL _dichVuDal = new();
 
         public ICommand ThoatCommand => new RelayCommand(() => _window.Close());
 
@@ -168,12 +171,37 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         public ICommand ThemDichVuCommand => new RelayCommand<PhongModel>(phong =>
         {
-            var win = new View.DichVu.DichVuPage();
-            if (win.DataContext is DichVuVM.DichVuViewModel vm)
-                vm.MaChiTietDatPhong = ChiTietDatPhong?.MaChiTietDatPhong ?? 0;
-            win.Owner = _window;
-            win.ShowDialog();
-            OnPropertyChanged(nameof(TongTienDichVuText));
+            if (ChiTietDatPhong == null)
+            {
+                MessageBox.Show("Không có thông tin phòng đang ở để thêm dịch vụ.", "Thông báo");
+                return;
+            }
+
+            // Khởi tạo ViewModel cho cửa sổ Dịch vụ và truyền ID phòng vào TRƯỚC khi mở
+            var vm = new DichVuVM.DichVuViewModel
+            {
+                MaChiTietDatPhong = ChiTietDatPhong.MaChiTietDatPhong
+            };
+
+            var win = new View.DichVu.DichVuPage { DataContext = vm };
+            win.Owner = _window; // _window là biến lưu Window hiện tại
+
+            // Thiết lập hành động đóng cửa sổ
+            vm.CloseAction = () =>
+            {
+                win.DialogResult = true;
+                win.Close();
+            };
+
+            // Sau khi cửa sổ đóng, nếu lưu thành công thì cập nhật ngay lên giao diện
+            if (win.ShowDialog() == true && vm.SavedItems.Count > 0)
+            {
+                foreach (var item in vm.SavedItems)
+                    DanhSachDichVu.Add(item); // Thêm món mới vào danh sách đang hiển thị
+
+                // Báo cho UI biết là tổng tiền đã thay đổi để cập nhật con số mới
+                OnPropertyChanged(nameof(TongTienDichVuText));
+            }
         });
 
 
@@ -245,14 +273,17 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         private void RefreshDichVu()
         {
-            if (ChiTietDatPhong?.ChiTietDichVus == null)
+            if (ChiTietDatPhong == null)
             {
                 DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>();
                 return;
             }
+
+            // Gọi DAL để lấy danh sách dịch vụ thực tế từ DB
+            var rows = _dichVuDal.LayDichVuTheoChiTiet(ChiTietDatPhong.MaChiTietDatPhong);
+
             DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>(
-                ChiTietDatPhong.ChiTietDichVus
-                    .Where(x => x.DichVu != null)
+                rows.Where(x => x.DichVu != null)
                     .Select(x => new ChiTietDichVuDTO
                     {
                         TenDichVu = x.DichVu.TenDichVu,

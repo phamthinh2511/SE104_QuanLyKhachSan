@@ -1,9 +1,15 @@
-﻿using QuanLyKhachSan_SE104.Model;
+﻿using QuanLyKhachSan_SE104.DAL;
+using QuanLyKhachSan_SE104.DTO;
+using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Utilities;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Input;
-using QuanLyKhachSan_SE104.Utilities;
 
 namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
 {
@@ -69,6 +75,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
     // ── ViewModel chính ────────────────────────────────
     public class DichVuViewModel : INotifyPropertyChanged
     {
+        private readonly DichVuDAL _dal = new();
+
         // Danh sách gốc tất cả dịch vụ (wrapped)
         private List<DichVuItem> _allItems;
 
@@ -115,15 +123,27 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
         public ICommand LuuCommand { get; }
         public ICommand ThoatCommand { get; }
 
-        // Action để đóng Window từ bên ngoài
+        /// <summary>
+        /// Set by ChiTietPhongViewModel BEFORE opening the window.
+        /// Must be a valid MaChiTietDatPhong (> 0) for Lưu to write to DB.
+        /// </summary>
         public int MaChiTietDatPhong { get; set; }
+
+        /// <summary>
+        /// Called after a successful save so ChiTietPhongViewModel can close the window.
+        /// </summary>
         public Action CloseAction { get; set; }
+
+        /// <summary>
+        /// After a successful save, holds the newly-added rows so the caller can
+        /// refresh its service list without an extra DB round-trip.
+        /// </summary>
+        public List<ChiTietDichVuDTO> SavedItems { get; private set; } = new();
 
         public DichVuViewModel()
         {
             LoadData();
 
-            // Tăng số lượng item bên trái → tự động sync sang giỏ
             TangSoLuongCommand = new RelayCommand<DichVuItem>(item =>
             {
                 if (item == null) return;
@@ -131,7 +151,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
                 SyncToCart(item);
             });
 
-            // Giảm số lượng
             GiamSoLuongCommand = new RelayCommand<DichVuItem>(item =>
             {
                 if (item == null || item.SoLuong <= 0) return;
@@ -139,15 +158,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
                 SyncToCart(item);
             });
 
-            // Xóa khỏi giỏ (bên phải)
             XoaDichVuCommand = new RelayCommand<DichVuDaChon>(selected =>
             {
                 if (selected == null) return;
-
-                // Reset số lượng bên trái
                 var left = _allItems.FirstOrDefault(x => x.DichVu.MaDichVu == selected.DichVu.MaDichVu);
                 if (left != null) left.SoLuong = 0;
-
                 DanhSachDaChon.Remove(selected);
                 OnPropertyChanged(nameof(TongTienText));
                 OnPropertyChanged(nameof(TongTien));
@@ -155,17 +170,45 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
 
             LuuCommand = new RelayCommand<object>(_ =>
             {
-                // TODO: Gọi service lưu ChiTietDichVu vào DB
-                System.Windows.MessageBox.Show(
-                    $"Đã lưu {DanhSachDaChon.Count} dịch vụ. Tổng: {TongTienText}",
-                    "Thành công");
-                CloseAction?.Invoke();
+                if (DanhSachDaChon.Count == 0)
+                {
+                    MessageBox.Show("Chưa chọn dịch vụ nào.", "Thông báo");
+                    return;
+                }
+
+                if (MaChiTietDatPhong <= 0)
+                {
+                    MessageBox.Show("Không xác định được phòng đang ở. Vui lòng thử lại.", "Lỗi");
+                    return;
+                }
+
+                try
+                {
+                    var items = DanhSachDaChon
+                        .Select(x => (x.DichVu.MaDichVu, x.SoLuong, x.DichVu.DonGia));
+
+                    _dal.LuuChiTietDichVu(MaChiTietDatPhong, items);
+
+                    // Build SavedItems so the caller can refresh without an extra query
+                    SavedItems = DanhSachDaChon.Select(x => new ChiTietDichVuDTO
+                    {
+                        TenDichVu = x.DichVu.TenDichVu,
+                        DonGia = x.DichVu.DonGia,
+                        SoLuong = x.SoLuong
+                    }).ToList();
+
+                    MessageBox.Show($"Đã lưu {DanhSachDaChon.Count} dịch vụ. Tổng: {TongTienText}", "Thành công");
+                    CloseAction?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi khi lưu dịch vụ: " + ex.Message, "Lỗi");
+                }
             });
 
             ThoatCommand = new RelayCommand<object>(_ => CloseAction?.Invoke());
         }
 
-        // Khi số lượng bên trái thay đổi → cập nhật giỏ bên phải
         private void SyncToCart(DichVuItem item)
         {
             var existing = DanhSachDaChon.FirstOrDefault(x => x.DichVu.MaDichVu == item.DichVu.MaDichVu);
@@ -173,22 +216,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
             if (item.SoLuong > 0)
             {
                 if (existing == null)
-                {
-                    DanhSachDaChon.Add(new DichVuDaChon
-                    {
-                        DichVu = item.DichVu,
-                        SoLuong = item.SoLuong
-                    });
-                }
+                    DanhSachDaChon.Add(new DichVuDaChon { DichVu = item.DichVu, SoLuong = item.SoLuong });
                 else
-                {
                     existing.SoLuong = item.SoLuong;
-                }
             }
             else
             {
-                if (existing != null)
-                    DanhSachDaChon.Remove(existing);
+                if (existing != null) DanhSachDaChon.Remove(existing);
             }
 
             OnPropertyChanged(nameof(TongTienText));
@@ -211,21 +245,20 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
 
         private void LoadData()
         {
-            // TODO: Thay bằng load từ DB
-            var danhSach = new List<DichVu>
+            try
             {
-                new() { MaDichVu=1, LoaiDichVu=0, TenDichVu="Mì xào",       DonGia=25000 },
-                new() { MaDichVu=2, LoaiDichVu=0, TenDichVu="Cơm chiên",     DonGia=30000 },
-                new() { MaDichVu=3, LoaiDichVu=0, TenDichVu="Phở bò",        DonGia=45000 },
-                new() { MaDichVu=4, LoaiDichVu=1, TenDichVu="Nước suối",     DonGia=10000 },
-                new() { MaDichVu=5, LoaiDichVu=1, TenDichVu="Coca Cola",     DonGia=15000 },
-                new() { MaDichVu=6, LoaiDichVu=1, TenDichVu="Bia Tiger",     DonGia=20000 },
-                new() { MaDichVu=7, LoaiDichVu=2, TenDichVu="Karaoke 1h",    DonGia=150000},
-                new() { MaDichVu=8, LoaiDichVu=2, TenDichVu="Massage 60p",   DonGia=200000},
-                new() { MaDichVu=9, LoaiDichVu=3, TenDichVu="Taxi sân bay",  DonGia=300000},
-            };
+                var danhSach = _dal.LayDanhSachDichVu();
+                _allItems = danhSach.Select(d => new DichVuItem { DichVu = d, SoLuong = 0 }).ToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi load dữ liệu dịch vụ: {ex.Message}", "Thông báo",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
 
-            _allItems = danhSach.Select(d => new DichVuItem { DichVu = d, SoLuong = 0 }).ToList();
+                // Khởi tạo danh sách rỗng để tránh lỗi null ở các phần khác
+                _allItems = new List<DichVuItem>();
+            }
+
             DanhSachDichVu = new ObservableCollection<DichVuItem>(_allItems);
         }
 
