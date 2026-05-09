@@ -1,4 +1,5 @@
-﻿using System;
+﻿using QuanLyKhachSan_SE104.ViewModel.KhachHangVM;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,20 +11,24 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace QuanLyKhachSan_SE104.View.KhachHang
 {
     /// <summary>
-    /// Interaction logic for KhachHang.xaml
+    /// Interaction logic for KhachHangCRUD.xaml
     /// </summary>
-    public partial class KhachHangPage : UserControl
+    public partial class KhachHangCRUD : Window
     {
-        public KhachHangPage()
+        public KhachHangCRUD(KhachHangCRUDViewModel viewModel)
         {
             InitializeComponent();
-            this.DataContext = new QuanLyKhachSan_SE104.ViewModel.KhachHangVM.KhachHangViewModel();
+            DataContext = viewModel;
+
+            if (viewModel.CloseAction == null)
+            {
+                viewModel.CloseAction = new Action(this.Close);
+            }
         }
     }
 }
