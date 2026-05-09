@@ -278,166 +278,156 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
         // ── Thực hiện lưu ───────────────────────────────
         private void ExecuteLuu()
         {
-            using (var context = new QuanLyKhachSanContext())
+            var loaiPhongDAL = new DAL.QuanLyLoaiPhongDAL();
+            var phongDAL = new DAL.QuanLyPhongDAL();
+
+            switch (_loai)
             {
-                switch (_loai)
-                {
-                    case LoaiDanhMuc.LoaiPhong:
-                        if (string.IsNullOrWhiteSpace(TenLoaiPhong))
-                        { MessageBox.Show("Vui lòng nhập tên loại phòng.", "Thiếu thông tin"); return; }
+                case LoaiDanhMuc.LoaiPhong:
+                    if (string.IsNullOrWhiteSpace(TenLoaiPhong))
+                    {
+                        MessageBox.Show("Vui lòng nhập tên loại phòng.", "Thiếu thông tin");
+                        return;
+                    }
 
-                        if (_isEdit)
+                    if(GiaMacDinh <= 0)
+                    {
+                        MessageBox.Show("Vui lòng nhập giá mặc định.", "Thông tin không hợp lệ");
+                        return;
+                    }
+
+                    if (SoGiuong <=0)
+                    {
+                        MessageBox.Show("Vui lòng nhập số giường.", "Thông tin không hợp lệ");
+                        return;
+                    }
+
+                    if (SoNguoiToiDa <= 0)
+                    {
+                        MessageBox.Show("Vui lòng nhập số người tối đa.", "Thông tin không hợp lệ");
+                        return;
+                    }
+
+
+                    if (_isEdit)
+                    {
+                        // Cập nhật thuộc tính của object gốc
+                        _loaiPhongGoc.TenLoaiPhong = TenLoaiPhong;
+                        _loaiPhongGoc.GiaMacDinh = GiaMacDinh;
+                        _loaiPhongGoc.PhuPhiThemGio = PhuPhiThemGio;
+                        _loaiPhongGoc.SoGiuong = SoGiuong;
+                        _loaiPhongGoc.SoNguoiToiDa = SoNguoiToiDa;
+
+                        // Gọi DAL để lưu vào DB
+                        if (loaiPhongDAL.Sua(_loaiPhongGoc))
                         {
-                            var e = context.LoaiPhongs.Find(_loaiPhongGoc.MaLoaiPhong);
-                            if (e != null)
-                            {
-                                e.TenLoaiPhong = TenLoaiPhong;
-                                e.GiaMacDinh = GiaMacDinh;
-                                e.PhuPhiThemGio = PhuPhiThemGio;
-                                e.SoGiuong = SoGiuong;
-                                e.SoNguoiToiDa = SoNguoiToiDa;
-                                context.SaveChanges();
-
-                                // Cập nhật object gốc để DataGrid tự refresh
-                                _loaiPhongGoc.TenLoaiPhong = e.TenLoaiPhong;
-                                _loaiPhongGoc.GiaMacDinh = e.GiaMacDinh;
-                                _loaiPhongGoc.PhuPhiThemGio = e.PhuPhiThemGio;
-                                _loaiPhongGoc.SoGiuong = e.SoGiuong;
-                                _loaiPhongGoc.SoNguoiToiDa = e.SoNguoiToiDa;
-                                OnSaved?.Invoke(_loaiPhongGoc);
-                            }
+                            OnSaved?.Invoke(_loaiPhongGoc);
                         }
-                        else
+                    }
+                    else
+                    {
+                        var newItem = new LoaiPhong
                         {
-                            var newItem = new LoaiPhong
-                            {
-                                TenLoaiPhong = TenLoaiPhong,
-                                GiaMacDinh = GiaMacDinh,
-                                PhuPhiThemGio = PhuPhiThemGio,
-                                SoGiuong = SoGiuong,
-                                SoNguoiToiDa = SoNguoiToiDa
-                            };
-                            context.LoaiPhongs.Add(newItem);
-                            context.SaveChanges();
+                            TenLoaiPhong = TenLoaiPhong,
+                            GiaMacDinh = GiaMacDinh,
+                            PhuPhiThemGio = PhuPhiThemGio,
+                            SoGiuong = SoGiuong,
+                            SoNguoiToiDa = SoNguoiToiDa
+                        };
+
+                        if (loaiPhongDAL.Them(newItem))
+                        {
                             OnSaved?.Invoke(newItem);
                         }
-                        break;
+                    }
+                    break;
 
-                    case LoaiDanhMuc.Phong:
-                        if (string.IsNullOrWhiteSpace(TenPhong))
-                        { MessageBox.Show("Vui lòng nhập tên phòng.", "Thiếu thông tin"); return; }
+                case LoaiDanhMuc.Phong:
+                    if (string.IsNullOrWhiteSpace(TenPhong))
+                    {
+                        MessageBox.Show("Vui lòng nhập tên phòng.", "Thiếu thông tin");
+                        return;
+                    }
 
-                        if (_isEdit)
+                    if (MaLoaiPhong <= 0)
+                    { MessageBox.Show("Vui lòng chọn loại phòng.", "Thiếu thông tin", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+
+                    // Ràng buộc Tầng
+                    if (SoTang <= 0)
+                    { MessageBox.Show("Số tầng phải lớn hơn 0.", "Lỗi dữ liệu", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+
+                    if (_isEdit)
+                    {
+                        _phongGoc.TenPhong = TenPhong;
+                        _phongGoc.MaLoaiPhong = MaLoaiPhong;
+                        _phongGoc.SoTang = SoTang;
+                        _phongGoc.LoaiPhong = DanhSachLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == MaLoaiPhong);
+
+                        if (phongDAL.Sua(_phongGoc))
                         {
-                            var e = context.Phongs.Find(_phongGoc.MaPhong);
-                            if (e != null)
-                            {
-                                e.TenPhong = TenPhong;
-                                e.MaLoaiPhong = MaLoaiPhong;
-                                e.SoTang = SoTang;
-                                context.SaveChanges();
-
-                                _phongGoc.TenPhong = e.TenPhong;
-                                _phongGoc.MaLoaiPhong = e.MaLoaiPhong;
-                                _phongGoc.SoTang = e.SoTang;
-                                OnSaved?.Invoke(_phongGoc);
-                            }
+                            OnSaved?.Invoke(_phongGoc);
                         }
-                        else
+                    }
+                    else
+                    {
+                        var newItem = new Phong
                         {
-                            var newItem = new Phong
-                            {
-                                TenPhong = TenPhong,
-                                MaLoaiPhong = MaLoaiPhong,
-                                SoTang = SoTang
-                            };
-                            context.Phongs.Add(newItem);
-                            context.SaveChanges();
+                            TenPhong = TenPhong,
+                            MaLoaiPhong = MaLoaiPhong,
+                            SoTang = SoTang,
+
+                            LoaiPhong = DanhSachLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == MaLoaiPhong)
+                        };
+
+                        if (phongDAL.Them(newItem))
+                        {
                             OnSaved?.Invoke(newItem);
                         }
-                        break;
+                    }
+                    break;
 
-                    case LoaiDanhMuc.DichVu:
-                        if (string.IsNullOrWhiteSpace(TenDichVu))
-                        { MessageBox.Show("Vui lòng nhập tên dịch vụ.", "Thiếu thông tin"); return; }
+                case LoaiDanhMuc.DichVu:
+                    if (string.IsNullOrWhiteSpace(TenDichVu))
+                    { MessageBox.Show("Vui lòng nhập tên dịch vụ.", "Thiếu thông tin"); return; }
 
-                        if (_isEdit)
+                    if (DonGia <= 0)
+                    { MessageBox.Show("Đơn giá dịch vụ phải lớn hơn 0.", "Lỗi dữ liệu", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+
+                    var dichVuDAL = new DAL.QuanLyDichVuDAL(); 
+
+                    if (_isEdit)
+                    {
+                        _dichVuGoc.TenDichVu = TenDichVu;
+                        _dichVuGoc.LoaiDichVu = LoaiDichVu;
+                        _dichVuGoc.DonGia = DonGia;
+                        _dichVuGoc.MoTa = MoTa;
+
+                        if (dichVuDAL.Sua(_dichVuGoc))
                         {
-                            var e = context.DichVus.Find(_dichVuGoc.MaDichVu);
-                            if (e != null)
-                            {
-                                e.TenDichVu = TenDichVu;
-                                e.LoaiDichVu = LoaiDichVu;
-                                e.DonGia = DonGia;
-                                e.MoTa = MoTa;
-                                context.SaveChanges();
-
-                                _dichVuGoc.TenDichVu = e.TenDichVu;
-                                _dichVuGoc.LoaiDichVu = e.LoaiDichVu;
-                                _dichVuGoc.DonGia = e.DonGia;
-                                _dichVuGoc.MoTa = e.MoTa;
-                                OnSaved?.Invoke(_dichVuGoc);
-                            }
+                            OnSaved?.Invoke(_dichVuGoc);
                         }
-                        else
+                    }
+                    else
+                    {
+                        var newItem = new DichVu
                         {
-                            var newItem = new DichVu
-                            {
-                                TenDichVu = TenDichVu,
-                                LoaiDichVu = LoaiDichVu,
-                                DonGia = DonGia,
-                                MoTa = MoTa
-                            };
-                            context.DichVus.Add(newItem);
-                            context.SaveChanges();
+                            TenDichVu = TenDichVu,
+                            LoaiDichVu = LoaiDichVu,
+                            DonGia = DonGia,
+                            MoTa = MoTa
+                        };
+
+                        if (dichVuDAL.Them(newItem))
+                        {
                             OnSaved?.Invoke(newItem);
                         }
-                        break;
+                    }
+                    break;
 
-                    case LoaiDanhMuc.KhachHang:
-                        if (string.IsNullOrWhiteSpace(HoTen))
-                        { MessageBox.Show("Vui lòng nhập họ tên.", "Thiếu thông tin"); return; }
+                case LoaiDanhMuc.KhachHang:
 
-                        if (_isEdit)
-                        {
-                            var e = context.KhachHangs.Find(_khachHangGoc.MaKhachHang);
-                            if (e != null)
-                            {
-                                e.HoTen = HoTen;
-                                e.GioiTinh = GioiTinh;
-                                e.QuocTich = QuocTich;
-                                e.CCCD_Passport = CCCD_Passport;
-                                e.SDT = SDT;
-                                e.DiaChi = DiaChi;
-                                context.SaveChanges();
-
-                                _khachHangGoc.HoTen = e.HoTen;
-                                _khachHangGoc.GioiTinh = e.GioiTinh;
-                                _khachHangGoc.QuocTich = e.QuocTich;
-                                _khachHangGoc.CCCD_Passport = e.CCCD_Passport;
-                                _khachHangGoc.SDT = e.SDT;
-                                _khachHangGoc.DiaChi = e.DiaChi;
-                                OnSaved?.Invoke(_khachHangGoc);
-                            }
-                        }
-                        else
-                        {
-                            var newItem = new KhachHang
-                            {
-                                HoTen = HoTen,
-                                GioiTinh = GioiTinh,
-                                QuocTich = QuocTich,
-                                CCCD_Passport = CCCD_Passport,
-                                SDT = SDT,
-                                DiaChi = DiaChi
-                            };
-                            context.KhachHangs.Add(newItem);
-                            context.SaveChanges();
-                            OnSaved?.Invoke(newItem);
-                        }
-                        break;
-                }
-            }
+                    break;
+            }               
 
             CloseAction?.Invoke();
         }
