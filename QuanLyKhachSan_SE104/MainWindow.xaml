@@ -5,7 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:QuanLyKhachSan_SE104"
         mc:Ignorable="d"
-        Title="MainWindow" Height="800" Width="1200"
+        Title="Hotel Management" Height="800" Width="1200"
+        
+        WindowState="Maximized" 
+        ResizeMode="NoResize"
         WindowStyle="SingleBorderWindow"
         WindowStartupLocation="CenterOwner">
     <Window.Resources>
