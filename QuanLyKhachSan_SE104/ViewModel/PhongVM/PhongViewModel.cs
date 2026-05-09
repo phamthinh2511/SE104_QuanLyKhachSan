@@ -220,10 +220,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                     // "All" or unknown: no status filter
             }
 
-            if (SelectedTang.HasValue)
+            if (SelectedTang.HasValue && SelectedTang.Value != -1)
                 result = result.Where(p => p.SoTang == SelectedTang.Value);
 
-            if (SelectedLoaiPhong != null)
+            if (SelectedLoaiPhong != null && SelectedLoaiPhong.MaLoaiPhong != -1)
                 result = result.Where(p => p.MaLoaiPhong == SelectedLoaiPhong.MaLoaiPhong);
 
             if (!string.IsNullOrWhiteSpace(SearchText))
@@ -232,7 +232,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 result = result.Where(p => p.TenPhong?.ToLower().Contains(kw) == true);
             }
 
-            ListPhong = new ObservableCollection<PhongModel>(result);
+            ListPhong = new ObservableCollection<PhongModel>(result.OrderBy(p => p.TenPhong));
         }
 
         private void ExecuteSearch()
@@ -269,12 +269,25 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
             if (overdueChiTiets.Any())
                 ctx.SaveChanges();
-            _allPhongs = new ObservableCollection<PhongModel>(
-                ctx.Phongs.Include(p => p.LoaiPhong).ToList());
 
-            ListTang = new ObservableCollection<int>(
-                _allPhongs.Select(p => p.SoTang).Distinct().OrderBy(t => t));
-            ListLoaiPhong = new ObservableCollection<LoaiPhong>(ctx.LoaiPhongs.ToList());
+            // 1. Lấy toàn bộ phòng và SẮP XẾP THEO TÊN NGAY TỪ ĐẦU
+            var allPhongsFromDb = ctx.Phongs
+                .Include(p => p.LoaiPhong)
+                .OrderBy(p => p.TenPhong) // Sắp xếp tăng dần theo tên
+                .ToList();
+            _allPhongs = new ObservableCollection<PhongModel>(allPhongsFromDb);
+
+            // 2. Xử lý ListTang (Thêm -1 làm giá trị "Tất cả")
+            var tangs = _allPhongs.Select(p => p.SoTang).Distinct().OrderBy(t => t).ToList();
+            ListTang = new ObservableCollection<int>();
+            ListTang.Add(-1);
+            foreach (var t in tangs) ListTang.Add(t);
+
+            // 3. Xử lý ListLoaiPhong (Thêm một item "Tất cả")
+            var loaiPhongs = ctx.LoaiPhongs.Where(lp => lp.IsDeleted == false).ToList();
+            ListLoaiPhong = new ObservableCollection<LoaiPhong>();
+            ListLoaiPhong.Add(new LoaiPhong { MaLoaiPhong = -1, TenLoaiPhong = "Tất cả" });
+            foreach (var lp in loaiPhongs) ListLoaiPhong.Add(lp);
 
             ListPhong = new ObservableCollection<PhongModel>(_allPhongs);
 
@@ -287,6 +300,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             OnPropertyChanged(nameof(CountQuaHan));
             OnPropertyChanged(nameof(CountCanDonDep));
             OnPropertyChanged(nameof(CountBaoTri));
+
+            SelectedTang = -1;
+            SelectedLoaiPhong = ListLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == -1);
         }
 
         // ── INotifyPropertyChanged ────────────────────────

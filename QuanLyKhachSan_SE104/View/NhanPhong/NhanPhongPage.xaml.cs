@@ -10,10 +10,20 @@ namespace QuanLyKhachSan_SE104.View.NhanPhong
 {
     public partial class NhanPhongPage : UserControl
     {
+        private readonly NhanPhongViewModel _vm;
+
         public NhanPhongPage()
         {
             InitializeComponent();
-            this.DataContext = new NhanPhongViewModel();
+            _vm = new NhanPhongViewModel();
+            this.DataContext = _vm;
+
+            // Refresh data every time this page becomes visible
+            this.IsVisibleChanged += (s, e) =>
+            {
+                if ((bool)e.NewValue == true)
+                    _vm.Refresh();
+            };
         }
 
         //private void ShowPopup_Click(object sender, RoutedEventArgs e)
