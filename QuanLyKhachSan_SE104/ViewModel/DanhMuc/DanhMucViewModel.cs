@@ -76,6 +76,20 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
             set { _danhSachKhachHang = value; OnPropertyChanged(); }
         }
 
+        private bool _isHienThiDaXoa;
+        public bool IsHienThiDaXoa
+        {
+            get => _isHienThiDaXoa;
+            set
+            {
+                _isHienThiDaXoa = value;
+                OnPropertyChanged();
+
+                // Cứ mỗi lần lật Toggle, tự động tải lại dữ liệu cho bảng
+                LoadDataForCategory();
+            }
+        }
+
         // ─── UNDO ─────────────────────────────────────────
         private bool _isUndoVisible;
         public bool IsUndoVisible
@@ -126,50 +140,46 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
 
         private void LoadDataForCategory()
         {
-            using (var context = new QuanLyKhachSanContext())
+            var loaiPhongDAL = new DAL.QuanLyLoaiPhongDAL();
+            var phongDAL = new DAL.QuanLyPhongDAL();
+            var dichVuDAL = new DAL.QuanLyDichVuDAL();
+            var khachHangDAL = new DAL.QuanLyKhachHangDAL();
+
+            switch (DanhMucDuocChon)
             {
-                switch (DanhMucDuocChon)
-                {
-                    case LoaiDanhMuc.LoaiPhong:
-                        DanhSachLoaiPhong = new ObservableCollection<LoaiPhong>(
-                            context.LoaiPhongs.Where(x => !x.IsDeleted).ToList());
-                        break;
+                case LoaiDanhMuc.LoaiPhong:
+                    var tatCaLoai = loaiPhongDAL.LayDanhSachTatCa();
+                    // Lọc ra các mục có trạng thái IsDeleted khớp với nút Toggle
+                    DanhSachLoaiPhong = new ObservableCollection<LoaiPhong>(
+                        tatCaLoai.Where(x => x.IsDeleted == IsHienThiDaXoa));
+                    break;
 
-                    case LoaiDanhMuc.Phong:
-                        DanhSachPhong = new ObservableCollection<Phong>(
-                            context.Phongs.Include(p => p.LoaiPhong)
-                            .Where(x => !x.IsDeleted).ToList());
-                        break;
+                case LoaiDanhMuc.Phong:
+                    var tatCaPhong = phongDAL.LayDanhSachTatCa();
+                    DanhSachPhong = new ObservableCollection<Phong>(
+                        tatCaPhong.Where(x => x.IsDeleted == IsHienThiDaXoa));
+                    break;
 
-                    case LoaiDanhMuc.DichVu:
-                        DanhSachDichVu = new ObservableCollection<DichVu>(
-                            context.DichVus.Where(x => !x.IsDeleted).ToList());
-                        break;
-
-                    case LoaiDanhMuc.KhachHang:
-                        DanhSachKhachHang = new ObservableCollection<KhachHang>(
-                            context.KhachHangs.Where(x => !x.IsDeleted).ToList());
-                        break;
-                }
+                case LoaiDanhMuc.DichVu:
+                    var tatCaDV = dichVuDAL.LayDanhSachTatCa();
+                    DanhSachDichVu = new ObservableCollection<DichVu>(
+                        tatCaDV.Where(x => x.IsDeleted == IsHienThiDaXoa));
+                    break;
             }
         }
 
         private void ExecuteAddNew(object obj)
         {
+            if (DanhMucDuocChon == LoaiDanhMuc.Phong)
+            {
+                var loaiPhongDAL = new DAL.QuanLyLoaiPhongDAL();
+                DanhSachLoaiPhong = new ObservableCollection<LoaiPhong>(loaiPhongDAL.LayDanhSachActive());
+            }
+
             var vm = new DanhMucCRUDViewModel(DanhMucDuocChon, DanhSachLoaiPhong);
             vm.OnSaved = (saved) =>
             {
-                switch (DanhMucDuocChon)
-                {
-                    case LoaiDanhMuc.LoaiPhong:
-                        DanhSachLoaiPhong.Add((LoaiPhong)saved); break;
-                    case LoaiDanhMuc.Phong:
-                        DanhSachPhong.Add((Phong)saved); break;
-                    case LoaiDanhMuc.DichVu:
-                        DanhSachDichVu.Add((DichVu)saved); break;
-                    case LoaiDanhMuc.KhachHang:
-                        DanhSachKhachHang.Add((KhachHang)saved); break;
-                }
+                LoadDataForCategory(); 
             };
             var win = new View.DanhMuc.DanhMucCRUD(vm);
             win.Owner = Application.Current.MainWindow;
@@ -203,48 +213,116 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
         private async void ExecuteDelete(object item)
         {
             if (item == null) return;
+            _lastDeletedItem = item;
 
-            using (var context = new QuanLyKhachSanContext())
+            var loaiPhongDAL = new DAL.QuanLyLoaiPhongDAL();
+            var phongDAL = new DAL.QuanLyPhongDAL();
+            var dichVuDAL = new DAL.QuanLyDichVuDAL();
+            var khachHangDAL = new DAL.QuanLyKhachHangDAL();
+
+            if (item is Phong p)
             {
-                _lastDeletedItem = item;
+                if (p.IsDeleted) // Màn hình ĐÃ XÓA -> Nút này đóng vai trò KHÔI PHỤC
+                {
+                    if (phongDAL.HoanTacXoa(p.MaPhong))
+                    {
+                        DanhSachPhong.Remove(p); 
+                        MessageBox.Show($"Đã khôi phục phòng {p.TenPhong} thành công!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                else // Màn hình HOẠT ĐỘNG -> Nút này đóng vai trò XÓA
+                {
+                    string errorMsg = phongDAL.KiemTraDieuKienXoa(p.MaPhong);
+                    if (!string.IsNullOrEmpty(errorMsg))
+                    {
+                        MessageBox.Show(errorMsg, "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
 
-                if (item is Phong p)
-                {
-                    var entity = context.Phongs.Find(p.MaPhong);
-                    if (entity != null) { entity.IsDeleted = true; context.SaveChanges(); }
-                    DanhSachPhong.Remove(p);
-                    UndoMessage = $"Đã xóa Phòng: {p.TenPhong}";
+                    var result = MessageBox.Show($"Bạn có chắc chắn muốn xóa phòng {p.TenPhong}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.No) return;
+
+                    if (phongDAL.Xoa(p.MaPhong))
+                    {
+                        DanhSachPhong.Remove(p); 
+                        _lastDeletedItem = p;
+                        UndoMessage = $"Đã xóa Phòng: {p.TenPhong}";
+                        IsUndoVisible = true;
+                    }
                 }
-                else if (item is LoaiPhong lp)
+            }
+            else if (item is LoaiPhong lp)
+            {
+                if (lp.IsDeleted)
                 {
-                    var entity = context.LoaiPhongs.Find(lp.MaLoaiPhong);
-                    if (entity != null) { entity.IsDeleted = true; context.SaveChanges(); }
-                    DanhSachLoaiPhong.Remove(lp);
-                    UndoMessage = $"Đã xóa Loại phòng: {lp.TenLoaiPhong}";
+                    if (loaiPhongDAL.HoanTacXoa(lp.MaLoaiPhong))
+                    {
+                        DanhSachLoaiPhong.Remove(lp);
+                        MessageBox.Show($"Đã khôi phục {lp.TenLoaiPhong} thành công!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
-                else if (item is DichVu dv)
+                else
                 {
-                    var entity = context.DichVus.Find(dv.MaDichVu);
-                    if (entity != null) { entity.IsDeleted = true; context.SaveChanges(); }
-                    DanhSachDichVu.Remove(dv);
-                    UndoMessage = $"Đã xóa Dịch vụ: {dv.TenDichVu}";
+                    string errorMsg = loaiPhongDAL.KiemTraDieuKienXoa(lp.MaLoaiPhong);
+                    if (!string.IsNullOrEmpty(errorMsg))
+                    {
+                        MessageBox.Show(errorMsg, "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var result = MessageBox.Show($"Bạn có chắc chắn muốn xóa loại phòng {lp.TenLoaiPhong}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.No) return;
+
+                    if (loaiPhongDAL.Xoa(lp.MaLoaiPhong))
+                    {
+                        DanhSachLoaiPhong.Remove(lp);
+                        _lastDeletedItem = lp;
+                        UndoMessage = $"Đã xóa Loại phòng: {lp.TenLoaiPhong}";
+                        IsUndoVisible = true;
+                    }
                 }
-                else if (item is KhachHang kh)
+            }
+            else if (item is DichVu dv)
+            {
+                if (dv.IsDeleted) // Đang ở chế độ xem đã xóa -> Khôi phục
                 {
-                    var entity = context.KhachHangs.Find(kh.MaKhachHang);
-                    if (entity != null) { entity.IsDeleted = true; context.SaveChanges(); }
-                    DanhSachKhachHang.Remove(kh);
-                    UndoMessage = $"Đã xóa Khách hàng: {kh.HoTen}";
+                    if (dichVuDAL.HoanTacXoa(dv.MaDichVu))
+                    {
+                        DanhSachDichVu.Remove(dv);
+                        MessageBox.Show($"Đã khôi phục dịch vụ {dv.TenDichVu} thành công!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                else // Đang hoạt động -> Xóa
+                {
+                    string errorMsg = dichVuDAL.KiemTraDieuKienXoa(dv.MaDichVu);
+                    if (!string.IsNullOrEmpty(errorMsg))
+                    {
+                        MessageBox.Show(errorMsg, "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var result = MessageBox.Show($"Bạn có chắc chắn muốn xóa dịch vụ {dv.TenDichVu}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.No) return;
+
+                    if (dichVuDAL.Xoa(dv.MaDichVu))
+                    {
+                        DanhSachDichVu.Remove(dv);
+                        _lastDeletedItem = dv;
+                        UndoMessage = $"Đã xóa Dịch vụ: {dv.TenDichVu}";
+                        IsUndoVisible = true;
+                    }
                 }
             }
 
-            IsUndoVisible = true;
-            await Task.Delay(5000);
-
-            if (_lastDeletedItem == item)
+            if (IsUndoVisible)
             {
-                IsUndoVisible = false;
-                _lastDeletedItem = null;
+                await Task.Delay(5000);
+
+                if (_lastDeletedItem == item)
+                {
+                    IsUndoVisible = false;
+                    _lastDeletedItem = null;
+                }
             }
         }
 
@@ -252,32 +330,29 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
         {
             if (_lastDeletedItem == null) return;
 
-            using (var context = new QuanLyKhachSanContext())
+            var loaiPhongDAL = new DAL.QuanLyLoaiPhongDAL();
+            var phongDAL = new DAL.QuanLyPhongDAL();
+            var dichVuDAL = new DAL.QuanLyDichVuDAL();
+            var khachHangDAL = new DAL.QuanLyKhachHangDAL();
+
+            bool isSuccess = false;
+
+            if (_lastDeletedItem is Phong p)
             {
-                if (_lastDeletedItem is Phong p)
-                {
-                    var entity = context.Phongs.Find(p.MaPhong);
-                    if (entity != null) { entity.IsDeleted = false; context.SaveChanges(); }
-                    DanhSachPhong.Add(p);
-                }
-                else if (_lastDeletedItem is LoaiPhong lp)
-                {
-                    var entity = context.LoaiPhongs.Find(lp.MaLoaiPhong);
-                    if (entity != null) { entity.IsDeleted = false; context.SaveChanges(); }
-                    DanhSachLoaiPhong.Add(lp);
-                }
-                else if (_lastDeletedItem is DichVu dv)
-                {
-                    var entity = context.DichVus.Find(dv.MaDichVu);
-                    if (entity != null) { entity.IsDeleted = false; context.SaveChanges(); }
-                    DanhSachDichVu.Add(dv);
-                }
-                else if (_lastDeletedItem is KhachHang kh)
-                {
-                    var entity = context.KhachHangs.Find(kh.MaKhachHang);
-                    if (entity != null) { entity.IsDeleted = false; context.SaveChanges(); }
-                    DanhSachKhachHang.Add(kh);
-                }
+                isSuccess = phongDAL.HoanTacXoa(p.MaPhong);
+            }
+            else if (_lastDeletedItem is LoaiPhong lp)
+            {
+                isSuccess = loaiPhongDAL.HoanTacXoa(lp.MaLoaiPhong);
+            }
+            else if (_lastDeletedItem is DichVu dv)
+            {
+                isSuccess = dichVuDAL.HoanTacXoa(dv.MaDichVu);
+            }
+
+            if (isSuccess)
+            {
+                LoadDataForCategory();
             }
 
             IsUndoVisible = false;

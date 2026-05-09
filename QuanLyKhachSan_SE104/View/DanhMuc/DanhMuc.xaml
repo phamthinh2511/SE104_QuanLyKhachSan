@@ -24,6 +24,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <TextBlock Text="Quản Lý Danh Mục"
@@ -32,7 +33,36 @@
                        Foreground="#1E293B"
                        VerticalAlignment="Center"/>
 
-            <ComboBox Grid.Column="1"
+            <ToggleButton Grid.Column="1" Width="150" Height="40" Margin="0,0,20,0" Cursor="Hand"
+                  IsChecked="{Binding IsHienThiDaXoa}">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Background" Value="#F1F5F9"/>
+                        <Setter Property="Foreground" Value="#16A34A"/>
+                        <Setter Property="Content" Value="✓ Đang hoạt động"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <!-- Chuyển màu đỏ khi lật sang danh sách đã xóa -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="#FEE2E2"/>
+                                <Setter Property="Foreground" Value="#EF4444"/>
+                                <Setter Property="Content" Value="✗ Đã xóa"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+
+            <ComboBox Grid.Column="2"
                       Width="200"
                       Margin="20,0"
                       Style="{StaticResource ModernComboBox}"
@@ -65,10 +95,17 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
 
-            <Button Grid.Column="2"
-                    Content="+ Thêm Mới"
-                    Style="{StaticResource PrimaryButton}"
-                    Command="{Binding AddNewCommand}"/>
+            <Button Grid.Column="3" Content="+ Thêm Mới" Command="{Binding AddNewCommand}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHienThiDaXoa}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
         </Grid>
 
         <!-- CONTENT -->
@@ -130,15 +167,37 @@
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                    <Button Content="Sửa"
-                                                                            Margin="0,0,6,0"
-                                                                            Style="{StaticResource EditButtonStyle}"
+                                                                    <Button Content="Sửa" Margin="0,0,6,0"
                                                                             Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                            CommandParameter="{Binding}"/>
-                                                                    <Button Content="Xóa"
-                                                                            Style="{StaticResource DeleteButtonStyle}"
-                                                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                            CommandParameter="{Binding}"/>
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource EditButtonStyle}">
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
+
+                                                                    <!-- NÚT XÓA: Đổi giao diện thành Khôi phục khi ở chế độ Đã Xóa -->
+                                                                    <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource DeleteButtonStyle}">
+                                                                                <Setter Property="Content" Value="Xóa"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                        <Setter Property="Content" Value="Khôi phục"/>
+                                                                                        <Setter Property="Background" Value="#10B981"/>
+                                                                                        <!-- Màu xanh lá -->
+                                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
@@ -168,13 +227,77 @@
                                                     <DataGridTextColumn Header="Tên Phòng" Binding="{Binding TenPhong}" Width="*"/>
                                                     <DataGridTextColumn Header="Loại" Binding="{Binding LoaiPhong.TenLoaiPhong}" Width="*"/>
                                                     <DataGridTextColumn Header="Tầng" Binding="{Binding SoTang}" Width="80"/>
-                                                    <DataGridTextColumn Header="Trạng thái thuê" Binding="{Binding TrangThai}" Width="120"/>
-                                                    <DataGridTextColumn Header="Dọn dẹp" Binding="{Binding TrangThaiDonDep}" Width="120"/>
-
-                                                    <DataGridTemplateColumn Header="Hoạt động" Width="100">
+                                                    <DataGridTemplateColumn Header="Trạng thái thuê" Width="130">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
-                                                                <TextBlock Text="{Binding IsDeleted, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <TextBlock FontWeight="Medium" VerticalAlignment="Center">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="Trống"/>
+                                                                            <Setter Property="Foreground" Value="#64748B"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding TrangThai, StringFormat={}{0}}" Value="1">
+                                                                                    <Setter Property="Text" Value="Đã đặt"/>
+                                                                                    <Setter Property="Foreground" Value="#F59E0B"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding TrangThai, StringFormat={}{0}}" Value="2">
+                                                                                    <Setter Property="Text" Value="Đang ở"/>
+                                                                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+
+                                                    <DataGridTemplateColumn Header="Dọn dẹp" Width="130">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock FontWeight="Medium" VerticalAlignment="Center">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="Sạch"/>
+                                                                            <Setter Property="Foreground" Value="#10B981"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding TrangThaiDonDep, StringFormat={}{0}}" Value="1">
+                                                                                    <Setter Property="Text" Value="Đang dọn"/>
+                                                                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding TrangThaiDonDep, StringFormat={}{0}}" Value="2">
+                                                                                    <Setter Property="Text" Value="Cần dọn"/>
+                                                                                    <Setter Property="Foreground" Value="#F59E0B"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding TrangThaiDonDep, StringFormat={}{0}}" Value="3">
+                                                                                    <Setter Property="Text" Value="Đang bảo trì"/>
+                                                                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+
+                                                    <DataGridTemplateColumn Header="Hoạt động" Width="110">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="Hoạt động"/>
+                                                                            <Setter Property="Foreground" Value="#16A34A"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                    <Setter Property="Text" Value="Đã xóa"/>
+                                                                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
@@ -183,15 +306,38 @@
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                    <Button Content="Sửa"
-                                                                            Margin="0,0,6,0"
-                                                                            Style="{StaticResource EditButtonStyle}"
+                                                                    <!-- NÚT SỬA: Ẩn đi khi ở chế độ Đã Xóa -->
+                                                                    <Button Content="Sửa" Margin="0,0,6,0"
                                                                             Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                            CommandParameter="{Binding}"/>
-                                                                    <Button Content="Xóa"
-                                                                            Style="{StaticResource DeleteButtonStyle}"
-                                                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                            CommandParameter="{Binding}"/>
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource EditButtonStyle}">
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
+
+                                                                    <!-- NÚT XÓA: Đổi giao diện thành Khôi phục khi ở chế độ Đã Xóa -->
+                                                                    <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource DeleteButtonStyle}">
+                                                                                <Setter Property="Content" Value="Xóa"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                        <Setter Property="Content" Value="Khôi phục"/>
+                                                                                        <Setter Property="Background" Value="#10B981"/>
+                                                                                        <!-- Màu xanh lá -->
+                                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
@@ -219,31 +365,102 @@
                                                       AlternatingRowBackground="#F8FAFC">
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="Tên DV" Binding="{Binding TenDichVu}" Width="*"/>
-                                                    <DataGridTextColumn Header="Loại DV" Binding="{Binding LoaiDichVu}" Width="100"/>
-                                                    <DataGridTextColumn Header="Giá" Binding="{Binding DonGia, StringFormat={}{0:N0} VNĐ}" Width="120"/>
-                                                    <DataGridTextColumn Header="Mô tả" Binding="{Binding MoTa}" Width="*"/>
-
-                                                    <DataGridTemplateColumn Header="Hoạt động" Width="100">
+                                                    
+                                                    <DataGridTemplateColumn Header="Loại DV" Width="120">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
-                                                                <TextBlock Text="{Binding IsDeleted, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                                <TextBlock VerticalAlignment="Center" FontWeight="Medium">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <!-- Value 3 hoặc các số khác -->
+                                                                            <Setter Property="Text" Value="Khác"/>
+                                                                            <Setter Property="Foreground" Value="#64748B"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding LoaiDichVu, StringFormat={}{0}}" Value="0">
+                                                                                    <Setter Property="Text" Value="Thức ăn"/>
+                                                                                    <Setter Property="Foreground" Value="#F59E0B"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding LoaiDichVu, StringFormat={}{0}}" Value="1">
+                                                                                    <Setter Property="Text" Value="Đồ uống"/>
+                                                                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding LoaiDichVu, StringFormat={}{0}}" Value="2">
+                                                                                    <Setter Property="Text" Value="Giải trí"/>
+                                                                                    <Setter Property="Foreground" Value="#10B981"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding LoaiDichVu, StringFormat={}{0}}" Value="3">
+                                                                                    <Setter Property="Text" Value="Vận chuyển"/>
+                                                                                    <Setter Property="Foreground" Value="#8B5CF6"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding LoaiDichVu, StringFormat={}{0}}" Value="4">
+                                                                                    <Setter Property="Text" Value="Khác"/>
+                                                                                    <Setter Property="Foreground" Value="#F43F5E"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
+                                                    
+                                                    <DataGridTextColumn Header="Giá" Binding="{Binding DonGia, StringFormat={}{0:N0} VNĐ}" Width="120"/>
+                                                    <DataGridTextColumn Header="Mô tả" Binding="{Binding MoTa}" Width="*"/>
 
+                                                    <!-- CỘT HOẠT ĐỘNG (CHUẨN) -->
+                                                    <DataGridTemplateColumn Header="Hoạt động" Width="110">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="Hoạt động"/>
+                                                                            <Setter Property="Foreground" Value="#16A34A"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                    <Setter Property="Text" Value="Đã xóa"/>
+                                                                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <!-- CỘT THAO TÁC SỬA/XÓA/KHÔI PHỤC -->
                                                     <DataGridTemplateColumn Header="Thao tác" Width="160">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                    <Button Content="Sửa"
-                                                                            Margin="0,0,6,0"
-                                                                            Style="{StaticResource EditButtonStyle}"
+                                                                    <Button Content="Sửa" Margin="0,0,6,0"
                                                                             Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                            CommandParameter="{Binding}"/>
-                                                                    <Button Content="Xóa"
-                                                                            Style="{StaticResource DeleteButtonStyle}"
-                                                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                            CommandParameter="{Binding}"/>
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource EditButtonStyle}">
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
+                                                                    <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource DeleteButtonStyle}">
+                                                                                <Setter Property="Content" Value="Xóa"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                                                        <Setter Property="Content" Value="Khôi phục"/>
+                                                                                        <Setter Property="Background" Value="#10B981"/>
+                                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
