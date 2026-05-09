@@ -1,12 +1,262 @@
 ﻿<UserControl x:Class="QuanLyKhachSan_SE104.View.HoaDon.HoaDonPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:QuanLyKhachSan_SE104.View.HoaDon"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
-    </Grid>
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="780" d:DesignWidth="960"
+             Background="#F4F6FA"
+             FontFamily="Segoe UI">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <SolidColorBrush x:Key="PrimaryBrush"      Color="#1A56DB"/>
+        <SolidColorBrush x:Key="PrimaryDarkBrush"  Color="#1344B0"/>
+        <SolidColorBrush x:Key="AccentBrush"       Color="#0EA5E9"/>
+        <SolidColorBrush x:Key="SuccessBrush"      Color="#16A34A"/>
+        <SolidColorBrush x:Key="MutedBrush"        Color="#6B7280"/>
+        <SolidColorBrush x:Key="LabelBrush"        Color="#374151"/>
+        <SolidColorBrush x:Key="DividerBrush"      Color="#E5E7EB"/>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background"   Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding"      Value="24"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="18" ShadowDepth="2" Direction="270" Opacity="0.07" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="13"/>
+            <Setter Property="FontWeight"   Value="SemiBold"/>
+            <Setter Property="Foreground"   Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Margin"       Value="0,0,0,16"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="FieldValue" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="13"/>
+            <Setter Property="FontWeight"   Value="Medium"/>
+            <Setter Property="Foreground"   Value="{StaticResource LabelBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ConfirmBtn" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="46"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,24,28,32">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" CornerRadius="12" Padding="28,12">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#1A56DB" Offset="0"/>
+                        <GradientStop Color="#0EA5E9" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="HÓA ĐƠN THANH TOÁN" FontSize="22" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock Text="{Binding MaHoaDonText}" FontSize="13" Foreground="#BFDBFE"/>
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="#2FFFFFFF" CornerRadius="20" Padding="12,4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TrangThaiThanhToan}" Foreground="White" FontSize="12" FontWeight="Bold"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="📋  THÔNG TIN ĐẶT PHÒNG"/>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Mã đặt phòng" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding MaDatPhong}" Style="{StaticResource FieldValue}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Khách hàng" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding TenKhachHang}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Số điện thoại" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding SdtKhachHang}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Phòng" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding TenPhong}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Check-in" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding NgayCheckIn, StringFormat='dd/MM/yyyy HH:mm'}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Check-out" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding NgayCheckOut, StringFormat='dd/MM/yyyy HH:mm'}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Số đêm" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding SoDem, StringFormat='{}{0} đêm'}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Nhân viên" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding TenNhanVien}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="🛎️  DANH SÁCH DỊCH VỤ"/>
+                        <ItemsControl ItemsSource="{Binding DanhSachDichVu}" MaxHeight="250">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="100"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding TenDichVu}" Style="{StaticResource FieldValue}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding SoLuong}" TextAlignment="Center" Style="{StaticResource FieldValue}" Foreground="{StaticResource MutedBrush}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ThanhTien, StringFormat='{}{0:#,0}₫'}" TextAlignment="Right" Style="{StaticResource FieldValue}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Separator Background="{StaticResource DividerBrush}" Margin="0,10"/>
+                        <TextBlock Text="{Binding GhiChu}" FontSize="12" Foreground="{StaticResource MutedBrush}" FontStyle="Italic" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="4" Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="300"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="💰  TỔNG HỢP CHI PHÍ"/>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Tiền phòng" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding TongTienPhongText}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Tiền dịch vụ" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding TongTienDichVuText}" Style="{StaticResource FieldValue}"/>
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="Tiền cọc" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding TienCocText}" Style="{StaticResource FieldValue}" Foreground="{StaticResource SuccessBrush}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="40,0,0,0">
+                        <TextBlock Text="TỔNG THANH TOÁN" HorizontalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="{Binding TongThanhToanText}" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="1" Content="🖨️  In hóa đơn" Padding="20,0" Width="150" Background="Transparent" BorderBrush="{StaticResource SecondaryBrush}" BorderThickness="1" Foreground="{StaticResource PrimaryBrush}" Height="46">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="10"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+                <Button Grid.Column="3" Style="{StaticResource ConfirmBtn}" Command="{Binding CheckOutCommand}" Content="✔ Xác nhận thanh toán" Width="220"/>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
 </UserControl>

@@ -233,34 +233,23 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         public ICommand CheckOutCommand => new RelayCommand<PhongModel>(phong =>
         {
-            if (phong == null || ChiTietDatPhong == null) return;
+            var vm = new HoaDonVM.HoaDonViewModel(
+              ChiTietDatPhong.MaDatPhong,
+              ChiTietDatPhong.MaChiTietDatPhong,
+              1);          // pass your logged-in staff ID
 
-            var tienPhong = (decimal)SoDem * ChiTietDatPhong.GiaDat;
-            var tienDV = DanhSachDichVu.Sum(x => x.ThanhTien);
-            var tongCong = tienPhong + tienDV;
-
-            if (MessageBox.Show(
-                    $"Tiền phòng: {tienPhong:#,0}₫\nDịch vụ: {tienDV:#,0}₫\nTổng: {tongCong:#,0}₫\n\nXác nhận thanh toán?",
-                    "Check-out", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-            try
+            var page = new View.HoaDon.HoaDonPage { DataContext = vm };
+            var win = new Window
             {
-                using var ctx = new QuanLyKhachSanContext();
-
-                var dat = ctx.DatPhongs.Find(ChiTietDatPhong.MaDatPhong);
-                if (dat != null) dat.TrangThaiDat = 3; // Đã thanh toán
-
-                var p = ctx.Phongs.Find(phong.MaPhong);
-                if (p != null)
-                {
-                    p.TrangThai = 0;  // Trống
-                    p.TrangThaiDonDep = 2; // Cần dọn
-                }
-
-                ctx.SaveChanges();
-                MessageBox.Show($"Check-out phòng {phong.TenPhong} thành công!", "Thông báo");
-                _window.Close();
-            }
-            catch (Exception ex) { MessageBox.Show("Lỗi check-out: " + ex.Message); }
+                Title = $"Hóa đơn — Phòng {Phong.TenPhong}",
+                Width = 980,
+                Height = 760,
+                Content = page,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = _window
+            };
+            win.ShowDialog();
+            _window.Close();   // refresh parent after payment
         });
 
         public ChiTietPhongViewModel(PhongModel phong, ChiTietDatPhongModel chiTietDatPhong, Window window)
