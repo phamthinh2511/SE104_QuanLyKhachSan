@@ -112,7 +112,13 @@
                                 <DataTemplate>
                                     <Border x:Name="row"
                                             BorderBrush="#F1F5F9" BorderThickness="0,0,0,1"
-                                            Background="Transparent">
+                                            Background="Transparent"
+                                            Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" 
+                                                          Command="{Binding DataContext.XemHoaDonCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding}"/>        
+                                        </Border.InputBindings>
                                         <Grid Margin="20,12">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
