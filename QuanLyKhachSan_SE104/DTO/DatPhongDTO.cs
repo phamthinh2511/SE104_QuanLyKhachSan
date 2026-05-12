@@ -35,6 +35,8 @@ namespace QuanLyKhachSan_SE104.DTO
     // Used by ChiTietDatPhongWindow.xaml -> DanhSachChiTiet DataTemplate
     public class ChiTietPhongDTO
     {
+        public int MaChiTietDatPhong { get; set; }
+
         // Binding: TenPhong
         public string TenPhong { get; set; }
 

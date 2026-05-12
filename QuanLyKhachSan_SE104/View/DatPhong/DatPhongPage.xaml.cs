@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using QuanLyKhachSan_SE104.ViewModel.DatPhong; 
+//using QuanLyKhachSan_SE104.ViewModel.DatPhong; 
 
 namespace QuanLyKhachSan_SE104.View.DatPhong
 {

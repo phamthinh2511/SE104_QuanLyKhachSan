@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
-using QuanLyKhachSan_SE104.DTO;
 
 namespace QuanLyKhachSan_SE104.DAL
 {
@@ -32,7 +33,6 @@ namespace QuanLyKhachSan_SE104.DAL
                 FROM datphongs dp
                 JOIN khachhangs kh ON dp.MaKhachHang = kh.MaKhachHang
                 JOIN nhanviens nv  ON dp.MaNhanVien  = nv.MaNhanVien
-                WHERE dp.TrangThaiDat = 1
                 ORDER BY dp.NgayDat ASC";
 
             using var cmd = new MySqlCommand(query, conn);
@@ -65,7 +65,7 @@ namespace QuanLyKhachSan_SE104.DAL
             conn.Open();
 
             const string query = @"
-                SELECT p.TenPhong,
+                SELECT ct.MaChiTietDatPhong,p.TenPhong,
                        ct.NgayCheckIn, ct.NgayCheckOut,
                        ct.SoNguoi
                 FROM chitietdatphongs ct
@@ -81,6 +81,7 @@ namespace QuanLyKhachSan_SE104.DAL
             {
                 list.Add(new ChiTietPhongDTO
                 {
+                    MaChiTietDatPhong = rdr.GetInt32("MaChiTietDatPhong"),
                     TenPhong = rdr.GetString("TenPhong"),
                     NgayCheckIn = rdr.GetDateTime("NgayCheckIn"),
                     NgayCheckOut = rdr.GetDateTime("NgayCheckOut"),

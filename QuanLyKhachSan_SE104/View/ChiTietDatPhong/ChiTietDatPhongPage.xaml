@@ -19,7 +19,6 @@
         <Grid Grid.Row="0" Margin="0,0,0,18">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Search box -->
@@ -65,31 +64,6 @@
                     </TextBox>
                 </Grid>
             </Border>
-
-            <!-- Nút Đặt Phòng -->
-            <Button Grid.Column="1"
-                    Content="Đặt phòng"
-                    Command="{Binding DatPhongCommand}"
-                    Height="40" Padding="22,0"
-                    FontSize="14" FontWeight="SemiBold"
-                    Foreground="White" Cursor="Hand">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" CornerRadius="10" Background="#16A34A">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#15803D"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
         </Grid>
 
         <!-- ══ BẢNG DANH SÁCH ══ -->
@@ -116,7 +90,6 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="60"/>
                         </Grid.ColumnDefinitions>
 
                         <TextBlock Grid.Column="0" Text="Số phiếu thuê"
@@ -132,9 +105,6 @@
                                    FontSize="12" FontWeight="Bold" Foreground="#475569"
                                    VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         <TextBlock Grid.Column="4" Text="Chi tiết"
-                                   FontSize="12" FontWeight="Bold" Foreground="#475569"
-                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                        <TextBlock Grid.Column="5" Text="Xóa"
                                    FontSize="12" FontWeight="Bold" Foreground="#475569"
                                    VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Grid>
@@ -155,7 +125,6 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="80"/>
-                                            <ColumnDefinition Width="60"/>
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Số phiếu -->
@@ -207,33 +176,6 @@
                                                     <ControlTemplate.Triggers>
                                                         <Trigger Property="IsMouseOver" Value="True">
                                                             <Setter TargetName="bd" Property="Background" Value="#334155"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-
-                                        <!-- Nút Xóa -->
-                                        <Button Grid.Column="5"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Width="32" Height="32"
-                                                Cursor="Hand"
-                                                Command="{Binding DataContext.XoaCommand,
-                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                CommandParameter="{Binding}">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="bd" CornerRadius="8"
-                                                            Background="#EF4444" Width="32" Height="32">
-                                                        <TextBlock Text="✕" Foreground="White"
-                                                                   FontSize="13" FontWeight="Bold"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="bd" Property="Background" Value="#DC2626"/>
                                                         </Trigger>
                                                     </ControlTemplate.Triggers>
                                                 </ControlTemplate>
