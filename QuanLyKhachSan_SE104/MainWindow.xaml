@@ -6,65 +6,53 @@
         xmlns:local="clr-namespace:QuanLyKhachSan_SE104"
         mc:Ignorable="d"
         Title="Hotel Management" Height="800" Width="1200"
-        
-        WindowState="Maximized" 
+        WindowState="Maximized"
         ResizeMode="NoResize"
         WindowStyle="SingleBorderWindow"
         WindowStartupLocation="CenterOwner">
+
     <Window.Resources>
 
-        <!-- Converter: bool → Visibility -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
-        <!-- ══ Style từng nav item ══ -->
         <Style x:Key="NavItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Background"  Value="Transparent"/>
+            <Setter Property="Background"      Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding"     Value="0"/>
-            <Setter Property="Margin"      Value="0"/>
-            <Setter Property="Cursor"      Value="Hand"/>
+            <Setter Property="Padding"         Value="0"/>
+            <Setter Property="Margin"          Value="0"/>
+            <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
                         <Grid Height="44">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="3"/>
-                                <!-- Indicator bar -->
                                 <ColumnDefinition Width="*"/>
-                                <!-- Nội dung -->
                             </Grid.ColumnDefinitions>
 
-                            <!-- Nền hover / selected -->
                             <Border x:Name="BgLayer"
                                     Grid.ColumnSpan="2"
                                     Background="Transparent"/>
 
-                            <!-- Thanh xanh bên trái khi selected -->
                             <Border x:Name="Indicator"
                                     Grid.Column="0"
                                     Background="#1A73E8"
                                     CornerRadius="0,3,3,0"
                                     Visibility="Collapsed"/>
 
-                            <!-- Row: Icon | Label | Badge -->
                             <Grid Grid.Column="1" Margin="10,0,12,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="28"/>
-                                    <!-- Icon -->
                                     <ColumnDefinition Width="*"/>
-                                    <!-- Text -->
                                     <ColumnDefinition Width="Auto"/>
-                                    <!-- Badge -->
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Icon -->
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding Icon}"
                                            FontSize="17"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Center"/>
 
-                                <!-- Label -->
                                 <TextBlock x:Name="Label"
                                            Grid.Column="1"
                                            Text="{Binding Title}"
@@ -73,8 +61,6 @@
                                            Margin="8,0,0,0"
                                            Foreground="#555555"/>
 
-                                <!-- ══ BADGE ══ -->
-                                <!-- Visibility binding vào HasBadge -->
                                 <Border Grid.Column="2"
                                         Visibility="{Binding HasBadge,
                                             Converter={StaticResource BoolToVis}}"
@@ -83,29 +69,23 @@
                                         MinWidth="20" Height="20"
                                         Padding="5,0"
                                         VerticalAlignment="Center">
-                                    <TextBlock
-                                        Text="{Binding BadgeCount}"
-                                        FontSize="11"
-                                        FontWeight="SemiBold"
-                                        Foreground="White"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding BadgeCount}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
                                 </Border>
                             </Grid>
                         </Grid>
 
-                        <!-- Triggers thay đổi style theo state -->
                         <ControlTemplate.Triggers>
-
-                            <!-- Hover -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="BgLayer"
                                         Property="Background" Value="#F0F4FF"/>
                                 <Setter TargetName="Label"
                                         Property="Foreground" Value="#1A73E8"/>
                             </Trigger>
-
-                            <!-- Selected -->
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="BgLayer"
                                         Property="Background" Value="#E8F0FE"/>
@@ -116,14 +96,12 @@
                                 <Setter TargetName="Label"
                                         Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
-
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- ══ Style ListBox bỏ border mặc định ══ -->
         <Style x:Key="NavListBoxStyle" TargetType="ListBox">
             <Setter Property="Background"      Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -139,9 +117,7 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200"/>
-            <!-- Sidebar -->
             <ColumnDefinition Width="*"/>
-            <!-- Content -->
         </Grid.ColumnDefinitions>
 
         <!-- ════════════ SIDEBAR ════════════ -->
@@ -152,9 +128,7 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="64"/>
-                    <!-- App header -->
                     <RowDefinition Height="*"/>
-                    <!-- Nav list -->
                 </Grid.RowDefinitions>
 
                 <!-- App header -->
@@ -180,7 +154,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Danh sách điều hướng -->
+                <!-- Nav list -->
                 <ListBox Grid.Row="1"
                          Margin="0,8,0,0"
                          ItemsSource="{Binding Pages}"
@@ -194,9 +168,7 @@
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="64"/>
-                <!-- Topbar -->
                 <RowDefinition Height="*"/>
-                <!-- Page content -->
             </Grid.RowDefinitions>
 
             <!-- Topbar -->
@@ -205,13 +177,90 @@
                     BorderBrush="#E0E0E0"
                     BorderThickness="0,0,0,1">
                 <Grid Margin="20,0">
-                    <StackPanel VerticalAlignment="Center">
+
+                    <!-- Tiêu đề trang (bên trái) -->
+                    <StackPanel VerticalAlignment="Center"
+                                HorizontalAlignment="Left">
                         <TextBlock Text="{Binding CurrentTitle}"
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="#1A1A2E"/>
                         <TextBlock Text="Chào mừng, Manager"
                                    FontSize="12" Foreground="#888"
                                    Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- User Menu (góc phải) -->
+                    <StackPanel HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+
+                        <Button x:Name="BtnUserMenu"
+        Click="BtnUserMenu_Click"
+        Background="Transparent"
+        BorderThickness="1"
+        BorderBrush="#E0E0E0"
+        Cursor="Hand"
+        Padding="8,6">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="BtnBorder"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="20"
+                                                Padding="10,6">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="BtnBorder"
+                                        Property="Background" Value="#F0F4FF"/>
+                                                        <Setter TargetName="BtnBorder"
+                                        Property="BorderBrush" Value="#1A73E8"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="BtnBorder"
+                                        Property="Background" Value="#E8F0FE"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Avatar circle -->
+                                <Border Width="28" Height="28"
+                                    Background="#1A73E8"
+                                    CornerRadius="14">
+                                    <TextBlock Text="👤"
+                                   FontSize="14"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                                </Border>
+                                <!-- Tên đăng nhập -->
+                                <TextBlock Text="{Binding CurrentUsername}"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="#1A1A2E"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,4,0"/>
+                                <!-- Mũi tên -->
+                                <TextBlock Text="▾"
+                                   FontSize="11"
+                                   Foreground="#888"
+                                   VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+
                     </StackPanel>
                 </Grid>
             </Border>
