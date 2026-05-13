@@ -164,6 +164,17 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 if (p.Title == pageTitle) { p.BadgeCount = count; break; }
         }
 
+        private string _currentUsername = "Admin";
+        public string CurrentUsername
+        {
+            get => _currentUsername;
+            set
+            {
+                _currentUsername = value;
+                OnPropertyChanged(nameof(CurrentUsername));
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string n = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
