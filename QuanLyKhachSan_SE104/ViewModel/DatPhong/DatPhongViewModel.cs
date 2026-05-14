@@ -1,5 +1,4 @@
-﻿// ── Add this enum above the class ────────────────────────────────────────────
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
@@ -18,7 +17,7 @@ public enum DatPhongMode
 
 public class DatPhongViewModel : INotifyPropertyChanged
 {
-    // ── NEW: mode + context objects ───────────────────────────────────────────
+    // ── mode + context objects ───────────────────────────────────────────
     public DatPhongMode Mode { get; private set; } = DatPhongMode.Normal;
 
     // For DoiPhong: the ChiTietDatPhong being transferred
@@ -42,21 +41,36 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set { _newCustomer = value; OnPropertyChanged(); }
     }
 
-    private DateTime _ngayCheckIn = DateTime.Today;
+    private DateTime _ngayCheckIn = DateTime.Now;
     public DateTime NgayCheckIn
     {
         get => _ngayCheckIn;
         set { _ngayCheckIn = value; OnPropertyChanged(); }
     }
 
-    private DateTime _ngayCheckOut = DateTime.Today.AddDays(1);
+    private DateTime _ngayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     public DateTime NgayCheckOut
     {
         get => _ngayCheckOut;
-        set { _ngayCheckOut = value; OnPropertyChanged(); }
+        set
+        {
+            // Lấy phần Ngày khách chọn và set cứng giờ là 12:00:00
+            DateTime dateWithNoon = value.Date.AddHours(12);
+
+            if (dateWithNoon <= NgayCheckIn)
+            {
+                MessageBox.Show("Ngày check-out phải sau thời điểm check-in.", "Lỗi nhập liệu",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                OnPropertyChanged();
+                return;
+            }
+            _ngayCheckOut = dateWithNoon;
+            OnPropertyChanged();
+        }
     }
 
     public ObservableCollection<string> ListGioiTinh { get; set; }
+    public ObservableCollection<string> ListQuocTich { get; set; }
     public ObservableCollection<int> ListTang { get; set; }
     public ObservableCollection<LoaiPhong> ListLoaiPhong { get; set; }
 
@@ -113,6 +127,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         _context = new QuanLyKhachSanContext();
         ListGioiTinh = new ObservableCollection<string> { "Nam", "Nữ" };
+        ListQuocTich = new ObservableCollection<string> { "Việt Nam", "Nước Ngoài" };
         LoadInitialData();
 
         SearchRoomsCommand = new RelayCommand(ExecuteSearchRooms);
@@ -131,8 +146,8 @@ public class DatPhongViewModel : INotifyPropertyChanged
         AddRoomToList(phong);
 
         // Dates: check-in now, check-out tomorrow
-        NgayCheckIn = DateTime.Today;
-        NgayCheckOut = DateTime.Today.AddDays(1);
+        NgayCheckIn = DateTime.Now;
+        NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     }
 
     // ── Constructor 3: DoiPhong — customer pre-filled, pick a new room ────────
@@ -148,8 +163,8 @@ public class DatPhongViewModel : INotifyPropertyChanged
             NewCustomer = chiTiet.DatPhong.KhachHang;
 
         // Keep original dates
-        NgayCheckIn = chiTiet?.NgayCheckIn ?? DateTime.Today;
-        NgayCheckOut = chiTiet?.NgayCheckOut ?? DateTime.Today.AddDays(1);
+        NgayCheckIn = chiTiet?.NgayCheckIn ?? DateTime.Now;
+        NgayCheckOut = chiTiet?.NgayCheckOut ?? DateTime.Today.AddDays(1).Date.AddHours(12);
 
         // Show all rooms except the current one so staff picks a DIFFERENT room
         ExecuteSearchRoomsExcluding(currentPhong.MaPhong);
@@ -161,10 +176,12 @@ public class DatPhongViewModel : INotifyPropertyChanged
         try
         {
             ListTang = new ObservableCollection<int>(
-                _context.Phongs.Select(p => p.SoTang).Distinct().OrderBy(t => t).ToList());
+                _context.Phongs
+                    .Where(p => !p.IsDeleted)
+                    .Select(p => p.SoTang).Distinct().OrderBy(t => t).ToList());
 
             ListLoaiPhong = new ObservableCollection<LoaiPhong>(
-                _context.LoaiPhongs.ToList());
+                _context.LoaiPhongs.Where(lp => !lp.IsDeleted).ToList());
 
             OnPropertyChanged(nameof(ListTang));
             OnPropertyChanged(nameof(ListLoaiPhong));
@@ -216,7 +233,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         var q = _context.Phongs
             .Include(r => r.LoaiPhong)
-            .Where(r => !busyIds.Contains(r.MaPhong) && r.TrangThai == 0)
+            .Where(r => !busyIds.Contains(r.MaPhong) && r.TrangThai == 0 && !r.IsDeleted)
             .AsQueryable();
 
         if (excludeMaPhong.HasValue)
