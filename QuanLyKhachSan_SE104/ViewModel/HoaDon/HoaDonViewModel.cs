@@ -59,8 +59,18 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             }
         }
 
-        private decimal ParsedPhuPhi =>
-            decimal.TryParse(_phuPhiInput.Replace(",", "").Replace(".", ""), out var v) && v >= 0 ? v : 0;
+        //private decimal ParsedPhuPhi =>
+        //    decimal.TryParse(_phuPhiInput.Replace(",", "").Replace(".", ""), out var v) && v >= 0 ? v : 0;
+        private decimal ParsedPhuPhi
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_phuPhiInput)) return 0;
+                // Loại bỏ dấu phân cách nghìn nếu có và parse
+                string cleanInput = _phuPhiInput.Replace(",", "").Replace(".", "").Trim();
+                return decimal.TryParse(cleanInput, out var v) ? v : 0;
+            }
+        }
 
         // ══════════════════════════════════════════════
         //  Charge properties
@@ -166,6 +176,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     .Include(d => d.NhanVien)
                     .Include(d => d.ChiTietDatPhongs)
                         .ThenInclude(ct => ct.Phong)
+                            .ThenInclude(p => p.LoaiPhong)
                     .Include(d => d.ChiTietDatPhongs)
                         .ThenInclude(ct => ct.ChiTietDichVus)
                             .ThenInclude(dv => dv.DichVu)
@@ -196,6 +207,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     NgayCheckIn = chiTiet.NgayCheckIn;
                     NgayCheckOut = DateTime.Now;
                     GiaDatMoiDem = chiTiet.GiaDat;
+                    var deadline = chiTiet.NgayCheckOut;
+
+                    if (NgayCheckOut > deadline && chiTiet.Phong?.LoaiPhong != null)
+                    {
+                        double totalLateHours = (NgayCheckOut - deadline).TotalHours;
+                        int soGioTinhTien = (int)Math.Floor(totalLateHours);
+
+                        if (soGioTinhTien > 0)
+                        {
+                            decimal donGiaPhuPhi = chiTiet.Phong.LoaiPhong.PhuPhiThemGio;
+                            _phuPhiInput = (soGioTinhTien * donGiaPhuPhi).ToString("N0");
+                        }
+                        else _phuPhiInput = "0";
+                    }
+                    else
+                    {
+                        _phuPhiInput = "0"; // Chưa quá giờ dự kiến thì phụ phí = 0
+                    }
 
                     // Services for this room stay
                     var dv = chiTiet.ChiTietDichVus?
@@ -210,9 +239,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>(dv);
                 }
 
-                // Check if invoice already exists (re-opened after payment)
+                // Check if invoice already exists (re-opened after payment).
+                // Dùng HoaDon.TrangThaiThanhToan làm nguồn sự thật duy nhất —
+                // KHÔNG dùng DatPhong.TrangThaiDat vì số 3 bị dùng cho cả
+                // "Đã trả phòng" (DatPhong) lẫn "Quá hạn" (Phong), rất dễ nhầm.
                 _hoaDon = ctx.HoaDons.FirstOrDefault(h => h.MaDatPhong == _maDatPhong);
-                if (_hoaDon != null)
+                if (_hoaDon != null && _hoaDon.TrangThaiThanhToan == "Đã thanh toán")
                 {
                     _isPaid = true;
                     _phuPhiInput = _hoaDon.PhuPhi.ToString();
@@ -220,6 +252,22 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     _phuongThucThanhToan = _hoaDon.PhuongThucThanhToan;
                     PhuongThucThanhToanText = ToPaymentLabel(_hoaDon.PhuongThucThanhToan);
                     _ngayThanhToanText = $"Ngày TT: {_hoaDon.NgayThanhToan:dd/MM/yyyy HH:mm}";
+
+                    // Đảm bảo các phòng của hoá đơn đã thanh toán được reset về Trống
+                    var maPhongs = datPhong.ChiTietDatPhongs.Select(ct => ct.MaPhong).ToList();
+                    var phongs = ctx.Phongs.Where(p => maPhongs.Contains(p.MaPhong) && p.TrangThai != 0).ToList();
+                    foreach (var p in phongs)
+                    {
+                        p.TrangThai = 0;       // Trống
+                        p.TrangThaiDonDep = 2; // Cần dọn
+                    }
+                    if (phongs.Any()) ctx.SaveChanges();
+                }
+                else
+                {
+                    // Chưa thanh toán (hoặc HoaDon orphan chưa hoàn tất)
+                    _isPaid = false;
+                    _hoaDon = null;
                 }
 
                 // Notify all computed display props
@@ -230,6 +278,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 MessageBox.Show("Lỗi tải dữ liệu hóa đơn: " + ex.Message, "Lỗi");
             }
         }
+
 
         // ══════════════════════════════════════════════
         //  CheckOut — shows payment method picker, then saves HoaDon
@@ -282,21 +331,35 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 var datPhong = ctx.DatPhongs.Find(_maDatPhong);
                 if (datPhong != null) datPhong.TrangThaiDat = 3;
 
-                // Mark room(s) as empty + needs cleaning
-                var chiTietList = ctx.ChiTietDatPhongs
-                    .Include(ct => ct.Phong)
+                // Mark room(s) as empty + needs cleaning — query Phong directly
+                //var chiTietList = ctx.ChiTietDatPhongs
+                //    .Where(ct => ct.MaDatPhong == _maDatPhong)
+                //    .Select(ct => ct.MaPhong)
+                //    .ToList();
+
+                //var phongList = ctx.Phongs
+                //    .Where(p => chiTietList.Contains(p.MaPhong))
+                //    .ToList();
+                // 3. QUAN TRỌNG: Tìm tất cả các phòng thuộc đơn đặt này và đưa về Trống (0)
+                var maPhongs = ctx.ChiTietDatPhongs
                     .Where(ct => ct.MaDatPhong == _maDatPhong)
+                    .Select(ct => ct.MaPhong)
                     .ToList();
 
-                foreach (var ct in chiTietList)
+                var phongList = ctx.Phongs.Where(p => maPhongs.Contains(p.MaPhong)).ToList();
+
+                foreach (var p in phongList)
                 {
-                    ct.NgayCheckOut = NgayCheckOut;
-                    if (ct.Phong != null)
-                    {
-                        ct.Phong.TrangThai = 0; // Trống
-                        ct.Phong.TrangThaiDonDep = 2; // Cần dọn
-                    }
+                    p.TrangThai = 0;       // Trống
+                    p.TrangThaiDonDep = 2; // Cần dọn
                 }
+
+                // Update checkout timestamp on ChiTietDatPhong rows
+                var chiTietRows = ctx.ChiTietDatPhongs
+                    .Where(ct => ct.MaDatPhong == _maDatPhong)
+                    .ToList();
+                foreach (var ct in chiTietRows)
+                    ct.NgayCheckOut = NgayCheckOut;
 
                 ctx.SaveChanges();
 
@@ -312,7 +375,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi lưu hóa đơn: " + ex.Message, "Lỗi");
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                MessageBox.Show("Lỗi khi lưu hóa đơn: " + msg, "Lỗi");
             }
         }
 

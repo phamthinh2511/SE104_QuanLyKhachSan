@@ -10,7 +10,6 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 
-// Alias using theo yêu cầu
 using PhongModel = QuanLyKhachSan_SE104.Model.Phong;
 using ChiTietDatPhongModel = QuanLyKhachSan_SE104.Model.ChiTietDatPhong;
 
@@ -188,13 +187,15 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (phong.TrangThai == 1 || phong.TrangThai == 2 || phong.TrangThai == 3)
                 {
                     using var ctx = new QuanLyKhachSanContext();
+                    // Phòng quá hạn (Phong.TrangThai=3) vẫn có booking đang active
+                    // với TrangThaiDat = 1 (Đã đặt) hoặc 2 (Đang ở).
+                    // KHÔNG filter TrangThaiDat=3 vì 3 = "Đã trả phòng" — booking đó đã xong.
                     chiTiet = ctx.ChiTietDatPhongs
                             .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
                             .Include(c => c.ChiTietDichVus).ThenInclude(dv => dv.DichVu)
                             .FirstOrDefault(c => c.MaPhong == phong.MaPhong
                                 && (c.DatPhong.TrangThaiDat == 1    // Đã đặt
-                                || c.DatPhong.TrangThaiDat == 2     // Đang ở
-                                || c.DatPhong.TrangThaiDat == 3));  // Quá hạn
+                                || c.DatPhong.TrangThaiDat == 2));  // Đang ở (kể cả quá hạn)
                 }
 
                 var win = new QuanLyKhachSan_SE104.View.Phong.ChiTietPhong(phong, chiTiet);
@@ -249,15 +250,22 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             );
         }
 
+        /// <summary>
+        /// Call this whenever the Phong tab becomes visible (e.g. tab-switch, after booking, after check-in).
+        /// Already called internally after MoChiTietPhongCommand closes.
+        /// </summary>
+        public void Refresh() => LoadData();
+
         public void LoadData()
         {
             using var ctx = new QuanLyKhachSanContext();
             // Auto-mark overdue rooms 
+            var today = DateTime.Now.Date;
             var overdueChiTiets = ctx.ChiTietDatPhongs
                 .Include(ct => ct.DatPhong)
                 .Include(ct => ct.Phong)
                 .Where(ct =>
-                    ct.NgayCheckOut < DateTime.Now &&
+                    ct.NgayCheckOut < today &&           // strictly before today — not same-day midnight
                     (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
                     ct.Phong.TrangThai != 3)
                 .ToList();

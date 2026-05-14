@@ -113,13 +113,16 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
                             <ComboBox Style="{StaticResource ModernComboBox}"
-                      ItemsSource="{Binding ListGioiTinh}"
-                      SelectedItem="{Binding NewCustomer.GioiTinh}"
-                      IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
+                                      ItemsSource="{Binding ListGioiTinh}"
+                                      SelectedItem="{Binding NewCustomer.GioiTinh}"
+                                      IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.QuocTich}" IsReadOnly="{Binding IsCustomerReadOnly}"/>
+                            <ComboBox Style="{StaticResource ModernComboBox}"
+                                        ItemsSource="{Binding ListQuocTich}"
+                                        SelectedItem="{Binding NewCustomer.QuocTich}"
+                                        IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
                         </StackPanel>
                     </Grid>
 
