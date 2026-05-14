@@ -353,7 +353,16 @@ public class DatPhongViewModel : INotifyPropertyChanged
             var label = Mode == DatPhongMode.WalkIn ? "Check-in khách lẻ" : "Đặt phòng";
             MessageBox.Show($"{label} thành công: " +
                 string.Join(", ", SelectedRoomsList.Select(r => r.RoomName)), "Thông báo");
-            CloseAction?.Invoke();
+            if (Mode == DatPhongMode.Normal)
+            {
+                // Nếu đang ở trang đặt phòng chính thì reset để nhập tiếp
+                ResetFields();
+            }
+            else
+            {
+                // Nếu là cửa sổ Pop-up thì đóng cửa sổ
+                CloseAction?.Invoke();
+            }
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi lưu: " + ex.Message); }
     }
@@ -395,5 +404,23 @@ public class DatPhongViewModel : INotifyPropertyChanged
             CloseAction?.Invoke();
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi đổi phòng: " + ex.Message); }
+    }
+    private void ResetFields()
+    {
+        // 1. Reset thông tin khách hàng
+        NewCustomer = new KhachHang();
+
+        // 2. Reset ngày tháng về mặc định
+        NgayCheckIn = DateTime.Now;
+        NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
+
+        SelectedRoomsList.Clear();
+        SelectedRoom = null;
+        SelectedTang = 0;
+        SelectedLoaiPhong = null;
+
+        AvailableRooms.Clear();
+
+        CommandManager.InvalidateRequerySuggested();
     }
 }
