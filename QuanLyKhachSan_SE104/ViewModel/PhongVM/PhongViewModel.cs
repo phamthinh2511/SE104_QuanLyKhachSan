@@ -63,8 +63,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         public int CountDangO => _allPhongs?.Count(p => p.TrangThai == 2) ?? 0;
         public int CountQuaHan => _allPhongs?.Count(p => p.TrangThai == 3) ?? 0;
         // Cleaning status (TrangThaiDonDep)
-        public int CountCanDonDep => _allPhongs?.Count(p => p.TrangThaiDonDep == 2) ?? 0;
-        public int CountBaoTri => _allPhongs?.Count(p => p.TrangThaiDonDep == 3) ?? 0;
+        public int CountCanDonDep => _allPhongs?.Count(p => p.TrangThaiDonDep == 1) ?? 0;
+        public int CountBaoTri => _allPhongs?.Count(p => p.TrangThaiDonDep == 2) ?? 0;
 
         // ── Search ────────────────────────────────────────
         private string _searchText;
@@ -90,6 +90,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         public ICommand EditRoomCommand { get; }
         public ICommand AddRoomCommand { get; }
         public ICommand MoChiTietPhongCommand { get; }
+        public ICommand ShowWarningCommand { get; }
 
         public PhongViewModel()
         {
@@ -139,7 +140,47 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             DoiTrangThaiDonDepCommand = new RelayCommand<PhongModel>(p =>
             {
                 if (p == null) return;
-                MessageBox.Show($"Đổi trạng thái dọn dẹp phòng {p.TenPhong}");
+
+                try
+                {
+                    using var ctx = new QuanLyKhachSanContext();
+                    var phongDb = ctx.Phongs.Find(p.MaPhong);
+                    if (phongDb == null) return;
+
+                    // Logic xoay vòng dựa trên bảng trạng thái của bạn:
+                    // 0 (Sạch) -> 1 (Đang dọn)
+                    // 1 (Đang dọn) -> 0 (Sạch)
+                    // 2 (Bảo trì) -> 0 (Sạch) - Manual reset
+                    int trangThaiCu = phongDb.TrangThaiDonDep;
+                    int trangThaiMoi = trangThaiCu switch
+                    {
+                        0 => 1, // Nếu sạch thì chuyển sang Đang dọn
+                        1 => 0, // Nếu đang dọn xong thì chuyển sang Sạch
+                        2 => 0, // Nếu bảo trì xong thì chuyển sang Sạch
+                        _ => 0
+                    };
+
+                    phongDb.TrangThaiDonDep = trangThaiMoi;
+                    ctx.SaveChanges();
+
+                    // Cập nhật text để thông báo
+                    string label = trangThaiMoi switch
+                    {
+                        0 => "SẠCH",
+                        1 => "ĐANG DỌN",
+                        2 => "BẢO TRÌ",
+                        _ => "SẠCH"
+                    };
+
+                    // Làm mới dữ liệu hiển thị trên danh sách
+                    LoadData();
+
+                    MessageBox.Show($"Phòng {p.TenPhong} đã chuyển sang trạng thái: {label}", "Thông báo");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi cập nhật: " + ex.Message);
+                }
             });
 
             // Hủy đặt phòng
@@ -203,6 +244,30 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 win.ShowDialog();
                 LoadData();
             });
+
+            ShowWarningCommand = new RelayCommand<PhongModel>(p =>
+            {
+                if (p == null) return;
+
+                string message = "";
+                if (p.IsCheckInToday && p.IsCheckOutToday)
+                {
+                    message = $"Phòng {p.TenPhong} có cả khách nhận và trả phòng trong hôm nay!";
+                }
+                else if (p.IsCheckInToday)
+                {
+                    message = $"Hôm nay là ngày CHECK-IN của phòng {p.TenPhong}.";
+                }
+                else if (p.IsCheckOutToday)
+                {
+                    message = $"Hôm nay là ngày CHECK-OUT của phòng {p.TenPhong}.";
+                }
+
+                if (!string.IsNullOrEmpty(message))
+                {
+                    MessageBox.Show(message, "Thông báo lịch hẹn", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            });
         }
 
         // ── Helper Methods ────────────────────────────────
@@ -216,8 +281,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 case "thue:1": result = result.Where(p => p.TrangThai == 1); break;
                 case "thue:2": result = result.Where(p => p.TrangThai == 2); break;
                 case "thue:3": result = result.Where(p => p.TrangThai == 3); break;
+                case "don:1": result = result.Where(p => p.TrangThaiDonDep == 1); break;
                 case "don:2": result = result.Where(p => p.TrangThaiDonDep == 2); break;
-                case "don:3": result = result.Where(p => p.TrangThaiDonDep == 3); break;
                     // "All" or unknown: no status filter
             }
 
@@ -281,6 +346,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             // 1. Lấy toàn bộ phòng và SẮP XẾP THEO TÊN NGAY TỪ ĐẦU
             var allPhongsFromDb = ctx.Phongs
                 .Include(p => p.LoaiPhong)
+                .Include(p => p.ChiTietDatPhongs)
+        .ThenInclude(ct => ct.DatPhong)
                 .OrderBy(p => p.TenPhong) // Sắp xếp tăng dần theo tên
                 .ToList();
             _allPhongs = new ObservableCollection<PhongModel>(allPhongsFromDb);

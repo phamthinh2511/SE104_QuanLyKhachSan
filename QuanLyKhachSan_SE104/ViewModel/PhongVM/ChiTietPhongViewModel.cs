@@ -1,4 +1,5 @@
-﻿using QuanLyKhachSan_SE104.DAL;
+﻿using Microsoft.EntityFrameworkCore;
+using QuanLyKhachSan_SE104.DAL;
 using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
@@ -34,9 +35,22 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         public PhongModel Phong { get; }
         public ChiTietDatPhongModel ChiTietDatPhong { get; }
 
-        public int SoDem => ChiTietDatPhong != null
-            ? Math.Max(1, (ChiTietDatPhong.NgayCheckOut - ChiTietDatPhong.NgayCheckIn).Days)
-            : 0;
+        public int SoDem
+        {
+            get
+            {
+                if (ChiTietDatPhong == null) return 0;
+
+                // Nếu khách đang ở (đã check-in), tính từ lúc check-in đến hiện tại
+                // Nếu khách chưa check-in (mới đặt), tính theo dự kiến trong hợp đồng
+                DateTime checkIn = ChiTietDatPhong.NgayCheckIn;
+                DateTime checkOut = ChiTietDatPhong.NgayCheckOut;
+
+                // Tính toán: Hiệu số ngày, làm tròn lên (Ceiling) và tối thiểu là 1 đêm
+                double totalDays = (checkOut - checkIn).TotalDays;
+                return Math.Max(1, (int)Math.Ceiling(totalDays));
+            }
+        }
 
         public string TongTienDichVuText
             => $"{DanhSachDichVu?.Sum(x => x.ThanhTien) ?? 0:#,0}₫";
@@ -45,14 +59,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         public ICommand ThoatCommand => new RelayCommand(() => _window.Close());
 
-        // Replace CheckInKhachLeCommand and DoiPhongCommand in ChiTietPhongViewModel.cs
-
-        // ── Walk-in: blank customer form, room pre-selected, grid hidden ──────────────
+        // ── Walk-in: blank customer form, room pre-selected, grid hidden ──────
         public ICommand CheckInKhachLeCommand => new RelayCommand<PhongModel>(phong =>
         {
             if (phong == null) return;
 
-            var vm = new DatPhongViewModel(phong);   // WalkIn constructor
+            var vm = new DatPhongViewModel(phong);
             var page = new DatPhongPage { DataContext = vm };
 
             var win = new Window
@@ -67,15 +79,15 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
             vm.CloseAction = () => { win.DialogResult = true; win.Close(); };
             if (win.ShowDialog() == true)
-                _window.Close();   // also close ChiTietPhong after successful check-in
+                _window.Close();
         });
 
-        // ── Đổi phòng: customer pre-filled, pick a different room ────────────────────
+        // ── Đổi phòng (chỉ TrangThai = 2) ───────────────────────────────────
         public ICommand DoiPhongCommand => new RelayCommand<PhongModel>(phong =>
         {
             if (phong == null || ChiTietDatPhong == null) return;
 
-            var vm = new DatPhongViewModel(phong, ChiTietDatPhong);  // DoiPhong constructor
+            var vm = new DatPhongViewModel(phong, ChiTietDatPhong);
             var page = new DatPhongPage { DataContext = vm };
 
             var win = new Window
@@ -90,11 +102,44 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
             vm.CloseAction = () => { win.DialogResult = true; win.Close(); };
             if (win.ShowDialog() == true)
-                _window.Close();   // close ChiTietPhong so parent reloads
+                _window.Close();
         });
 
+        // ── Gia hạn phòng (chỉ TrangThai = 3 — quá hạn) ─────────────────────
+        public ICommand GiaHanPhongCommand => new RelayCommand<PhongModel>(phong =>
+        {
+            if (phong == null || ChiTietDatPhong == null) return;
 
-        // Cycle: 0 (Clean) → 2 (Needs Cleaning) → 1 (Cleaning In Progress) → 0
+            // Cần load đầy đủ navigation property KhachHang cho DatPhong
+            ChiTietDatPhongModel chiTietFull;
+            using (var ctx = new QuanLyKhachSanContext())
+            {
+                chiTietFull = ctx.ChiTietDatPhongs
+                    .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
+                    .FirstOrDefault(c => c.MaChiTietDatPhong == ChiTietDatPhong.MaChiTietDatPhong)
+                    ?? ChiTietDatPhong;
+            }
+
+            var vm = new DatPhongViewModel(phong, chiTietFull, giaHan: true);
+            var page = new DatPhongPage { DataContext = vm };
+
+            var win = new Window
+            {
+                Title = $"Gia hạn phòng — Phòng {phong.TenPhong}",
+                Width = 1100,
+                Height = 700,
+                Content = page,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = _window
+            };
+
+            vm.CloseAction = () => { win.DialogResult = true; win.Close(); };
+            if (win.ShowDialog() == true)
+                _window.Close();
+        });
+
+        // ── Đổi trạng thái dọn dẹp ───────────────────────────────────────────
+
         public ICommand DoiTrangThaiDonDepCommand => new RelayCommand<PhongModel>(phong =>
         {
             if (phong == null) return;
@@ -106,17 +151,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
                 p.TrangThaiDonDep = p.TrangThaiDonDep switch
                 {
-                    0 => 2,   // Sạch → Cần dọn
-                    2 => 1,   // Cần dọn → Đang dọn
-                    1 => 0,   // Đang dọn → Sạch
-                    3 => 0,   // Bảo trì → Sạch (manual reset)
+                    0 => 1, // Sạch -> Đang dọn
+                    1 => 0, // Đang dọn -> Sạch
+                    2 => 0, // Bảo trì -> Sạch (Manual reset)
                     _ => 0
                 };
 
                 ctx.SaveChanges();
-                var label = p.TrangThaiDonDep switch { 0 => "Sạch", 1 => "Đang dọn", 2 => "Cần dọn", 3 => "Bảo trì", _ => "" };
-                MessageBox.Show($"Trạng thái dọn dẹp phòng {phong.TenPhong}: {label}", "Thông báo");
-                _window.Close();
+
+                string label = p.TrangThaiDonDep switch
+                {
+                    0 => "Sạch",
+                    1 => "Đang dọn",
+                    2 => "Bảo trì",
+                    _ => "Không xác định"
+                };
+
+                MessageBox.Show($"Đã chuyển trạng thái phòng {phong.TenPhong} sang: {label}", "Thông báo");
+                _window.Close(); // Đóng popup để refresh lại màn hình chính
             }
             catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
         });
@@ -177,66 +229,31 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 return;
             }
 
-            // Khởi tạo ViewModel cho cửa sổ Dịch vụ và truyền ID phòng vào TRƯỚC khi mở
             var vm = new DichVuVM.DichVuViewModel
             {
                 MaChiTietDatPhong = ChiTietDatPhong.MaChiTietDatPhong
             };
 
             var win = new View.DichVu.DichVuPage { DataContext = vm };
-            win.Owner = _window; // _window là biến lưu Window hiện tại
+            win.Owner = _window;
 
-            // Thiết lập hành động đóng cửa sổ
-            vm.CloseAction = () =>
-            {
-                win.DialogResult = true;
-                win.Close();
-            };
+            vm.CloseAction = () => { win.DialogResult = true; win.Close(); };
 
-            // Sau khi cửa sổ đóng, nếu lưu thành công thì cập nhật ngay lên giao diện
             if (win.ShowDialog() == true && vm.SavedItems.Count > 0)
             {
                 foreach (var item in vm.SavedItems)
-                    DanhSachDichVu.Add(item); // Thêm món mới vào danh sách đang hiển thị
+                    DanhSachDichVu.Add(item);
 
-                // Báo cho UI biết là tổng tiền đã thay đổi để cập nhật con số mới
                 OnPropertyChanged(nameof(TongTienDichVuText));
             }
         });
 
-
-        public void ExecuteDoiPhong(PhongModel phongMoi)
-        {
-            if (ChiTietDatPhong == null || phongMoi == null) return;
-            try
-            {
-                using var ctx = new QuanLyKhachSanContext();
-
-                // Free old room
-                var cu = ctx.Phongs.Find(Phong.MaPhong);
-                if (cu != null) cu.TrangThai = 0;
-
-                // Occupy new room
-                var moi = ctx.Phongs.Find(phongMoi.MaPhong);
-                if (moi != null) moi.TrangThai = 2;
-
-                // Point ChiTietDatPhong to new room — services stay linked via MaChiTietDatPhong
-                var ct = ctx.ChiTietDatPhongs.Find(ChiTietDatPhong.MaChiTietDatPhong);
-                if (ct != null) ct.MaPhong = phongMoi.MaPhong;
-
-                ctx.SaveChanges();
-                MessageBox.Show($"Đã đổi sang phòng {phongMoi.TenPhong}.", "Thông báo");
-                _window.Close();
-            }
-            catch (Exception ex) { MessageBox.Show("Lỗi đổi phòng: " + ex.Message); }
-        }
-
         public ICommand CheckOutCommand => new RelayCommand<PhongModel>(phong =>
         {
             var vm = new HoaDonVM.HoaDonViewModel(
-              ChiTietDatPhong.MaDatPhong,
-              ChiTietDatPhong.MaChiTietDatPhong,
-              1);          // pass your logged-in staff ID
+                ChiTietDatPhong.MaDatPhong,
+                ChiTietDatPhong.MaChiTietDatPhong,
+                1); // TODO: logged-in staff ID
 
             var page = new View.HoaDon.HoaDonPage { DataContext = vm };
             var win = new Window
@@ -249,7 +266,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 Owner = _window
             };
             win.ShowDialog();
-            _window.Close();   // refresh parent after payment
+            _window.Close();
         });
 
         public ChiTietPhongViewModel(PhongModel phong, ChiTietDatPhongModel chiTietDatPhong, Window window)
@@ -268,7 +285,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 return;
             }
 
-            // Gọi DAL để lấy danh sách dịch vụ thực tế từ DB
             var rows = _dichVuDal.LayDichVuTheoChiTiet(ChiTietDatPhong.MaChiTietDatPhong);
 
             DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>(

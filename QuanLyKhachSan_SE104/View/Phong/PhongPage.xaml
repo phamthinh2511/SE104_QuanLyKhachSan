@@ -25,8 +25,7 @@
                          Style="{StaticResource SearchTextBoxStyle}"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Tạo phòng" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding AddRoomCommand}"></Button>
+                    
                     <ComboBox Style="{StaticResource ModernComboBox}" Width="160" Margin="0,0,10,0"
                               ItemsSource="{Binding ListTang}"
                               SelectedItem="{Binding SelectedTang}">
@@ -84,13 +83,13 @@
                 <TextBlock Text="{Binding CountDaDat, StringFormat='Đã đặt ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#42A5F5"
-                    Command="{Binding FilterCommand}" CommandParameter="don:2">
-                <TextBlock Text="{Binding CountCanDonDep, StringFormat='Cần Dọn ({0})'}" FontWeight="SemiBold"/>
+                    Command="{Binding FilterCommand}" CommandParameter="don:1">
+                <TextBlock Text="{Binding CountCanDonDep, StringFormat='Đang Dọn ({0})'}" FontWeight="SemiBold"/>
             </Button>
 
             <!-- FIX: Đổi CountCanDonDep → CountBaoTri -->
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#90A4AE"
-                    Command="{Binding FilterCommand}" CommandParameter="don:3">
+                    Command="{Binding FilterCommand}" CommandParameter="don:2">
                 <TextBlock Text="{Binding CountBaoTri, StringFormat='Bảo Trì ({0})'}" FontWeight="SemiBold"/>
             </Button>
         </UniformGrid>
