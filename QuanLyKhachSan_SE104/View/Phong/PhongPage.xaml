@@ -85,7 +85,7 @@
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#42A5F5"
                     Command="{Binding FilterCommand}" CommandParameter="don:2">
-                <TextBlock Text="{Binding CountCanDonDep, StringFormat='Cần Dọn ({0})'}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding CountCanDonDep, StringFormat='Đang Dọn ({0})'}" FontWeight="SemiBold"/>
             </Button>
 
             <!-- FIX: Đổi CountCanDonDep → CountBaoTri -->

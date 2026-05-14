@@ -12,7 +12,8 @@ public enum DatPhongMode
 {
     Normal,       // Đặt phòng mới bình thường
     WalkIn,       // Khách lẻ: customer blank, room pre-selected, room grid locked
-    DoiPhong      // Đổi phòng: customer pre-filled, pick a DIFFERENT room
+    DoiPhong,     // Đổi phòng: customer pre-filled, pick a DIFFERENT room
+    GiaHan        // Gia hạn: chỉ cho sửa NgayCheckOut, khóa mọi thứ khác
 }
 
 public class DatPhongViewModel : INotifyPropertyChanged
@@ -20,14 +21,18 @@ public class DatPhongViewModel : INotifyPropertyChanged
     // ── mode + context objects ───────────────────────────────────────────
     public DatPhongMode Mode { get; private set; } = DatPhongMode.Normal;
 
-    // For DoiPhong: the ChiTietDatPhong being transferred
+    // For DoiPhong / GiaHan: the ChiTietDatPhong being modified
     private ChiTietDatPhong _chiTietDatPhong;
 
     // Visibility helpers for the View
-    public bool IsRoomGridVisible => Mode != DatPhongMode.WalkIn;
-    public bool IsCustomerReadOnly => Mode == DatPhongMode.DoiPhong;
+    public bool IsRoomGridVisible => Mode != DatPhongMode.WalkIn && Mode != DatPhongMode.GiaHan;
+    public bool IsCustomerReadOnly => Mode == DatPhongMode.DoiPhong || Mode == DatPhongMode.GiaHan;
 
-    // ── Existing fields (unchanged) ───────────────────────────────────────────
+    // GiaHan mode — khoá luôn cả ngày check-in và selector tầng/loại phòng
+    public bool IsCheckInReadOnly => Mode == DatPhongMode.GiaHan;
+    public bool IsFilterVisible => Mode != DatPhongMode.GiaHan;
+
+    // ── Existing fields ───────────────────────────────────────────────────
     public event PropertyChangedEventHandler PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -54,7 +59,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckOut;
         set
         {
-            // Lấy phần Ngày khách chọn và set cứng giờ là 12:00:00
             DateTime dateWithNoon = value.Date.AddHours(12);
 
             if (dateWithNoon <= NgayCheckIn)
@@ -122,7 +126,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
     public ICommand ToggleRoomCommand { get; }
     public Action CloseAction { get; set; }
 
-    // ── Constructor 1: Normal mode (existing behaviour) ───────────────────────
+    // ── Constructor 1: Normal mode ────────────────────────────────────────
     public DatPhongViewModel()
     {
         _context = new QuanLyKhachSanContext();
@@ -135,42 +139,60 @@ public class DatPhongViewModel : INotifyPropertyChanged
         ToggleRoomCommand = new RelayCommand<Phong>(ExecuteToggleRoom);
     }
 
-    // ── Constructor 2: WalkIn — customer blank, room grid hidden ─────────────
+    // ── Constructor 2: WalkIn ─────────────────────────────────────────────
     public DatPhongViewModel(Phong phong) : this()
     {
         Mode = DatPhongMode.WalkIn;
-        OnPropertyChanged(nameof(IsRoomGridVisible));
-        OnPropertyChanged(nameof(IsCustomerReadOnly));
+        NotifyModeProps();
 
-        // Pre-select the room straight into the right-panel list
         AddRoomToList(phong);
 
-        // Dates: check-in now, check-out tomorrow
         NgayCheckIn = DateTime.Now;
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     }
 
-    // ── Constructor 3: DoiPhong — customer pre-filled, pick a new room ────────
+    // ── Constructor 3: DoiPhong ───────────────────────────────────────────
     public DatPhongViewModel(Phong currentPhong, ChiTietDatPhong chiTiet) : this()
     {
         Mode = DatPhongMode.DoiPhong;
         _chiTietDatPhong = chiTiet;
-        OnPropertyChanged(nameof(IsRoomGridVisible));
-        OnPropertyChanged(nameof(IsCustomerReadOnly));
+        NotifyModeProps();
 
-        // Pre-fill customer
         if (chiTiet?.DatPhong?.KhachHang != null)
             NewCustomer = chiTiet.DatPhong.KhachHang;
 
-        // Keep original dates
         NgayCheckIn = chiTiet?.NgayCheckIn ?? DateTime.Now;
         NgayCheckOut = chiTiet?.NgayCheckOut ?? DateTime.Today.AddDays(1).Date.AddHours(12);
 
-        // Show all rooms except the current one so staff picks a DIFFERENT room
         ExecuteSearchRoomsExcluding(currentPhong.MaPhong);
     }
 
-    // ── Data loading ──────────────────────────────────────────────────────────
+    // ── Constructor 4: GiaHan ─────────────────────────────────────────────
+    /// <summary>
+    /// Gia hạn phòng quá hạn: chỉ cho phép thay đổi NgayCheckOut.
+    /// NgayCheckOut mặc định = hôm nay + 1 ngày (nhân viên tự chỉnh).
+    /// </summary>
+    public DatPhongViewModel(Phong currentPhong, ChiTietDatPhong chiTiet, bool giaHan) : this()
+    {
+        Mode = DatPhongMode.GiaHan;
+        _chiTietDatPhong = chiTiet;
+        NotifyModeProps();
+
+        // Điền thông tin khách (read-only)
+        if (chiTiet?.DatPhong?.KhachHang != null)
+            NewCustomer = chiTiet.DatPhong.KhachHang;
+
+        // Giữ nguyên check-in thực tế
+        NgayCheckIn = chiTiet?.NgayCheckIn ?? DateTime.Now;
+
+        // Check-out mặc định = ngày hôm nay + 1 (nhân viên điều chỉnh)
+        NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
+
+        // Hiển thị phòng hiện tại trong danh sách (locked, không cho chọn thêm)
+        AddRoomToList(currentPhong);
+    }
+
+    // ── Data loading ──────────────────────────────────────────────────────
     private void LoadInitialData()
     {
         try
@@ -189,7 +211,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         catch (Exception ex) { MessageBox.Show("Lỗi tải dữ liệu: " + ex.Message); }
     }
 
-    // ── Search (normal) ───────────────────────────────────────────────────────
+    // ── Search (normal) ───────────────────────────────────────────────────
     private void ExecuteSearchRooms()
     {
         try
@@ -208,7 +230,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         catch (Exception ex) { MessageBox.Show("Lỗi truy vấn: " + ex.Message); }
     }
 
-    // ── Search for DoiPhong — excludes the room being vacated ────────────────
+    // ── Search for DoiPhong ───────────────────────────────────────────────
     private void ExecuteSearchRoomsExcluding(int excludeMaPhong)
     {
         try
@@ -248,7 +270,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         return q;
     }
 
-    // ── Room list helpers ─────────────────────────────────────────────────────
+    // ── Room list helpers ─────────────────────────────────────────────────
     private void AddRoomToList(Phong phong)
     {
         if (!SelectedRoomsList.Any(x => x.MaPhong == phong.MaPhong))
@@ -266,6 +288,9 @@ public class DatPhongViewModel : INotifyPropertyChanged
     private void ExecuteToggleRoom(Phong phong)
     {
         if (phong == null) return;
+        // Không cho xoá phòng trong mode GiaHan
+        if (Mode == DatPhongMode.GiaHan) return;
+
         var existing = SelectedRoomsList.FirstOrDefault(x => x.MaPhong == phong.MaPhong);
         if (existing != null)
         {
@@ -281,43 +306,47 @@ public class DatPhongViewModel : INotifyPropertyChanged
         CommandManager.InvalidateRequerySuggested();
     }
 
-    // ── Save ──────────────────────────────────────────────────────────────────
+    // ── Save ──────────────────────────────────────────────────────────────
     private bool CanExecuteSave()
         => SelectedRoomsList.Count > 0 && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
 
     private void ExecuteSave()
     {
-        // Validate capacity
-        foreach (var item in SelectedRoomsList)
+        // Validate capacity (skip for GiaHan — room/capacity unchanged)
+        if (Mode != DatPhongMode.GiaHan)
         {
-            var phong = _context.Phongs.Include(p => p.LoaiPhong)
-                                .FirstOrDefault(p => p.MaPhong == item.MaPhong);
-            if (phong != null && item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
+            foreach (var item in SelectedRoomsList)
             {
-                MessageBox.Show(
-                    $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người.",
-                    "Lỗi nhập liệu");
-                return;
+                var phong = _context.Phongs.Include(p => p.LoaiPhong)
+                                    .FirstOrDefault(p => p.MaPhong == item.MaPhong);
+                if (phong != null && item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
+                {
+                    MessageBox.Show(
+                        $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người.",
+                        "Lỗi nhập liệu");
+                    return;
+                }
             }
         }
 
-        if (Mode == DatPhongMode.DoiPhong)
-            ExecuteDoiPhongSave();
-        else
-            ExecuteNormalSave();
+        switch (Mode)
+        {
+            case DatPhongMode.DoiPhong: ExecuteDoiPhongSave(); break;
+            case DatPhongMode.GiaHan: ExecuteGiaHanSave(); break;
+            default: ExecuteNormalSave(); break;
+        }
     }
 
-    // ── Save: Normal / WalkIn ─────────────────────────────────────────────────
+    // ── Save: Normal / WalkIn ─────────────────────────────────────────────
     private void ExecuteNormalSave()
     {
         using var tx = _context.Database.BeginTransaction();
         try
         {
-            // For WalkIn, customer is new. For Normal, also new.
             _context.KhachHangs.Add(NewCustomer);
             _context.SaveChanges();
 
-            var trangThaiDat = Mode == DatPhongMode.WalkIn ? 2 : 1; // WalkIn = đang ở
+            var trangThaiDat = Mode == DatPhongMode.WalkIn ? 2 : 1;
             var booking = new DatPhong
             {
                 MaKhachHang = NewCustomer.MaKhachHang,
@@ -353,21 +382,16 @@ public class DatPhongViewModel : INotifyPropertyChanged
             var label = Mode == DatPhongMode.WalkIn ? "Check-in khách lẻ" : "Đặt phòng";
             MessageBox.Show($"{label} thành công: " +
                 string.Join(", ", SelectedRoomsList.Select(r => r.RoomName)), "Thông báo");
+
             if (Mode == DatPhongMode.Normal)
-            {
-                // Nếu đang ở trang đặt phòng chính thì reset để nhập tiếp
                 ResetFields();
-            }
             else
-            {
-                // Nếu là cửa sổ Pop-up thì đóng cửa sổ
                 CloseAction?.Invoke();
-            }
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi lưu: " + ex.Message); }
     }
 
-    // ── Save: DoiPhong ────────────────────────────────────────────────────────
+    // ── Save: DoiPhong ────────────────────────────────────────────────────
     private void ExecuteDoiPhongSave()
     {
         if (_chiTietDatPhong == null || SelectedRoomsList.Count == 0) return;
@@ -376,16 +400,13 @@ public class DatPhongViewModel : INotifyPropertyChanged
         using var tx = _context.Database.BeginTransaction();
         try
         {
-            // 1. Free the old room
             var oldPhong = _context.Phongs.Find(_chiTietDatPhong.MaPhong);
             if (oldPhong != null) oldPhong.TrangThai = 0;
 
-            // 2. Occupy the new room
             var newPhong = _context.Phongs.Include(p => p.LoaiPhong)
                                    .First(p => p.MaPhong == newRoomItem.MaPhong);
             newPhong.TrangThai = _chiTietDatPhong.DatPhong?.TrangThaiDat == 2 ? 2 : 1;
 
-            // 3. Re-point ChiTietDatPhong → new room, update price
             var ct = _context.ChiTietDatPhongs.Find(_chiTietDatPhong.MaChiTietDatPhong);
             if (ct != null)
             {
@@ -394,7 +415,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
                 ct.NgayCheckIn = NgayCheckIn;
                 ct.NgayCheckOut = NgayCheckOut;
                 ct.SoNguoi = newRoomItem.Capacity;
-                // ChiTietDichVus stay linked via MaChiTietDatPhong — no change needed
             }
 
             _context.SaveChanges();
@@ -405,22 +425,60 @@ public class DatPhongViewModel : INotifyPropertyChanged
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi đổi phòng: " + ex.Message); }
     }
+
+    // ── Save: GiaHan ──────────────────────────────────────────────────────
+    /// <summary>
+    /// Chỉ cập nhật NgayCheckOut mới trên ChiTietDatPhong.
+    /// Trạng thái phòng giữ nguyên (vẫn là 3-Quá hạn cho đến khi LoadData chạy lại;
+    /// vì NgayCheckOut mới > hôm nay nên lần LoadData kế tiếp sẽ bỏ flag quá hạn).
+    /// </summary>
+    private void ExecuteGiaHanSave()
+    {
+        if (_chiTietDatPhong == null) return;
+
+        using var tx = _context.Database.BeginTransaction();
+        try
+        {
+            var ct = _context.ChiTietDatPhongs.Find(_chiTietDatPhong.MaChiTietDatPhong);
+            if (ct == null) { MessageBox.Show("Không tìm thấy thông tin đặt phòng."); return; }
+
+            ct.NgayCheckOut = NgayCheckOut;
+
+            // Reset trạng thái phòng về Đang ở (2) vì đã gia hạn hợp lệ
+            var phong = _context.Phongs.Find(ct.MaPhong);
+            if (phong != null) phong.TrangThai = 2;
+
+            // Đảm bảo DatPhong vẫn là Đã nhận phòng (2)
+            var dat = _context.DatPhongs.Find(ct.MaDatPhong);
+            if (dat != null && dat.TrangThaiDat != 2) dat.TrangThaiDat = 2;
+
+            _context.SaveChanges();
+            tx.Commit();
+
+            MessageBox.Show($"Gia hạn phòng đến {NgayCheckOut:dd/MM/yyyy HH:mm} thành công!", "Thông báo");
+            CloseAction?.Invoke();
+        }
+        catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi gia hạn: " + ex.Message); }
+    }
+
     private void ResetFields()
     {
-        // 1. Reset thông tin khách hàng
         NewCustomer = new KhachHang();
-
-        // 2. Reset ngày tháng về mặc định
         NgayCheckIn = DateTime.Now;
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
-
         SelectedRoomsList.Clear();
         SelectedRoom = null;
         SelectedTang = 0;
         SelectedLoaiPhong = null;
-
         AvailableRooms.Clear();
-
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void NotifyModeProps()
+    {
+        OnPropertyChanged(nameof(IsRoomGridVisible));
+        OnPropertyChanged(nameof(IsCustomerReadOnly));
+        OnPropertyChanged(nameof(IsCheckInReadOnly));
+        OnPropertyChanged(nameof(IsFilterVisible));
     }
 }
