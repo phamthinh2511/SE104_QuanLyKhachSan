@@ -351,7 +351,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     foreach (var p in phongs)
                     {
                         p.TrangThai = 0;
-                        p.TrangThaiDonDep = 2;
+                        p.TrangThaiDonDep = 1;
                     }
                     if (phongs.Any()) ctx.SaveChanges();
                 }
@@ -424,7 +424,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 foreach (var p in phongList)
                 {
                     p.TrangThai = 0;
-                    p.TrangThaiDonDep = 2;
+                    p.TrangThaiDonDep = 1;
                 }
 
                 var chiTietRows = ctx.ChiTietDatPhongs

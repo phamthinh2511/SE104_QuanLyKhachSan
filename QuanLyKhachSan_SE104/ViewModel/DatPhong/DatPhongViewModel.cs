@@ -106,10 +106,35 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set
         {
             if (_selectedRoom == value) return;
+
+            // KIỂM TRA TRẠNG THÁI DỌN DẸP
+            if (value != null && value.TrangThaiDonDep == 1)
+            {
+                var result = MessageBox.Show(
+                    $"Phòng {value.TenPhong} hiện đang trong quá trình dọn dẹp.\nBạn đã xác nhận với nhân viên vệ sinh rằng phòng đã sẵn sàng phục vụ chưa?",
+                    "Xác nhận sẵn sàng",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Nếu User bấm Yes, cập nhật trạng thái phòng thành "Sạch" (0)
+                    UpdateRoomCleaningStatus(value);
+                }
+                else
+                {
+                    // Nếu User bấm No, không chọn phòng này nữa
+                    OnPropertyChanged();
+                    return;
+                }
+            }
+
             _selectedRoom = value;
             OnPropertyChanged();
+
             if (_selectedRoom != null)
                 AddRoomToList(_selectedRoom);
+
             CommandManager.InvalidateRequerySuggested();
         }
     }
@@ -459,6 +484,28 @@ public class DatPhongViewModel : INotifyPropertyChanged
             CloseAction?.Invoke();
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi gia hạn: " + ex.Message); }
+    }
+
+    private void UpdateRoomCleaningStatus(Phong phong)
+    {
+        try
+        {
+            // Tìm phòng trong context và cập nhật
+            var phongDb = _context.Phongs.Find(phong.MaPhong);
+            if (phongDb != null)
+            {
+                phongDb.TrangThaiDonDep = 0; // Chuyển về Sạch
+                _context.SaveChanges();
+
+                // Cập nhật lại UI của đối tượng đang chọn
+                phong.TrangThaiDonDep = 0;
+                OnPropertyChanged(nameof(AvailableRooms));
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Lỗi cập nhật trạng thái dọn dẹp: " + ex.Message);
+        }
     }
 
     private void ResetFields()

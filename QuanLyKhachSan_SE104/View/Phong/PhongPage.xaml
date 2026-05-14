@@ -84,13 +84,13 @@
                 <TextBlock Text="{Binding CountDaDat, StringFormat='Đã đặt ({0})'}" FontWeight="SemiBold"/>
             </Button>
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#42A5F5"
-                    Command="{Binding FilterCommand}" CommandParameter="don:2">
+                    Command="{Binding FilterCommand}" CommandParameter="don:1">
                 <TextBlock Text="{Binding CountCanDonDep, StringFormat='Đang Dọn ({0})'}" FontWeight="SemiBold"/>
             </Button>
 
             <!-- FIX: Đổi CountCanDonDep → CountBaoTri -->
             <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#90A4AE"
-                    Command="{Binding FilterCommand}" CommandParameter="don:3">
+                    Command="{Binding FilterCommand}" CommandParameter="don:2">
                 <TextBlock Text="{Binding CountBaoTri, StringFormat='Bảo Trì ({0})'}" FontWeight="SemiBold"/>
             </Button>
         </UniformGrid>

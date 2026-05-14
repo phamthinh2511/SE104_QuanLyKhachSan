@@ -139,6 +139,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         });
 
         // ── Đổi trạng thái dọn dẹp ───────────────────────────────────────────
+
         public ICommand DoiTrangThaiDonDepCommand => new RelayCommand<PhongModel>(phong =>
         {
             if (phong == null) return;
@@ -150,24 +151,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
                 p.TrangThaiDonDep = p.TrangThaiDonDep switch
                 {
-                    0 => 2,
-                    2 => 1,
-                    1 => 0,
-                    3 => 0,
+                    0 => 1, // Sạch -> Đang dọn
+                    1 => 0, // Đang dọn -> Sạch
+                    2 => 0, // Bảo trì -> Sạch (Manual reset)
                     _ => 0
                 };
 
                 ctx.SaveChanges();
-                var label = p.TrangThaiDonDep switch
+
+                string label = p.TrangThaiDonDep switch
                 {
                     0 => "Sạch",
                     1 => "Đang dọn",
-                    2 => "Cần dọn",
-                    3 => "Bảo trì",
-                    _ => ""
+                    2 => "Bảo trì",
+                    _ => "Không xác định"
                 };
-                MessageBox.Show($"Trạng thái dọn dẹp phòng {phong.TenPhong}: {label}", "Thông báo");
-                _window.Close();
+
+                MessageBox.Show($"Đã chuyển trạng thái phòng {phong.TenPhong} sang: {label}", "Thông báo");
+                _window.Close(); // Đóng popup để refresh lại màn hình chính
             }
             catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
         });

@@ -366,6 +366,16 @@
                 <Setter TargetName="StatusText"    Property="Foreground"  Value="#2E7D32"/>
                 <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#4CAF50"/>
             </DataTrigger>
+            
+            <DataTrigger Binding="{Binding TrangThaiDonDep}" Value="1">
+                <Setter TargetName="RoomCard"      Property="Background"  Value="#E3F2FD"/>
+                <Setter TargetName="StatusSideBar" Property="Background"  Value="#42A5F5"/>
+                <Setter TargetName="StatusText"    Property="Text"        Value="ĐANG DỌN"/>
+                <Setter TargetName="StatusText"    Property="Foreground"  Value="#1565C0"/>
+                <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#42A5F5"/>
+                <Setter TargetName="GuestName"     Property="Text"        Value="Chưa sẵn sàng phục vụ"/>
+                <Setter TargetName="GuestName"     Property="Foreground"  Value="#64748B"/>
+            </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="1">
                 <Setter TargetName="RoomCard"      Property="Background"  Value="#FFFDE7"/>
