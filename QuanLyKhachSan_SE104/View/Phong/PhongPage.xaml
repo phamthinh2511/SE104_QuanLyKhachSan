@@ -25,8 +25,7 @@
                          Style="{StaticResource SearchTextBoxStyle}"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Tạo phòng" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding AddRoomCommand}"></Button>
+                    
                     <ComboBox Style="{StaticResource ModernComboBox}" Width="160" Margin="0,0,10,0"
                               ItemsSource="{Binding ListTang}"
                               SelectedItem="{Binding SelectedTang}">

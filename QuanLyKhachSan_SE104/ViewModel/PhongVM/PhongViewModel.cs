@@ -90,6 +90,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         public ICommand EditRoomCommand { get; }
         public ICommand AddRoomCommand { get; }
         public ICommand MoChiTietPhongCommand { get; }
+        public ICommand ShowWarningCommand { get; }
 
         public PhongViewModel()
         {
@@ -243,6 +244,30 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 win.ShowDialog();
                 LoadData();
             });
+
+            ShowWarningCommand = new RelayCommand<PhongModel>(p =>
+            {
+                if (p == null) return;
+
+                string message = "";
+                if (p.IsCheckInToday && p.IsCheckOutToday)
+                {
+                    message = $"Phòng {p.TenPhong} có cả khách nhận và trả phòng trong hôm nay!";
+                }
+                else if (p.IsCheckInToday)
+                {
+                    message = $"Hôm nay là ngày CHECK-IN của phòng {p.TenPhong}.";
+                }
+                else if (p.IsCheckOutToday)
+                {
+                    message = $"Hôm nay là ngày CHECK-OUT của phòng {p.TenPhong}.";
+                }
+
+                if (!string.IsNullOrEmpty(message))
+                {
+                    MessageBox.Show(message, "Thông báo lịch hẹn", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            });
         }
 
         // ── Helper Methods ────────────────────────────────
@@ -321,6 +346,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             // 1. Lấy toàn bộ phòng và SẮP XẾP THEO TÊN NGAY TỪ ĐẦU
             var allPhongsFromDb = ctx.Phongs
                 .Include(p => p.LoaiPhong)
+                .Include(p => p.ChiTietDatPhongs)
+        .ThenInclude(ct => ct.DatPhong)
                 .OrderBy(p => p.TenPhong) // Sắp xếp tăng dần theo tên
                 .ToList();
             _allPhongs = new ObservableCollection<PhongModel>(allPhongsFromDb);

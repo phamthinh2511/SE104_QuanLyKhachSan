@@ -25,5 +25,21 @@ namespace QuanLyKhachSan_SE104.Model
         public bool IsDeleted { get; set; } = false;
 
         public ICollection<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
+
+        public bool IsCheckInToday =>
+    ChiTietDatPhongs != null &&
+    ChiTietDatPhongs.Any(ct =>
+        ct.NgayCheckIn.Date == DateTime.Today &&
+        ct.DatPhong != null &&
+        ct.DatPhong.TrangThaiDat != 3 &&  // bỏ qua đã trả phòng
+        ct.DatPhong.TrangThaiDat != 4);   // bỏ qua đã hủy
+
+        public bool IsCheckOutToday =>
+            ChiTietDatPhongs != null &&
+            ChiTietDatPhongs.Any(ct =>
+                ct.NgayCheckOut.Date == DateTime.Today &&
+                ct.DatPhong != null &&
+                ct.DatPhong.TrangThaiDat != 3 &&
+                ct.DatPhong.TrangThaiDat != 4);
     }
 }
