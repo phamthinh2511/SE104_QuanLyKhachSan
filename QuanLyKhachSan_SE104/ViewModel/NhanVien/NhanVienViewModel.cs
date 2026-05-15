@@ -98,21 +98,30 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
 
             vm.OnSaved = (saved) =>
             {
-                using (var context = new QuanLyKhachSanContext())
+                try
                 {
-                    if (saved is NhanVienModel nv)
+                    using (var context = new QuanLyKhachSanContext())
                     {
-                        context.NhanViens.Add(nv);
-                        context.SaveChanges();
+                        if (saved is NhanVienModel nv)
+                        {
+                            context.NhanViens.Add(nv);
+                            context.SaveChanges();
+                            MessageBox.Show("Thêm nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else if (saved is TaiKhoan tk)
+                        {
+                            tk.CreatedAt = System.DateTime.Now;
+                            context.TaiKhoans.Add(tk);
+                            context.SaveChanges();
+                            MessageBox.Show("Thêm tài khoản thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
                     }
-                    else if (saved is TaiKhoan tk)
-                    {
-                        tk.CreatedAt = System.DateTime.Now;
-                        context.TaiKhoans.Add(tk);
-                        context.SaveChanges();
-                    }
+                    LoadData();
                 }
-                LoadData();
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Thêm thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             };
 
             var win = new NhanVienCRUD { DataContext = vm };
@@ -128,32 +137,41 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
 
             vm.OnSaved = (saved) =>
             {
-                using (var context = new QuanLyKhachSanContext())
+                try
                 {
-                    if (item is NhanVienModel oldNv && saved is NhanVienModel newNv)
+                    using (var context = new QuanLyKhachSanContext())
                     {
-                        var dbNv = context.NhanViens.Find(oldNv.MaNhanVien);
-                        if (dbNv != null)
+                        if (item is NhanVienModel oldNv && saved is NhanVienModel newNv)
                         {
-                            dbNv.HoTen = newNv.HoTen;
-                            dbNv.ChucVu = newNv.ChucVu;
-                            dbNv.TrangThaiLamViec = newNv.TrangThaiLamViec;
-                            context.SaveChanges();
+                            var dbNv = context.NhanViens.Find(oldNv.MaNhanVien);
+                            if (dbNv != null)
+                            {
+                                dbNv.HoTen = newNv.HoTen;
+                                dbNv.ChucVu = newNv.ChucVu;
+                                dbNv.TrangThaiLamViec = newNv.TrangThaiLamViec;
+                                context.SaveChanges();
+                                MessageBox.Show("Cập nhật nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
+                        }
+                        else if (item is TaiKhoan oldTk && saved is TaiKhoan newTk)
+                        {
+                            var dbTk = context.TaiKhoans.Find(oldTk.MaTaiKhoan);
+                            if (dbTk != null)
+                            {
+                                dbTk.Username = newTk.Username;
+                                dbTk.PasswordHash = newTk.PasswordHash;
+                                dbTk.MaNhanVien = newTk.MaNhanVien;
+                                context.SaveChanges();
+                                MessageBox.Show("Cập nhật tài khoản thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
                         }
                     }
-                    else if (item is TaiKhoan oldTk && saved is TaiKhoan newTk)
-                    {
-                        var dbTk = context.TaiKhoans.Find(oldTk.MaTaiKhoan);
-                        if (dbTk != null)
-                        {
-                            dbTk.Username = newTk.Username;
-                            dbTk.PasswordHash = newTk.PasswordHash;
-                            dbTk.MaNhanVien = newTk.MaNhanVien;
-                            context.SaveChanges();
-                        }
-                    }
+                    LoadData();
                 }
-                LoadData();
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Cập nhật thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             };
 
             var win = new NhanVienCRUD { DataContext = vm };
@@ -186,31 +204,42 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
             if (_lastDeletedItem == item)
             {
                 // Action was not undone, commit delete to database
-                using (var context = new QuanLyKhachSanContext())
+                try
                 {
-                    if (item is NhanVienModel nvToDelete)
+                    using (var context = new QuanLyKhachSanContext())
                     {
-                        var dbNv = context.NhanViens.Find(nvToDelete.MaNhanVien);
-                        if (dbNv != null)
+                        if (item is NhanVienModel nvToDelete)
                         {
-                            context.NhanViens.Remove(dbNv);
-                            context.SaveChanges();
+                            var dbNv = context.NhanViens.Find(nvToDelete.MaNhanVien);
+                            if (dbNv != null)
+                            {
+                                context.NhanViens.Remove(dbNv);
+                                context.SaveChanges();
+                                MessageBox.Show("Xóa nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
                         }
-                    }
-                    else if (item is TaiKhoan tkToDelete)
-                    {
-                        var dbTk = context.TaiKhoans.Find(tkToDelete.MaTaiKhoan);
-                        if (dbTk != null)
+                        else if (item is TaiKhoan tkToDelete)
                         {
-                            context.TaiKhoans.Remove(dbTk);
-                            context.SaveChanges();
+                            var dbTk = context.TaiKhoans.Find(tkToDelete.MaTaiKhoan);
+                            if (dbTk != null)
+                            {
+                                context.TaiKhoans.Remove(dbTk);
+                                context.SaveChanges();
+                                MessageBox.Show("Xóa tài khoản thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
                         }
                     }
                 }
-
-                IsUndoVisible = false;
-                _lastDeletedItem = null;
-                LoadData();
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Xóa thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    IsUndoVisible = false;
+                    _lastDeletedItem = null;
+                    LoadData();
+                }
             }
         }
 
