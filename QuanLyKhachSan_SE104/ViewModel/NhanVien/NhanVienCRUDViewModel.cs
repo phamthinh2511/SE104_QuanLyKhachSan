@@ -1,10 +1,12 @@
-﻿    using QuanLyKhachSan_SE104.Model;
+    using QuanLyKhachSan_SE104.Model;
     using QuanLyKhachSan_SE104.Utilities;
     using System;
     using System.Windows;
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
     using System.Windows.Input;
+    using System.Collections.ObjectModel;
+    using System.Linq;
     using NhanVienModel = QuanLyKhachSan_SE104.Model.NhanVien;
 
     namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
@@ -37,10 +39,28 @@
                 set { _taiKhoan = value; OnPropertyChanged(); }
             }
 
+            private ObservableCollection<NhanVienModel> _danhSachNhanVien;
+            public ObservableCollection<NhanVienModel> DanhSachNhanVien
+            {
+                get => _danhSachNhanVien;
+                set { _danhSachNhanVien = value; OnPropertyChanged(); }
+            }
+
             public Action<object> OnSaved;
 
             public ICommand SaveCommand { get; }
             public ICommand CancelCommand { get; }
+
+            private void LoadNhanVien()
+            {
+                if (Mode == ModeNhanSu.TaiKhoan)
+                {
+                    using (var context = new QuanLyKhachSanContext())
+                    {
+                        DanhSachNhanVien = new ObservableCollection<NhanVienModel>(context.NhanViens.ToList());
+                    }
+                }
+            }
 
             // ===== ADD =====
             public NhanVienCRUDViewModel(ModeNhanSu mode)
@@ -51,6 +71,8 @@
                     NhanVien = new NhanVienModel();
                 else
                     TaiKhoan = new TaiKhoan();
+
+                LoadNhanVien();
 
                 SaveCommand = new RelayCommand<object>(ExecuteSave);
                 CancelCommand = new RelayCommand<object>(ExecuteCancel);
@@ -88,6 +110,8 @@
                 {
                     throw new Exception("Không xác định loại dữ liệu");
                 }
+
+                LoadNhanVien();
 
                 SaveCommand = new RelayCommand<object>(ExecuteSave);
                 CancelCommand = new RelayCommand<object>(ExecuteCancel);
