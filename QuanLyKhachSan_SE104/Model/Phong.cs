@@ -1,5 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.CompilerServices;
 
 namespace QuanLyKhachSan_SE104.Model
 {
@@ -26,20 +28,24 @@ namespace QuanLyKhachSan_SE104.Model
 
         public ICollection<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
 
-        public bool IsCheckInToday =>
-    ChiTietDatPhongs != null &&
-    ChiTietDatPhongs.Any(ct =>
-        ct.NgayCheckIn.Date == DateTime.Today &&
-        ct.DatPhong != null &&
-        ct.DatPhong.TrangThaiDat != 3 &&  // bỏ qua đã trả phòng
-        ct.DatPhong.TrangThaiDat != 4);   // bỏ qua đã hủy
+        private bool _isCheckInToday;
+        [NotMapped] // Đánh dấu để Entity Framework không tạo cột này trong DB
+        public bool IsCheckInToday
+        {
+            get => _isCheckInToday;
+            set { _isCheckInToday = value; OnPropertyChanged(); }
+        }
 
-        public bool IsCheckOutToday =>
-            ChiTietDatPhongs != null &&
-            ChiTietDatPhongs.Any(ct =>
-                ct.NgayCheckOut.Date == DateTime.Today &&
-                ct.DatPhong != null &&
-                ct.DatPhong.TrangThaiDat != 3 &&
-                ct.DatPhong.TrangThaiDat != 4);
+        private bool _isCheckOutToday;
+        [NotMapped]
+        public bool IsCheckOutToday
+        {
+            get => _isCheckOutToday;
+            set { _isCheckOutToday = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
