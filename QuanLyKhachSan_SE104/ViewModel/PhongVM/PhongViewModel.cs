@@ -15,7 +15,7 @@ using ChiTietDatPhongModel = QuanLyKhachSan_SE104.Model.ChiTietDatPhong;
 
 namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 {
-    public class PhongViewModel : INotifyPropertyChanged
+    public class PhongViewModel : INotifyPropertyChanged, IDisposable
     {
         // ── TODO: replace with LoginSession.CurrentUserId ─────────────────────
         private const int STAFF_ID = 1;
@@ -94,6 +94,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         public PhongViewModel()
         {
+            HotelEventBus.RoomStatusChanged += OnRoomStatusChanged;
             LoadData();
 
             FilterCommand = new RelayCommand<string>(filter =>
@@ -395,10 +396,18 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             ListPhong = new ObservableCollection<PhongModel>(
                 _allPhongs.Where(p => p.TenPhong?.ToLower().Contains(kw) == true));
         }
+        private void OnRoomStatusChanged()
+        {
+            Application.Current.Dispatcher.Invoke(LoadData);
+        }
 
         // ── INotifyPropertyChanged ────────────────────────────────────────────
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string n = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+        public void Dispose()
+        {
+            HotelEventBus.RoomStatusChanged -= OnRoomStatusChanged;
+        }
     }
 }

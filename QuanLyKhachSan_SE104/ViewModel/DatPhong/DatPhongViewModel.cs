@@ -516,6 +516,8 @@ public class DatPhongViewModel : INotifyPropertyChanged
                 (depositAmount > 0 ? $"Tiền cọc đã thu: {depositAmount:#,0}₫" : ""),
                 "Thông báo");
 
+            HotelEventBus.PublishRoomStatusChanged();
+
             if (Mode == DatPhongMode.Normal)
                 ResetFields();
             else
@@ -570,6 +572,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
             tx.Commit();
 
             MessageBox.Show($"Đổi sang phòng {newPhong.TenPhong} thành công!", "Thông báo");
+            HotelEventBus.PublishRoomStatusChanged();
             CloseAction?.Invoke();
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi đổi phòng: " + ex.Message); }
@@ -598,6 +601,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
             tx.Commit();
 
             MessageBox.Show($"Gia hạn phòng đến {NgayCheckOut:dd/MM/yyyy HH:mm} thành công!", "Thông báo");
+            HotelEventBus.PublishRoomStatusChanged();
             CloseAction?.Invoke();
         }
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi gia hạn: " + ex.Message); }
