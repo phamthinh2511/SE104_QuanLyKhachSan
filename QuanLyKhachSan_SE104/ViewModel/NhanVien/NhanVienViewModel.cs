@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
-using QuanLyKhachSan_SE104.View.NhanVien;
+using QuanLyKhachSan_SE104.View.NhanVienView;
 using NhanVienModel = QuanLyKhachSan_SE104.Model.NhanVien;
 
 namespace QuanLyKhachSan_SE104.ViewModel.NhanVien

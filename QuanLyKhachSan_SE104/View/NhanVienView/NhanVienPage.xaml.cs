@@ -10,16 +10,17 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace QuanLyKhachSan_SE104.View.NhanVien
+namespace QuanLyKhachSan_SE104.View.NhanVienView
 {
     /// <summary>
-    /// Interaction logic for NhanVienCRUD.xaml
+    /// Interaction logic for NhanVienPage.xaml
     /// </summary>
-    public partial class NhanVienCRUD : Window
+    public partial class NhanVienPage : UserControl
     {
-        public NhanVienCRUD()
+        public NhanVienPage()
         {
             InitializeComponent();
         }

@@ -7,7 +7,7 @@ using QuanLyKhachSan_SE104.View.DatPhong;
 using QuanLyKhachSan_SE104.View.DichVu;
 using QuanLyKhachSan_SE104.View.HoaDon;
 using QuanLyKhachSan_SE104.View.KhachHang;
-using QuanLyKhachSan_SE104.View.NhanVien;
+using QuanLyKhachSan_SE104.View.NhanVienView;
 using QuanLyKhachSan_SE104.View.PhongView;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
