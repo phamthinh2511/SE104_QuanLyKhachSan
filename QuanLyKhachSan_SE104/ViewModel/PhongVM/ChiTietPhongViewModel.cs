@@ -97,6 +97,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
                 ctx.SaveChanges();
                 MessageBox.Show($"Check-in thành công phòng {phong.TenPhong}!", "Thông báo");
+                HotelEventBus.PublishRoomStatusChanged();
                 _window.Close();
             }
             catch (Exception ex) { MessageBox.Show("Lỗi check-in: " + ex.Message); }
@@ -187,6 +188,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                     : $"Đã ghi nhận no-show phòng {phong.TenPhong}.\nTiền cọc {dat.TienCoc:#,0}₫ đã chuyển vào doanh thu.";
 
                 MessageBox.Show(resultMsg, "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                HotelEventBus.PublishRoomStatusChanged();
                 _window.Close();
             }
             catch (Exception ex) { MessageBox.Show("Lỗi hủy đặt: " + ex.Message); }
