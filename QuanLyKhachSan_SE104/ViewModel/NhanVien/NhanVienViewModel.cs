@@ -148,6 +148,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
                         {
                             dbTk.Username = newTk.Username;
                             dbTk.PasswordHash = newTk.PasswordHash;
+                            dbTk.MaNhanVien = newTk.MaNhanVien;
                             context.SaveChanges();
                         }
                     }
