@@ -10,11 +10,13 @@
 
     <UserControl.Resources>
         <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- Room card in the available-rooms ListBox -->
         <DataTemplate x:Key="BookingRoomCardTemplate">
             <Border x:Name="Card"
-                    Width="210" Height="120"
+                    HorizontalAlignment="Stretch"
+                    Height="120"
                     Margin="0,0,12,12"
                     CornerRadius="12"
                     Background="White"
@@ -36,19 +38,15 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="{Binding TenPhong}" FontSize="18" FontWeight="Bold" Foreground="#1E293B"/>
-
                     <TextBlock Grid.Row="1" Text="{Binding LoaiPhong.TenLoaiPhong}" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
-
-                    <TextBlock Grid.Row="2" Text="{Binding Tang.SoTang, StringFormat='Tầng {0}'}" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="{Binding SoTang, StringFormat='Tầng {0}'}" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
 
                     <Grid Grid.Row="3" Margin="0,5,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-
                         <TextBlock Text="{Binding LoaiPhong.GiaMacDinh, StringFormat='{}{0:#,0}₫'}" FontSize="13" FontWeight="SemiBold" Foreground="#3B82F6"/>
-
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <TextBlock Text="●" Foreground="#4CAF50" Margin="0,0,5,0" VerticalAlignment="Center"/>
                             <TextBlock Text="Trống" FontSize="10" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
@@ -95,47 +93,77 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Margin="0,0,10,0" Background="White" CornerRadius="15" Padding="25">
+            <!-- ══════════════════════════════════
+                 LEFT PANEL — Customer Info
+            ══════════════════════════════════ -->
+            <Border Grid.Column="0" Margin="0,0,10,0" Background="White" CornerRadius="15" Padding="15" Width="480">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.05"/>
                 </Border.Effect>
-                <StackPanel>
-                    <TextBlock Text="Thông Tin Khách Hàng" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
-                    <TextBlock Text="Họ Tên" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.HoTen}" IsReadOnly="{Binding IsCustomerReadOnly}" Margin="0,0,0,15"/>
 
-                    <Grid Margin="0,0,0,15">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <ComboBox Style="{StaticResource ModernComboBox}"
-                                      ItemsSource="{Binding ListGioiTinh}"
-                                      SelectedItem="{Binding NewCustomer.GioiTinh}"
-                                      IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <ComboBox Style="{StaticResource ModernComboBox}"
-                                        ItemsSource="{Binding ListQuocTich}"
-                                        SelectedItem="{Binding NewCustomer.QuocTich}"
-                                        IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
-                        </StackPanel>
-                    </Grid>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                    <TextBlock Text="CCCD / Passport" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.CCCD_Passport}" IsReadOnly="{Binding IsCustomerReadOnly}" Margin="0,0,0,15"/>
-                    <TextBlock Text="Số Điện Thoại" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.SDT}" IsReadOnly="{Binding IsCustomerReadOnly}" Margin="0,0,0,15"/>
-                    <TextBlock Text="Địa Chỉ" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                    <TextBox Style="{StaticResource ModernTextBox}" Text="{Binding NewCustomer.DiaChi}" IsReadOnly="{Binding IsCustomerReadOnly}"/>
-                </StackPanel>
+                    <TextBlock Grid.Row="0" Text="Thông Tin Khách Hàng" FontSize="18" FontWeight="SemiBold"
+                   Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
+
+                    <StackPanel Grid.Row="1" Margin="0,0,10,0">
+                        <TextBlock Text="Họ Tên" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"
+                     Text="{Binding NewCustomer.HoTen}"
+                     IsReadOnly="{Binding IsCustomerReadOnly}"
+                     Margin="0,0,0,15"/>
+
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Giới Tính" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}"
+                              ItemsSource="{Binding ListGioiTinh}"
+                              SelectedItem="{Binding NewCustomer.GioiTinh}"
+                              IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Quốc Tịch" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}"
+                              ItemsSource="{Binding ListQuocTich}"
+                              SelectedItem="{Binding NewCustomer.QuocTich}"
+                              IsEnabled="{Binding IsCustomerReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="CCCD / Passport" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"
+                     Text="{Binding NewCustomer.CCCD_Passport}"
+                     IsReadOnly="{Binding IsCustomerReadOnly}"
+                     Margin="0,0,0,15"/>
+
+                        <TextBlock Text="Số Điện Thoại" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"
+                     Text="{Binding NewCustomer.SDT}"
+                     IsReadOnly="{Binding IsCustomerReadOnly}"
+                     Margin="0,0,0,15"/>
+
+                        <TextBlock Text="Địa Chỉ" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"
+                     Text="{Binding NewCustomer.DiaChi}"
+                     IsReadOnly="{Binding IsCustomerReadOnly}"
+                     Margin="0,0,0,20"/>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <Border Grid.Column="1" Margin="10,0,0,0" Background="White" CornerRadius="15" Padding="25">
+            <!-- ══════════════════════════════════
+                 RIGHT PANEL — Booking Info
+            ══════════════════════════════════ -->
+            <Border Grid.Column="1" Margin="5,0,0,0" Background="White" CornerRadius="15" Padding="25">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="20" ShadowDepth="2" Opacity="0.05"/>
                 </Border.Effect>
@@ -147,8 +175,10 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Thông Tin Đặt Phòng" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text="Thông Tin Đặt Phòng" FontSize="18" FontWeight="SemiBold"
+                               Margin="0,0,0,20" Foreground="{StaticResource PrimaryBrush}"/>
 
+                    <!-- Check-in / Check-out dates -->
                     <Grid Grid.Row="1" Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -157,7 +187,8 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Ngày Nhận Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <DatePicker SelectedDate="{Binding NgayCheckIn, Mode=TwoWay}"/>
+                            <DatePicker SelectedDate="{Binding NgayCheckIn, Mode=TwoWay}"
+                                        IsEnabled="{Binding IsCheckInReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Ngày Trả Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
@@ -165,38 +196,73 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Grid.Row="2" Margin="0,0,0,20">
+                    <!-- ── Filter row: Loại Phòng + Search button
+                         (Tầng ComboBox has been REMOVED — replaced by Deposit on the left panel) -->
+                    <Grid Grid.Row="2" Margin="0,0,0,20" 
+      Visibility="{Binding IsFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="15"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="80"/>
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Tầng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <ComboBox Style="{StaticResource ModernComboBox}"
-                                ItemsSource="{Binding ListTang}"
-                                SelectedItem="{Binding SelectedTang}"/>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+                            <TextBlock Text="Tiền Cọc" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
+                            <Grid Height="40">
+                                <TextBox Style="{StaticResource ModernTextBox}"
+                     Text="{Binding TienCocText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsTienCocReadOnly}"
+                     Padding="10,0,30,0" 
+                     VerticalContentAlignment="Center"/>
+                                <TextBlock Text="₫" 
+                       Foreground="{StaticResource SecondaryBrush}" 
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" 
+                       HorizontalAlignment="Right" 
+                       Margin="0,0,10,0"/>
+                            </Grid>
+                            <TextBlock Text="{Binding MinTienCocHint}" FontSize="10" 
+                   Foreground="#94A3B8" FontStyle="Italic" Margin="0,2,0,0"/>
                         </StackPanel>
-                        <StackPanel Grid.Column="2">
+
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
                             <TextBlock Text="Loại Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
-                            <ComboBox Style="{StaticResource ModernComboBox}" ItemsSource="{Binding ListLoaiPhong}" SelectedItem="{Binding SelectedLoaiPhong}" DisplayMemberPath="TenLoaiPhong"/>
+                            <ComboBox Style="{StaticResource ModernComboBox}" Height="40"
+                  ItemsSource="{Binding ListLoaiPhong}"
+                  SelectedItem="{Binding SelectedLoaiPhong}"
+                  DisplayMemberPath="TenLoaiPhong"
+                  VerticalContentAlignment="Center"/>
+                            <TextBlock Text=" " FontSize="10" Margin="0,2,0,0"/>
                         </StackPanel>
-                        <Button Grid.Column="3" Style="{StaticResource PrimaryButton}" Content="Tìm" VerticalAlignment="Bottom" Height="40" Command="{Binding SearchRoomsCommand}"/>
+
+                        <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                            <Button Style="{StaticResource PrimaryButton}"
+                Content="Tìm" Height="40"
+                Command="{Binding SearchRoomsCommand}"/>
+                            <TextBlock Text=" " FontSize="10" Margin="0,2,0,0"/>
+                        </StackPanel>
                     </Grid>
 
+                    <!-- Available rooms + Selected rooms -->
                     <Grid Grid.Row="3">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="220"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Column="0" Text="Phòng trống khả dụng:" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
 
-                        <Border Grid.Row="1" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC">
+                        <TextBlock Grid.Column="0" Text="Phòng trống khả dụng:"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"
+                                   Visibility="{Binding IsRoomGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Width="250"/>
+
+                        <Border Grid.Row="1"
+                                BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC"
+                                Visibility="{Binding IsRoomGridVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <ListBox Background="Transparent"
                                      BorderThickness="0"
                                      ItemsSource="{Binding AvailableRooms}"
@@ -204,27 +270,36 @@
                                      ItemTemplate="{StaticResource BookingRoomCardTemplate}"
                                      ItemContainerStyle="{StaticResource SelectableRoomItemStyle}"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" Width="255">
+
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapPanel Margin="10,10,0,0"/>
+                                        <UniformGrid Columns="1" VerticalAlignment="Top" Margin="5"/>
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
                             </ListBox>
                         </Border>
-                        <TextBlock Grid.Column="1" Text="Phòng đã chọn:" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
-                        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC">
-                            <ListBox ItemsSource="{Binding SelectedRoomsList}" BorderThickness="0" Background="Transparent">
+
+                        <TextBlock Grid.Column="1" Text="Phòng đã chọn:"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
+
+                        <Border Grid.Row="1" Grid.Column="1"
+                                BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="10" Background="#F8FAFC">
+                            <ListBox ItemsSource="{Binding SelectedRoomsList}"
+                                     BorderThickness="0" Background="Transparent" Width="215" Margin="10,0,0,0">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="5">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding RoomName}" FontWeight="Medium" Foreground="#1E293B"/>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                <TextBox Text="{Binding Capacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" Height="25" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="0" Foreground="#64748B"/>
+                                                <TextBox Text="{Binding Capacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Width="40" Height="25"
+                                                         VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                         Padding="0" Foreground="#64748B"/>
                                                 <TextBlock Text=" người" Foreground="#64748B" FontSize="11" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Grid>
@@ -237,8 +312,8 @@
             </Border>
         </Grid>
 
-        <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" 
-                Content="XÁC NHẬN ĐẶT PHÒNG" Width="300" Height="50" FontSize="15" 
+        <Button Grid.Row="2" Style="{StaticResource PrimaryButton}"
+                Content="XÁC NHẬN ĐẶT PHÒNG" Width="300" Height="50" FontSize="15"
                 FontWeight="Bold" VerticalAlignment="Center" Margin="0,25,0,0" Background="#0F172A"
                 Command="{Binding SaveCommand}"/>
     </Grid>

@@ -18,27 +18,27 @@ public enum DatPhongMode
 
 public class DatPhongViewModel : INotifyPropertyChanged
 {
-    // ── mode + context objects ───────────────────────────────────────────
+    // ── Mode + context objects ────────────────────────────────────────────
     public DatPhongMode Mode { get; private set; } = DatPhongMode.Normal;
-
-    // For DoiPhong / GiaHan: the ChiTietDatPhong being modified
     private ChiTietDatPhong _chiTietDatPhong;
 
-    // Visibility helpers for the View
+    // Visibility / lock helpers for the View
     public bool IsRoomGridVisible => Mode != DatPhongMode.WalkIn && Mode != DatPhongMode.GiaHan;
     public bool IsCustomerReadOnly => Mode == DatPhongMode.DoiPhong || Mode == DatPhongMode.GiaHan;
-
-    // GiaHan mode — khoá luôn cả ngày check-in và selector tầng/loại phòng
     public bool IsCheckInReadOnly => Mode == DatPhongMode.GiaHan;
     public bool IsFilterVisible => Mode != DatPhongMode.GiaHan;
 
-    // ── Existing fields ───────────────────────────────────────────────────
+    // Deposit field is read-only in DoiPhong (inherits existing deposit) and GiaHan
+    public bool IsTienCocReadOnly => Mode == DatPhongMode.DoiPhong || Mode == DatPhongMode.GiaHan;
+
+    // ── INotifyPropertyChanged ────────────────────────────────────────────
     public event PropertyChangedEventHandler PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     private readonly QuanLyKhachSanContext _context;
 
+    // ── Customer ──────────────────────────────────────────────────────────
     private KhachHang _newCustomer = new KhachHang();
     public KhachHang NewCustomer
     {
@@ -46,11 +46,17 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set { _newCustomer = value; OnPropertyChanged(); }
     }
 
+    // ── Dates ─────────────────────────────────────────────────────────────
     private DateTime _ngayCheckIn = DateTime.Now;
     public DateTime NgayCheckIn
     {
         get => _ngayCheckIn;
-        set { _ngayCheckIn = value; OnPropertyChanged(); }
+        set
+        {
+            _ngayCheckIn = value;
+            OnPropertyChanged();
+            RecalculateDefaultDeposit();   // default deposit changes when dates change
+        }
     }
 
     private DateTime _ngayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
@@ -60,7 +66,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set
         {
             DateTime dateWithNoon = value.Date.AddHours(12);
-
             if (dateWithNoon <= NgayCheckIn)
             {
                 MessageBox.Show("Ngày check-out phải sau thời điểm check-in.", "Lỗi nhập liệu",
@@ -70,9 +75,58 @@ public class DatPhongViewModel : INotifyPropertyChanged
             }
             _ngayCheckOut = dateWithNoon;
             OnPropertyChanged();
+            RecalculateDefaultDeposit();   // default deposit changes when dates change
         }
     }
 
+    // ── Deposit ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Minimum deposit = 1st-night rate of the cheapest selected room.
+    /// Recalculated whenever dates or selected rooms change.
+    /// Displayed as a hint below the TienCoc TextBox.
+    /// </summary>
+    private decimal _minTienCoc = 0;
+    public decimal MinTienCoc
+    {
+        get => _minTienCoc;
+        private set { _minTienCoc = value; OnPropertyChanged(); OnPropertyChanged(nameof(MinTienCocHint)); }
+    }
+
+    public string MinTienCocHint =>
+        MinTienCoc > 0
+            ? $"Tối thiểu: {MinTienCoc:#,0}₫ (1 đêm)"
+            : "Chọn phòng để tính tiền cọc tối thiểu";
+
+    private decimal _tienCoc = 0;
+    public decimal TienCoc
+    {
+        get => _tienCoc;
+        set
+        {
+            _tienCoc = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TienCocText));
+        }
+    }
+
+    /// <summary>Two-way text binding for the deposit TextBox (formats with commas).</summary>
+    public string TienCocText
+    {
+        get => _tienCoc == 0 ? "" : _tienCoc.ToString("N0");
+        set
+        {
+            // Strip formatting characters before parsing
+            string clean = (value ?? "").Replace(",", "").Replace(".", "").Trim();
+            if (decimal.TryParse(clean, out var parsed))
+                TienCoc = parsed;
+            else if (string.IsNullOrEmpty(clean))
+                TienCoc = 0;
+            // Invalid input: ignore, keep current value
+        }
+    }
+
+    // ── Filter combos ─────────────────────────────────────────────────────
     public ObservableCollection<string> ListGioiTinh { get; set; }
     public ObservableCollection<string> ListQuocTich { get; set; }
     public ObservableCollection<int> ListTang { get; set; }
@@ -92,6 +146,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set { _selectedLoaiPhong = value; OnPropertyChanged(); }
     }
 
+    // ── Room lists ────────────────────────────────────────────────────────
     private ObservableCollection<Phong> _availableRooms = new();
     public ObservableCollection<Phong> AvailableRooms
     {
@@ -107,23 +162,19 @@ public class DatPhongViewModel : INotifyPropertyChanged
         {
             if (_selectedRoom == value) return;
 
-            // KIỂM TRA TRẠNG THÁI DỌN DẸP
             if (value != null && value.TrangThaiDonDep == 1)
             {
                 var result = MessageBox.Show(
-                    $"Phòng {value.TenPhong} hiện đang trong quá trình dọn dẹp.\nBạn đã xác nhận với nhân viên vệ sinh rằng phòng đã sẵn sàng phục vụ chưa?",
+                    $"Phòng {value.TenPhong} đang trong quá trình dọn dẹp.\n" +
+                    "Bạn đã xác nhận phòng sẵn sàng phục vụ chưa?",
                     "Xác nhận sẵn sàng",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
-                {
-                    // Nếu User bấm Yes, cập nhật trạng thái phòng thành "Sạch" (0)
                     UpdateRoomCleaningStatus(value);
-                }
                 else
                 {
-                    // Nếu User bấm No, không chọn phòng này nữa
                     OnPropertyChanged();
                     return;
                 }
@@ -146,6 +197,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set { _selectedRoomsList = value; OnPropertyChanged(); }
     }
 
+    // ── Commands ──────────────────────────────────────────────────────────
     public ICommand SearchRoomsCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand ToggleRoomCommand { get; }
@@ -171,9 +223,10 @@ public class DatPhongViewModel : INotifyPropertyChanged
         NotifyModeProps();
 
         AddRoomToList(phong);
-
         NgayCheckIn = DateTime.Now;
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
+        // Deposit = 0 for walk-in (paid immediately at checkout)
+        TienCoc = 0;
     }
 
     // ── Constructor 3: DoiPhong ───────────────────────────────────────────
@@ -189,31 +242,28 @@ public class DatPhongViewModel : INotifyPropertyChanged
         NgayCheckIn = chiTiet?.NgayCheckIn ?? DateTime.Now;
         NgayCheckOut = chiTiet?.NgayCheckOut ?? DateTime.Today.AddDays(1).Date.AddHours(12);
 
+        // Carry over existing deposit (Rule 04)
+        TienCoc = chiTiet?.DatPhong?.TienCoc ?? 0;
+
         ExecuteSearchRoomsExcluding(currentPhong.MaPhong);
     }
 
     // ── Constructor 4: GiaHan ─────────────────────────────────────────────
-    /// <summary>
-    /// Gia hạn phòng quá hạn: chỉ cho phép thay đổi NgayCheckOut.
-    /// NgayCheckOut mặc định = hôm nay + 1 ngày (nhân viên tự chỉnh).
-    /// </summary>
     public DatPhongViewModel(Phong currentPhong, ChiTietDatPhong chiTiet, bool giaHan) : this()
     {
         Mode = DatPhongMode.GiaHan;
         _chiTietDatPhong = chiTiet;
         NotifyModeProps();
 
-        // Điền thông tin khách (read-only)
         if (chiTiet?.DatPhong?.KhachHang != null)
             NewCustomer = chiTiet.DatPhong.KhachHang;
 
-        // Giữ nguyên check-in thực tế
         NgayCheckIn = chiTiet?.NgayCheckIn ?? DateTime.Now;
-
-        // Check-out mặc định = ngày hôm nay + 1 (nhân viên điều chỉnh)
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
 
-        // Hiển thị phòng hiện tại trong danh sách (locked, không cho chọn thêm)
+        // Carry over existing deposit (read-only in GiaHan mode)
+        TienCoc = chiTiet?.DatPhong?.TienCoc ?? 0;
+
         AddRoomToList(currentPhong);
     }
 
@@ -236,7 +286,37 @@ public class DatPhongViewModel : INotifyPropertyChanged
         catch (Exception ex) { MessageBox.Show("Lỗi tải dữ liệu: " + ex.Message); }
     }
 
-    // ── Search (normal) ───────────────────────────────────────────────────
+    /// <summary>
+    /// Recalculates the minimum deposit (1st-night rate of the cheapest selected room).
+    /// Also bumps TienCoc up to the new minimum if it has fallen below — but never
+    /// reduces a manually-entered amount that is already above the minimum.
+    /// </summary>
+    private void RecalculateDefaultDeposit()
+    {
+        if (SelectedRoomsList == null || SelectedRoomsList.Count == 0)
+        {
+            MinTienCoc = 0;
+            return;
+        }
+
+        // Cheapest room's nightly rate drives the minimum
+        var maPhongList = SelectedRoomsList.Select(r => r.MaPhong).ToList();
+        var lowestRate = _context.Phongs
+            .Include(p => p.LoaiPhong)
+            .Where(p => maPhongList.Contains(p.MaPhong))
+            .Select(p => p.LoaiPhong.GiaMacDinh)
+            .AsEnumerable()
+            .DefaultIfEmpty(0)
+            .Min();
+
+        MinTienCoc = lowestRate;
+
+        // Auto-fill only if the user hasn't entered anything yet
+        if (TienCoc < MinTienCoc)
+            TienCoc = MinTienCoc;
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────
     private void ExecuteSearchRooms()
     {
         try
@@ -255,7 +335,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
         catch (Exception ex) { MessageBox.Show("Lỗi truy vấn: " + ex.Message); }
     }
 
-    // ── Search for DoiPhong ───────────────────────────────────────────────
     private void ExecuteSearchRoomsExcluding(int excludeMaPhong)
     {
         try
@@ -306,6 +385,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
                 RoomName = phong.TenPhong,
                 Capacity = 1
             });
+            RecalculateDefaultDeposit();
             CommandManager.InvalidateRequerySuggested();
         }
     }
@@ -313,8 +393,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
     private void ExecuteToggleRoom(Phong phong)
     {
         if (phong == null) return;
-        // Không cho xoá phòng trong mode GiaHan
-        if (Mode == DatPhongMode.GiaHan) return;
+        if (Mode == DatPhongMode.GiaHan) return;   // locked in GiaHan
 
         var existing = SelectedRoomsList.FirstOrDefault(x => x.MaPhong == phong.MaPhong);
         if (existing != null)
@@ -328,6 +407,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         }
         else AddRoomToList(phong);
 
+        RecalculateDefaultDeposit();
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -337,7 +417,16 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private void ExecuteSave()
     {
-        // Validate capacity (skip for GiaHan — room/capacity unchanged)
+        // Validate deposit minimum (skip for GiaHan and DoiPhong)
+        if (Mode == DatPhongMode.Normal && TienCoc < MinTienCoc)
+        {
+            MessageBox.Show(
+                $"Tiền cọc tối thiểu là {MinTienCoc:#,0}₫ (bằng giá 1 đêm).",
+                "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Validate capacity (skip for GiaHan)
         if (Mode != DatPhongMode.GiaHan)
         {
             foreach (var item in SelectedRoomsList)
@@ -372,16 +461,33 @@ public class DatPhongViewModel : INotifyPropertyChanged
             _context.SaveChanges();
 
             var trangThaiDat = Mode == DatPhongMode.WalkIn ? 2 : 1;
+            var depositAmount = Mode == DatPhongMode.WalkIn ? 0 : TienCoc;
+
             var booking = new DatPhong
             {
                 MaKhachHang = NewCustomer.MaKhachHang,
                 NgayDat = DateTime.Now,
                 TrangThaiDat = trangThaiDat,
-                MaNhanVien = 1, // TODO: LoginSession.CurrentUserId
-                TienCoc = 0
+                MaNhanVien = 1,              // TODO: LoginSession.CurrentUserId
+                TienCoc = depositAmount,
+                TrangThaiCoc = depositAmount > 0 ? 0 : 2  // 0=Đang giữ, 2=Không cọc(thu luôn)
             };
             _context.DatPhongs.Add(booking);
             _context.SaveChanges();
+
+            // Write audit log entry if a deposit was collected
+            if (depositAmount > 0)
+            {
+                _context.LichSuCocs.Add(new LichSuCoc
+                {
+                    MaDatPhong = booking.MaDatPhong,
+                    LoaiGiaoDich = 0,              // Thu cọc
+                    SoTien = depositAmount,
+                    ThoiGian = DateTime.Now,
+                    MaNhanVien = 1,              // TODO: LoginSession.CurrentUserId
+                    GhiChu = $"Thu cọc khi đặt phòng {string.Join(", ", SelectedRoomsList.Select(r => r.RoomName))}"
+                });
+            }
 
             foreach (var roomItem in SelectedRoomsList)
             {
@@ -405,8 +511,10 @@ public class DatPhongViewModel : INotifyPropertyChanged
             tx.Commit();
 
             var label = Mode == DatPhongMode.WalkIn ? "Check-in khách lẻ" : "Đặt phòng";
-            MessageBox.Show($"{label} thành công: " +
-                string.Join(", ", SelectedRoomsList.Select(r => r.RoomName)), "Thông báo");
+            MessageBox.Show(
+                $"{label} thành công: {string.Join(", ", SelectedRoomsList.Select(r => r.RoomName))}\n" +
+                (depositAmount > 0 ? $"Tiền cọc đã thu: {depositAmount:#,0}₫" : ""),
+                "Thông báo");
 
             if (Mode == DatPhongMode.Normal)
                 ResetFields();
@@ -442,6 +550,22 @@ public class DatPhongViewModel : INotifyPropertyChanged
                 ct.SoNguoi = newRoomItem.Capacity;
             }
 
+            // Rule 04 audit log: deposit transferred to same booking (room changed, booking ID unchanged)
+            var dat = _context.DatPhongs.Find(_chiTietDatPhong.MaDatPhong);
+            if (dat != null && dat.TienCoc > 0)
+            {
+                _context.LichSuCocs.Add(new LichSuCoc
+                {
+                    MaDatPhong = dat.MaDatPhong,
+                    LoaiGiaoDich = 3,              // Chuyển booking
+                    SoTien = dat.TienCoc,
+                    ThoiGian = DateTime.Now,
+                    MaNhanVien = 1,              // TODO: LoginSession.CurrentUserId
+                    GhiChu = $"Đổi phòng: {oldPhong?.TenPhong} → {newPhong.TenPhong}. Cọc giữ nguyên.",
+                    MaDatPhongMoi = dat.MaDatPhong  // same booking, different room
+                });
+            }
+
             _context.SaveChanges();
             tx.Commit();
 
@@ -452,11 +576,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
     }
 
     // ── Save: GiaHan ──────────────────────────────────────────────────────
-    /// <summary>
-    /// Chỉ cập nhật NgayCheckOut mới trên ChiTietDatPhong.
-    /// Trạng thái phòng giữ nguyên (vẫn là 3-Quá hạn cho đến khi LoadData chạy lại;
-    /// vì NgayCheckOut mới > hôm nay nên lần LoadData kế tiếp sẽ bỏ flag quá hạn).
-    /// </summary>
     private void ExecuteGiaHanSave()
     {
         if (_chiTietDatPhong == null) return;
@@ -469,11 +588,9 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
             ct.NgayCheckOut = NgayCheckOut;
 
-            // Reset trạng thái phòng về Đang ở (2) vì đã gia hạn hợp lệ
             var phong = _context.Phongs.Find(ct.MaPhong);
             if (phong != null) phong.TrangThai = 2;
 
-            // Đảm bảo DatPhong vẫn là Đã nhận phòng (2)
             var dat = _context.DatPhongs.Find(ct.MaDatPhong);
             if (dat != null && dat.TrangThaiDat != 2) dat.TrangThaiDat = 2;
 
@@ -486,26 +603,21 @@ public class DatPhongViewModel : INotifyPropertyChanged
         catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi gia hạn: " + ex.Message); }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
     private void UpdateRoomCleaningStatus(Phong phong)
     {
         try
         {
-            // Tìm phòng trong context và cập nhật
             var phongDb = _context.Phongs.Find(phong.MaPhong);
             if (phongDb != null)
             {
-                phongDb.TrangThaiDonDep = 0; // Chuyển về Sạch
+                phongDb.TrangThaiDonDep = 0;
                 _context.SaveChanges();
-
-                // Cập nhật lại UI của đối tượng đang chọn
                 phong.TrangThaiDonDep = 0;
                 OnPropertyChanged(nameof(AvailableRooms));
             }
         }
-        catch (Exception ex)
-        {
-            MessageBox.Show("Lỗi cập nhật trạng thái dọn dẹp: " + ex.Message);
-        }
+        catch (Exception ex) { MessageBox.Show("Lỗi cập nhật trạng thái dọn dẹp: " + ex.Message); }
     }
 
     private void ResetFields()
@@ -513,6 +625,8 @@ public class DatPhongViewModel : INotifyPropertyChanged
         NewCustomer = new KhachHang();
         NgayCheckIn = DateTime.Now;
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
+        TienCoc = 0;
+        MinTienCoc = 0;
         SelectedRoomsList.Clear();
         SelectedRoom = null;
         SelectedTang = 0;
@@ -527,5 +641,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsCustomerReadOnly));
         OnPropertyChanged(nameof(IsCheckInReadOnly));
         OnPropertyChanged(nameof(IsFilterVisible));
+        OnPropertyChanged(nameof(IsTienCocReadOnly));
     }
 }
