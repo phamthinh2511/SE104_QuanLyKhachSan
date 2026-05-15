@@ -15,6 +15,23 @@ namespace QuanLyKhachSan_SE104.View.Login
         {
             InitializeComponent();
             _context = new QuanLyKhachSanContext();
+            
+            // Tự động tạo tài khoản admin nếu chưa có
+            try
+            {
+                if (!_context.TaiKhoans.Any(t => t.Username == "admin"))
+                {
+                    var nv = new NhanVien { HoTen = "Quản trị viên", ChucVu = true, TrangThaiLamViec = true };
+                    _context.NhanViens.Add(nv);
+                    _context.SaveChanges();
+
+                    var tk = new TaiKhoan { Username = "admin", PasswordHash = "123", MaNhanVien = nv.MaNhanVien, CreatedAt = System.DateTime.Now };
+                    _context.TaiKhoans.Add(tk);
+                    _context.SaveChanges();
+                }
+            }
+            catch { }
+
             txtUsername.Focus();
         }
 
