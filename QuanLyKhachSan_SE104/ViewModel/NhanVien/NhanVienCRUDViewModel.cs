@@ -90,6 +90,9 @@
                     {
                         MaNhanVien = nv.MaNhanVien,
                         HoTen = nv.HoTen,
+                        Email = nv.Email,
+                        SoDienThoai = nv.SoDienThoai,
+                        CCCD = nv.CCCD,
                         ChucVu = nv.ChucVu,
                         TrangThaiLamViec = nv.TrangThaiLamViec
                     };

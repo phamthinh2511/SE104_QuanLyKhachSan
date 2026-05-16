@@ -83,6 +83,9 @@
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="ID" Binding="{Binding MaNhanVien}" Width="80"/>
                                                     <DataGridTextColumn Header="Họ tên" Binding="{Binding HoTen}" Width="*"/>
+                                                    <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="150"/>
+                                                    <DataGridTextColumn Header="Số ĐT" Binding="{Binding SoDienThoai}" Width="120"/>
+                                                    <DataGridTextColumn Header="CCCD" Binding="{Binding CCCD}" Width="150"/>
                                                     <DataGridTemplateColumn Header="Chức vụ" Width="120">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>

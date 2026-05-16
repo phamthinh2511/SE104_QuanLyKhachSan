@@ -40,8 +40,17 @@ namespace QuanLyKhachSan_SE104.View.Login
 
         private void TxtFindUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
-            lblFindUserPlaceholder.Visibility = string.IsNullOrEmpty(txtFindUsername.Text)
-                ? Visibility.Visible : Visibility.Collapsed;
+            if (lblFindUserPlaceholder != null)
+            {
+                lblFindUserPlaceholder.Visibility = string.IsNullOrEmpty(txtFindUsername.Text)
+                    ? Visibility.Visible : Visibility.Collapsed;
+                lblFindEmailPlaceholder.Visibility = string.IsNullOrEmpty(txtFindEmail.Text)
+                    ? Visibility.Visible : Visibility.Collapsed;
+                lblFindPhonePlaceholder.Visibility = string.IsNullOrEmpty(txtFindPhone.Text)
+                    ? Visibility.Visible : Visibility.Collapsed;
+                lblFindCCCDPlaceholder.Visibility = string.IsNullOrEmpty(txtFindCCCD.Text)
+                    ? Visibility.Visible : Visibility.Collapsed;
+            }
 
             // Reset found state if user changes the username
             pnlFoundUser.Visibility = Visibility.Collapsed;
@@ -58,10 +67,14 @@ namespace QuanLyKhachSan_SE104.View.Login
         private void BtnFind_Click(object sender, RoutedEventArgs e)
         {
             string username = txtFindUsername.Text.Trim();
+            string email = txtFindEmail.Text.Trim();
+            string phone = txtFindPhone.Text.Trim();
+            string cccd = txtFindCCCD.Text.Trim();
 
-            if (string.IsNullOrEmpty(username))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email) || 
+                string.IsNullOrEmpty(phone) || string.IsNullOrEmpty(cccd))
             {
-                ShowFindError("Vui lòng nhập tên đăng nhập cần tìm.");
+                ShowFindError("Vui lòng nhập đầy đủ thông tin (Tên đăng nhập, Email, SĐT, CCCD).");
                 return;
             }
 
@@ -72,7 +85,10 @@ namespace QuanLyKhachSan_SE104.View.Login
             {
                 // Include NhanVien to get employee name
                 var account = _context.TaiKhoans
-                    .Where(t => t.Username == username)
+                    .Where(t => t.Username == username && 
+                                t.NhanVien.Email == email && 
+                                t.NhanVien.SoDienThoai == phone && 
+                                t.NhanVien.CCCD == cccd)
                     .Select(t => new
                     {
                         TaiKhoan = t,
@@ -102,7 +118,7 @@ namespace QuanLyKhachSan_SE104.View.Login
                 {
                     _foundAccount = null;
                     pnlFoundUser.Visibility = Visibility.Collapsed;
-                    ShowFindError($"Không tìm thấy tài khoản với tên đăng nhập \"{username}\".");
+                    ShowFindError("Không tìm thấy tài khoản hợp lệ với thông tin đã nhập.");
                 }
             }
             catch (System.Exception ex)
