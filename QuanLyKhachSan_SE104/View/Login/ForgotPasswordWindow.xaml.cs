@@ -40,22 +40,34 @@ namespace QuanLyKhachSan_SE104.View.Login
 
         private void TxtFindUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (lblFindUserPlaceholder != null)
-            {
+            if (lblFindUserPlaceholder != null && txtFindUsername != null)
                 lblFindUserPlaceholder.Visibility = string.IsNullOrEmpty(txtFindUsername.Text)
                     ? Visibility.Visible : Visibility.Collapsed;
+
+            if (lblFindEmailPlaceholder != null && txtFindEmail != null)
                 lblFindEmailPlaceholder.Visibility = string.IsNullOrEmpty(txtFindEmail.Text)
                     ? Visibility.Visible : Visibility.Collapsed;
+
+            if (lblFindPhonePlaceholder != null && txtFindPhone != null)
                 lblFindPhonePlaceholder.Visibility = string.IsNullOrEmpty(txtFindPhone.Text)
                     ? Visibility.Visible : Visibility.Collapsed;
+
+            if (lblFindCCCDPlaceholder != null && txtFindCCCD != null)
                 lblFindCCCDPlaceholder.Visibility = string.IsNullOrEmpty(txtFindCCCD.Text)
                     ? Visibility.Visible : Visibility.Collapsed;
-            }
 
             // Reset found state if user changes the username
-            pnlFoundUser.Visibility = Visibility.Collapsed;
-            pnlFindError.Visibility = Visibility.Collapsed;
+            if (pnlFoundUser != null) pnlFoundUser.Visibility = Visibility.Collapsed;
+            if (pnlFindError != null) pnlFindError.Visibility = Visibility.Collapsed;
             _foundAccount = null;
+
+            if (btnFind != null)
+            {
+                btnFind.Content = "Tìm tài khoản";
+                btnFind.Click -= BtnGoToStep2_Click;
+                btnFind.Click -= BtnFind_Click;
+                btnFind.Click += BtnFind_Click;
+            }
         }
 
         private void TxtFindUsername_KeyDown(object sender, KeyEventArgs e)
@@ -160,15 +172,21 @@ namespace QuanLyKhachSan_SE104.View.Login
 
         private void TxtNewPassword_Changed(object sender, RoutedEventArgs e)
         {
+            if (txtNewPassword == null || lblNewPwdPlaceholder == null) return;
             string pwd = txtNewPassword.Password;
             lblNewPwdPlaceholder.Visibility = string.IsNullOrEmpty(pwd)
                 ? Visibility.Visible : Visibility.Collapsed;
-            lblConfirmPwdPlaceholder.Visibility = string.IsNullOrEmpty(txtConfirmPassword.Password)
-                ? Visibility.Visible : Visibility.Collapsed;
+                
+            if (txtConfirmPassword != null && lblConfirmPwdPlaceholder != null)
+            {
+                lblConfirmPwdPlaceholder.Visibility = string.IsNullOrEmpty(txtConfirmPassword.Password)
+                    ? Visibility.Visible : Visibility.Collapsed;
+            }
 
-            pnlResetError.Visibility = Visibility.Collapsed;
+            if (pnlResetError != null) pnlResetError.Visibility = Visibility.Collapsed;
 
             // Password strength indicator
+            if (lblStrength == null) return;
             if (string.IsNullOrEmpty(pwd))
             {
                 lblStrength.Text = "";
