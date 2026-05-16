@@ -15,3 +15,6 @@ namespace QuanLyKhachSan_SE104.DTO
         public decimal ThanhTien => DonGia * SoLuong;
     }
 }
+
+
+
