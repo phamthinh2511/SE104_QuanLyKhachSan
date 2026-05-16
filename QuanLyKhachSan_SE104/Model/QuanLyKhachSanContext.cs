@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -96,6 +96,16 @@ namespace QuanLyKhachSan_SE104.Model
                 .WithMany(n => n.HoaDons)
                 .HasForeignKey(h => h.MaNhanVien);
 
+            // Seed Data
+            modelBuilder.Entity<NhanVien>().HasData(
+                new NhanVien { MaNhanVien = 1, HoTen = "Quản trị viên", ChucVu = true, TrangThaiLamViec = true },
+                new NhanVien { MaNhanVien = 2, HoTen = "Nhân viên", ChucVu = false, TrangThaiLamViec = true }
+            );
+
+            modelBuilder.Entity<TaiKhoan>().HasData(
+                new TaiKhoan { MaTaiKhoan = 1, Username = "admin", PasswordHash = "123", MaNhanVien = 1, CreatedAt = new DateTime(2023, 1, 1) },
+                new TaiKhoan { MaTaiKhoan = 2, Username = "user", PasswordHash = "123", MaNhanVien = 2, CreatedAt = new DateTime(2023, 1, 1) }
+            );
             // LichSuCoc → DatPhong (main booking)
             modelBuilder.Entity<LichSuCoc>()
                 .HasOne(l => l.DatPhong)
