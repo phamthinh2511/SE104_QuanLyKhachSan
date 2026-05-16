@@ -92,6 +92,7 @@ namespace QuanLyKhachSan_SE104.ViewModel
             // Load dữ liệu lần đầu
             LoadData();
         }
+        public void Refresh() => LoadData();
 
         // ==========================================
         // 4. CÁC HÀM XỬ LÝ LOGIC (NGHIỆP VỤ)

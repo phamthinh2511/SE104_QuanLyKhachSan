@@ -23,6 +23,7 @@ namespace QuanLyKhachSan_SE104.Model
         public DbSet<DatPhong> DatPhongs { get; set; }
         public DbSet<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
         public DbSet<ChiTietDichVu> ChiTietDichVus { get; set; }
+        public DbSet<LichSuCoc> LichSuCocs { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             try
@@ -105,6 +106,23 @@ namespace QuanLyKhachSan_SE104.Model
                 new TaiKhoan { MaTaiKhoan = 1, Username = "admin", PasswordHash = "123", MaNhanVien = 1, CreatedAt = new DateTime(2023, 1, 1) },
                 new TaiKhoan { MaTaiKhoan = 2, Username = "user", PasswordHash = "123", MaNhanVien = 2, CreatedAt = new DateTime(2023, 1, 1) }
             );
+            // LichSuCoc → DatPhong (main booking)
+            modelBuilder.Entity<LichSuCoc>()
+                .HasOne(l => l.DatPhong)
+                .WithMany(d => d.LichSuCocs)
+                .HasForeignKey(l => l.MaDatPhong);
+
+            // LichSuCoc → NhanVien
+            modelBuilder.Entity<LichSuCoc>()
+                .HasOne(l => l.NhanVien)
+                .WithMany()
+                .HasForeignKey(l => l.MaNhanVien);
+            // doi phong
+            modelBuilder.Entity<LichSuCoc>()
+                .HasOne<DatPhong>()
+                .WithMany()
+                .HasForeignKey(l => l.MaDatPhongMoi)
+                .IsRequired(false);
         }
     }
 }

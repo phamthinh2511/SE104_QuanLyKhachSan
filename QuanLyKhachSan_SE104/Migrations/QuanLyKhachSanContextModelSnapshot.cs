@@ -109,6 +109,9 @@ namespace QuanLyKhachSan_SE104.Migrations
                     b.Property<decimal>("TienCoc")
                         .HasColumnType("decimal(65,30)");
 
+                    b.Property<int>("TrangThaiCoc")
+                        .HasColumnType("int");
+
                     b.Property<int>("TrangThaiDat")
                         .HasColumnType("int");
 
@@ -139,7 +142,6 @@ namespace QuanLyKhachSan_SE104.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("MoTa")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("TenDichVu")
@@ -242,6 +244,47 @@ namespace QuanLyKhachSan_SE104.Migrations
                     b.HasKey("MaKhachHang");
 
                     b.ToTable("KhachHangs");
+                });
+
+            modelBuilder.Entity("QuanLyKhachSan_SE104.Model.LichSuCoc", b =>
+                {
+                    b.Property<int>("MaLichSu")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaLichSu"));
+
+                    b.Property<string>("GhiChu")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("LoaiGiaoDich")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaDatPhong")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaDatPhongMoi")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaNhanVien")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SoTien")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<DateTime>("ThoiGian")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("MaLichSu");
+
+                    b.HasIndex("MaDatPhong");
+
+                    b.HasIndex("MaDatPhongMoi");
+
+                    b.HasIndex("MaNhanVien");
+
+                    b.ToTable("LichSuCocs");
                 });
 
             modelBuilder.Entity("QuanLyKhachSan_SE104.Model.LoaiPhong", b =>
@@ -439,6 +482,29 @@ namespace QuanLyKhachSan_SE104.Migrations
                     b.Navigation("NhanVien");
                 });
 
+            modelBuilder.Entity("QuanLyKhachSan_SE104.Model.LichSuCoc", b =>
+                {
+                    b.HasOne("QuanLyKhachSan_SE104.Model.DatPhong", "DatPhong")
+                        .WithMany("LichSuCocs")
+                        .HasForeignKey("MaDatPhong")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyKhachSan_SE104.Model.DatPhong", null)
+                        .WithMany()
+                        .HasForeignKey("MaDatPhongMoi");
+
+                    b.HasOne("QuanLyKhachSan_SE104.Model.NhanVien", "NhanVien")
+                        .WithMany()
+                        .HasForeignKey("MaNhanVien")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DatPhong");
+
+                    b.Navigation("NhanVien");
+                });
+
             modelBuilder.Entity("QuanLyKhachSan_SE104.Model.Phong", b =>
                 {
                     b.HasOne("QuanLyKhachSan_SE104.Model.LoaiPhong", "LoaiPhong")
@@ -472,6 +538,8 @@ namespace QuanLyKhachSan_SE104.Migrations
 
                     b.Navigation("HoaDon")
                         .IsRequired();
+
+                    b.Navigation("LichSuCocs");
                 });
 
             modelBuilder.Entity("QuanLyKhachSan_SE104.Model.DichVu", b =>

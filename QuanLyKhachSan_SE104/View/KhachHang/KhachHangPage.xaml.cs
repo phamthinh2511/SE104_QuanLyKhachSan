@@ -23,6 +23,7 @@ namespace QuanLyKhachSan_SE104.View.KhachHang
         public KhachHangPage()
         {
             InitializeComponent();
+            this.DataContext = new QuanLyKhachSan_SE104.ViewModel.KhachHangVM.KhachHangViewModel();
         }
     }
 }

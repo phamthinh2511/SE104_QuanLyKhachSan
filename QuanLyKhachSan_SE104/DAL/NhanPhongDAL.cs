@@ -29,7 +29,9 @@ namespace QuanLyKhachSan_SE104.DAL
                 JOIN khachhangs kh ON dp.MaKhachHang = kh.MaKhachHang
                 JOIN phongs p ON ct.MaPhong = p.MaPhong
                 JOIN loaiphongs lp ON p.MaLoaiPhong = lp.MaLoaiPhong
-                WHERE DATE(ct.NgayCheckIn) = CURDATE() AND dp.TrangThaiDat = 1";
+                WHERE DATE(ct.NgayCheckIn) = CURDATE() 
+                    AND dp.TrangThaiDat = 1
+                    AND p.TrangThaiThue = 1";
 
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
                 using (MySqlDataReader reader = cmd.ExecuteReader())
@@ -95,12 +97,30 @@ namespace QuanLyKhachSan_SE104.DAL
                             cmd.ExecuteNonQuery();
                         }
 
-                        // 4. Cập nhật trạng thái DATPHONG sang Đã nhận phòng (2)
-                        string updateDatPhong = "UPDATE datphongs SET TrangThaiDat = 2 WHERE MaDatPhong = @maDatPhong";
-                        using (MySqlCommand cmd = new MySqlCommand(updateDatPhong, conn, transaction))
+                        // 4. KIỂM TRA & CẬP NHẬT DATPHONG
+                        // Đếm xem trong phiếu này còn phòng nào chưa check-in (TrangThaiThue khác 2) không
+                        string checkRemainingRooms = @"
+                            SELECT COUNT(*) 
+                            FROM CHITIETDATPHONG ct
+                            JOIN PHONG p ON ct.MaPhong = p.MaPhong
+                            WHERE ct.MaDatPhong = @maDatPhong AND p.TrangThaiThue != 2";
+
+                        int remainingRooms = 0;
+                        using (MySqlCommand cmd = new MySqlCommand(checkRemainingRooms, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@maDatPhong", maDatPhong);
-                            cmd.ExecuteNonQuery();
+                            remainingRooms = Convert.ToInt32(cmd.ExecuteScalar());
+                        }
+
+                        // Nếu không còn phòng nào chờ check-in, update cả phiếu thành "Đã nhận phòng" (2)
+                        if (remainingRooms == 0)
+                        {
+                            string updateDatPhong = "UPDATE DATPHONG SET TrangThaiDat = 2 WHERE MaDatPhong = @maDatPhong";
+                            using (MySqlCommand cmd = new MySqlCommand(updateDatPhong, conn, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@maDatPhong", maDatPhong);
+                                cmd.ExecuteNonQuery();
+                            }
                         }
 
                         transaction.Commit();
