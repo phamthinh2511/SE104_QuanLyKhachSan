@@ -9,12 +9,35 @@ namespace QuanLyKhachSan_SE104.View.Login
     public partial class LoginWindow : Window
     {
         private readonly QuanLyKhachSanContext _context;
+        private bool _isPasswordVisible = false;
 
         public LoginWindow()
         {
             InitializeComponent();
             _context = new QuanLyKhachSanContext();
+            
+            // Tự động tạo tài khoản admin nếu chưa có
+            try
+            {
+                if (!_context.TaiKhoans.Any(t => t.Username == "admin"))
+                {
+                    var nv = new NhanVien { HoTen = "Quản trị viên", ChucVu = true, TrangThaiLamViec = true };
+                    _context.NhanViens.Add(nv);
+                    _context.SaveChanges();
+
+                    var tk = new TaiKhoan { Username = "admin", PasswordHash = "123", MaNhanVien = nv.MaNhanVien, CreatedAt = System.DateTime.Now };
+                    _context.TaiKhoans.Add(tk);
+                    _context.SaveChanges();
+                }
+            }
+            catch { }
+
+            txtUsername.Focus();
         }
+
+        // ═══════════════════════════════════════
+        //  WINDOW CONTROLS
+        // ═══════════════════════════════════════
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -27,72 +50,171 @@ namespace QuanLyKhachSan_SE104.View.Login
             Application.Current.Shutdown();
         }
 
+        // ═══════════════════════════════════════
+        //  INPUT EVENTS
+        // ═══════════════════════════════════════
+
         private void TxtUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
-            lblUsernamePlaceholder.Visibility = string.IsNullOrEmpty(txtUsername.Text) ? Visibility.Visible : Visibility.Collapsed;
-            lblError.Visibility = Visibility.Collapsed;
+            lblUsernamePlaceholder.Visibility = string.IsNullOrEmpty(txtUsername.Text)
+                ? Visibility.Visible : Visibility.Collapsed;
+            HideMessages();
         }
 
         private void TxtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            lblPasswordPlaceholder.Visibility = string.IsNullOrEmpty(txtPassword.Password) ? Visibility.Visible : Visibility.Collapsed;
-            lblError.Visibility = Visibility.Collapsed;
+            bool isEmpty = string.IsNullOrEmpty(txtPassword.Password);
+            lblPasswordPlaceholder.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
+
+            // Keep txtPasswordVisible in sync (without re-triggering)
+            txtPasswordVisible.TextChanged -= TxtPasswordVisible_TextChanged;
+            txtPasswordVisible.Text = txtPassword.Password;
+            txtPasswordVisible.TextChanged += TxtPasswordVisible_TextChanged;
+
+            HideMessages();
         }
+
+        internal void TxtPasswordVisible_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            bool isEmpty = string.IsNullOrEmpty(txtPasswordVisible.Text);
+            lblPasswordPlaceholder.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
+
+            // Keep PasswordBox in sync (without re-triggering)
+            txtPassword.PasswordChanged -= TxtPassword_PasswordChanged;
+            txtPassword.Password = txtPasswordVisible.Text;
+            txtPassword.PasswordChanged += TxtPassword_PasswordChanged;
+
+            HideMessages();
+        }
+
+        // ═══════════════════════════════════════
+        //  TOGGLE SHOW/HIDE PASSWORD
+        // ═══════════════════════════════════════
 
         private void TogglePasswordVisibility_Click(object sender, RoutedEventArgs e)
         {
-            // Simplified toggle password visibility: in WPF it's tricky to show password in a PasswordBox directly.
-            // A common workaround is to use a TextBox overlapping the PasswordBox. For simplicity and standard security,
-            // we will leave this as a UI placeholder or implement it if strongly needed.
-            // Since WPF doesn't have a built-in PasswordBox.PasswordChar toggle to visible text easily, 
-            // we will just focus on the core login logic for now.
+            _isPasswordVisible = !_isPasswordVisible;
+
+            if (_isPasswordVisible)
+            {
+                txtPasswordVisible.Text = txtPassword.Password;
+                txtPasswordVisible.Visibility = Visibility.Visible;
+                txtPassword.Visibility = Visibility.Collapsed;
+                txtPasswordVisible.Focus();
+                txtPasswordVisible.CaretIndex = txtPasswordVisible.Text.Length;
+            }
+            else
+            {
+                txtPassword.Password = txtPasswordVisible.Text;
+                txtPassword.Visibility = Visibility.Visible;
+                txtPasswordVisible.Visibility = Visibility.Collapsed;
+                txtPassword.Focus();
+            }
         }
+
+        // ═══════════════════════════════════════
+        //  ENTER KEY SUPPORT
+        // ═══════════════════════════════════════
+
+        private void TxtInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+                BtnLogin_Click(btnLogin, new RoutedEventArgs());
+        }
+
+        // ═══════════════════════════════════════
+        //  LOGIN
+        // ═══════════════════════════════════════
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
             string username = txtUsername.Text.Trim();
-            string password = txtPassword.Password;
+            string password = _isPasswordVisible ? txtPasswordVisible.Text : txtPassword.Password;
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(username))
             {
-                lblError.Text = "Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu.";
-                lblError.Visibility = Visibility.Visible;
+                ShowError("Vui lòng nhập tên đăng nhập.");
+                txtUsername.Focus();
                 return;
             }
 
-            // Disable button while processing
+            if (string.IsNullOrEmpty(password))
+            {
+                ShowError("Vui lòng nhập mật khẩu.");
+                if (_isPasswordVisible) txtPasswordVisible.Focus();
+                else txtPassword.Focus();
+                return;
+            }
+
             btnLogin.IsEnabled = false;
-            btnLogin.Content = "Đang đăng nhập...";
+            lblLoginBtnText.Text = "Đang đăng nhập...";
 
             try
             {
-                // Authenticate with database
-                var account = _context.TaiKhoans.FirstOrDefault(t => t.Username == username && t.PasswordHash == password);
+                var account = _context.TaiKhoans
+                    .FirstOrDefault(t => t.Username == username && t.PasswordHash == password);
 
                 if (account != null)
                 {
-                    // Login successful
-                    MainWindow mainWindow = new MainWindow();
+                    var mainWindow = new MainWindow();
                     mainWindow.Show();
                     this.Close();
                 }
                 else
                 {
-                    // Login failed
-                    lblError.Text = "Tên đăng nhập hoặc mật khẩu không chính xác.";
-                    lblError.Visibility = Visibility.Visible;
+                    ShowError("Tên đăng nhập hoặc mật khẩu không chính xác.");
                 }
             }
             catch (System.Exception ex)
             {
-                lblError.Text = "Lỗi kết nối cơ sở dữ liệu: " + ex.Message;
-                lblError.Visibility = Visibility.Visible;
+                ShowError("Lỗi kết nối cơ sở dữ liệu: " + ex.Message);
             }
             finally
             {
                 btnLogin.IsEnabled = true;
-                btnLogin.Content = "Đăng nhập";
+                lblLoginBtnText.Text = "Đăng nhập";
             }
+        }
+
+        // ═══════════════════════════════════════
+        //  FORGOT PASSWORD  →  Opens dialog
+        // ═══════════════════════════════════════
+
+        private void ForgotPassword_Click(object sender, RoutedEventArgs e)
+        {
+            HideMessages();
+            var dialog = new ForgotPasswordWindow(_context);
+            dialog.Owner = this;
+            bool? result = dialog.ShowDialog();
+
+            if (result == true)
+            {
+                ShowSuccess("Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.");
+            }
+        }
+
+        // ═══════════════════════════════════════
+        //  HELPERS
+        // ═══════════════════════════════════════
+
+        private void ShowError(string message)
+        {
+            pnlSuccess.Visibility = Visibility.Collapsed;
+            lblError.Text = message;
+            pnlError.Visibility = Visibility.Visible;
+        }
+
+        private void ShowSuccess(string message)
+        {
+            pnlError.Visibility = Visibility.Collapsed;
+            lblSuccess.Text = message;
+            pnlSuccess.Visibility = Visibility.Visible;
+        }
+
+        private void HideMessages()
+        {
+            pnlError.Visibility = Visibility.Collapsed;
+            pnlSuccess.Visibility = Visibility.Collapsed;
         }
     }
 }
