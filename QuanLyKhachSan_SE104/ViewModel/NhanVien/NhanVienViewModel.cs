@@ -147,6 +147,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
                             if (dbNv != null)
                             {
                                 dbNv.HoTen = newNv.HoTen;
+                                dbNv.Email = newNv.Email;
+                                dbNv.SoDienThoai = newNv.SoDienThoai;
+                                dbNv.CCCD = newNv.CCCD;
                                 dbNv.ChucVu = newNv.ChucVu;
                                 dbNv.TrangThaiLamViec = newNv.TrangThaiLamViec;
                                 context.SaveChanges();
