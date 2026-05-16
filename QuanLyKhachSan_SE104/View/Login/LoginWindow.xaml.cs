@@ -56,6 +56,7 @@ namespace QuanLyKhachSan_SE104.View.Login
 
         private void TxtUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (lblUsernamePlaceholder == null || txtUsername == null) return;
             lblUsernamePlaceholder.Visibility = string.IsNullOrEmpty(txtUsername.Text)
                 ? Visibility.Visible : Visibility.Collapsed;
             HideMessages();
@@ -63,26 +64,34 @@ namespace QuanLyKhachSan_SE104.View.Login
 
         private void TxtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
+            if (lblPasswordPlaceholder == null || txtPassword == null) return;
             bool isEmpty = string.IsNullOrEmpty(txtPassword.Password);
             lblPasswordPlaceholder.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
 
             // Keep txtPasswordVisible in sync (without re-triggering)
-            txtPasswordVisible.TextChanged -= TxtPasswordVisible_TextChanged;
-            txtPasswordVisible.Text = txtPassword.Password;
-            txtPasswordVisible.TextChanged += TxtPasswordVisible_TextChanged;
+            if (txtPasswordVisible != null)
+            {
+                txtPasswordVisible.TextChanged -= TxtPasswordVisible_TextChanged;
+                txtPasswordVisible.Text = txtPassword.Password;
+                txtPasswordVisible.TextChanged += TxtPasswordVisible_TextChanged;
+            }
 
             HideMessages();
         }
 
         internal void TxtPasswordVisible_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (lblPasswordPlaceholder == null || txtPasswordVisible == null) return;
             bool isEmpty = string.IsNullOrEmpty(txtPasswordVisible.Text);
             lblPasswordPlaceholder.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
 
             // Keep PasswordBox in sync (without re-triggering)
-            txtPassword.PasswordChanged -= TxtPassword_PasswordChanged;
-            txtPassword.Password = txtPasswordVisible.Text;
-            txtPassword.PasswordChanged += TxtPassword_PasswordChanged;
+            if (txtPassword != null)
+            {
+                txtPassword.PasswordChanged -= TxtPassword_PasswordChanged;
+                txtPassword.Password = txtPasswordVisible.Text;
+                txtPassword.PasswordChanged += TxtPassword_PasswordChanged;
+            }
 
             HideMessages();
         }
