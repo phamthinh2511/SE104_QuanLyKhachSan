@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 
 /////// Hiển thị chi tiết hóa đơn khi click vào phòng trong Pop-up chi tiết đặt phòng
-namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhong
+namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhongVM
 {
     public class HoaDonChiTietViewModel : INotifyPropertyChanged
     {

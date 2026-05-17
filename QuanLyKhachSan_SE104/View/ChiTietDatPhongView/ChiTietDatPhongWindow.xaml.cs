@@ -5,9 +5,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
-using QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhong;
+using QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhongVM;
 
-namespace QuanLyKhachSan_SE104.View.ChiTietDatPhong
+namespace QuanLyKhachSan_SE104.View.ChiTietDatPhongView
 {
     public partial class ChiTietDatPhongWindow : Window
     {

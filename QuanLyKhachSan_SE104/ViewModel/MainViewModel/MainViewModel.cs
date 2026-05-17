@@ -11,7 +11,7 @@ using QuanLyKhachSan_SE104.View.NhanVienView;
 using QuanLyKhachSan_SE104.View.PhongView;
 using QuanLyKhachSan_SE104.View.SuDungDichVu;
 using QuanLyKhachSan_SE104.View.NhanPhong;
-using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
+using QuanLyKhachSan_SE104.View.ChiTietDatPhongView;
 using QuanLyKhachSan_SE104.View.DanhMuc;
 
 using System.Collections.ObjectModel;

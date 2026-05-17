@@ -10,7 +10,7 @@ using QuanLyKhachSan_SE104.Utilities;
 using QuanLyKhachSan_SE104.View;
 
 ///// hiển thị Pop-up danh sách phòng, chứa lệnh click vào phòng để mở Hóa Đơn
-namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhong
+namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhongVM
 {
     public class ChiTietDatPhongWindowViewModel : INotifyPropertyChanged
     {

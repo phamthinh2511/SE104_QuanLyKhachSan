@@ -15,7 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace QuanLyKhachSan_SE104.View.ChiTietDatPhong
+namespace QuanLyKhachSan_SE104.View.ChiTietDatPhongView
 {
     public partial class ChiTietDatPhongPage : UserControl
     {
