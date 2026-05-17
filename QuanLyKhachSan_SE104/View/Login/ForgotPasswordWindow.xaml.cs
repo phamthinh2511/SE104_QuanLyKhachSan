@@ -1,8 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using QuanLyKhachSan_SE104.Model;
+using System;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using QuanLyKhachSan_SE104.Model;
+using System.Windows.Media; 
 
 namespace QuanLyKhachSan_SE104.View.Login
 {
@@ -10,6 +15,11 @@ namespace QuanLyKhachSan_SE104.View.Login
     {
         private readonly QuanLyKhachSanContext _context;
         private TaiKhoan _foundAccount = null;
+        private string _generatedOTP = "";
+
+        // ĐIỀN THÔNG TIN GMAIL CỦA BẠN VÀO ĐÂY
+        private readonly string _myEmail = "hotelmanagement.se104@gmail.com";
+        private readonly string _myAppPassword = "vhjxbttxojcdaqdy";
 
         public ForgotPasswordWindow(QuanLyKhachSanContext context)
         {
@@ -21,7 +31,6 @@ namespace QuanLyKhachSan_SE104.View.Login
         // ═══════════════════════════════════════
         //  WINDOW CONTROLS
         // ═══════════════════════════════════════
-
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -35,157 +44,144 @@ namespace QuanLyKhachSan_SE104.View.Login
         }
 
         // ═══════════════════════════════════════
-        //  STEP 1 – FIND ACCOUNT
+        // SỰ KIỆN ẨN/HIỆN PLACEHOLDER KHI GÕ
         // ═══════════════════════════════════════
-
-        private void TxtFindUsername_TextChanged(object sender, TextChangedEventArgs e)
+        private void TxtInput_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (lblFindUserPlaceholder != null && txtFindUsername != null)
-                lblFindUserPlaceholder.Visibility = string.IsNullOrEmpty(txtFindUsername.Text)
-                    ? Visibility.Visible : Visibility.Collapsed;
+            if (lblFindUserPlaceholder != null)
+                lblFindUserPlaceholder.Visibility = string.IsNullOrEmpty(txtFindUsername.Text) ? Visibility.Visible : Visibility.Collapsed;
 
-            if (lblFindEmailPlaceholder != null && txtFindEmail != null)
-                lblFindEmailPlaceholder.Visibility = string.IsNullOrEmpty(txtFindEmail.Text)
-                    ? Visibility.Visible : Visibility.Collapsed;
+            if (lblFindEmailPlaceholder != null)
+                lblFindEmailPlaceholder.Visibility = string.IsNullOrEmpty(txtFindEmail.Text) ? Visibility.Visible : Visibility.Collapsed;
 
-            if (lblFindPhonePlaceholder != null && txtFindPhone != null)
-                lblFindPhonePlaceholder.Visibility = string.IsNullOrEmpty(txtFindPhone.Text)
-                    ? Visibility.Visible : Visibility.Collapsed;
+            if (lblOTPPlaceholder != null)
+                lblOTPPlaceholder.Visibility = string.IsNullOrEmpty(txtOTP.Text) ? Visibility.Visible : Visibility.Collapsed;
 
-            if (lblFindCCCDPlaceholder != null && txtFindCCCD != null)
-                lblFindCCCDPlaceholder.Visibility = string.IsNullOrEmpty(txtFindCCCD.Text)
-                    ? Visibility.Visible : Visibility.Collapsed;
-
-            // Reset found state if user changes the username
-            if (pnlFoundUser != null) pnlFoundUser.Visibility = Visibility.Collapsed;
             if (pnlFindError != null) pnlFindError.Visibility = Visibility.Collapsed;
-            _foundAccount = null;
-
-            if (btnFind != null)
-            {
-                btnFind.Content = "Tìm tài khoản";
-                btnFind.Click -= BtnGoToStep2_Click;
-                btnFind.Click -= BtnFind_Click;
-                btnFind.Click += BtnFind_Click;
-            }
         }
 
-        private void TxtFindUsername_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-                BtnFind_Click(btnFind, new RoutedEventArgs());
-        }
-
-        private void BtnFind_Click(object sender, RoutedEventArgs e)
+        // ═══════════════════════════════════════
+        // STEP 1: GỬI OTP
+        // ═══════════════════════════════════════
+        private async void BtnSendOTP_Click(object sender, RoutedEventArgs e)
         {
             string username = txtFindUsername.Text.Trim();
             string email = txtFindEmail.Text.Trim();
-            string phone = txtFindPhone.Text.Trim();
-            string cccd = txtFindCCCD.Text.Trim();
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email) || 
-                string.IsNullOrEmpty(phone) || string.IsNullOrEmpty(cccd))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email))
             {
-                ShowFindError("Vui lòng nhập đầy đủ thông tin (Tên đăng nhập, Email, SĐT, CCCD).");
-                return;
+                ShowFindError("Vui lòng nhập Username và Email."); return;
             }
 
             btnFind.IsEnabled = false;
-            btnFind.Content = "Đang tìm...";
+            btnFind.Content = "Đang kiểm tra & Gửi mã...";
 
             try
             {
-                // Include NhanVien to get employee name
-                var account = _context.TaiKhoans
-                    .Where(t => t.Username == username && 
-                                t.NhanVien.Email == email && 
-                                t.NhanVien.SoDienThoai == phone && 
-                                t.NhanVien.CCCD == cccd)
-                    .Select(t => new
-                    {
-                        TaiKhoan = t,
-                        HoTen = t.NhanVien != null ? t.NhanVien.HoTen : "Không xác định",
-                        ChucVu = t.NhanVien != null
-                            ? (t.NhanVien.ChucVu ? "Quản lý" : "Lễ tân")
-                            : "Không xác định"
-                    })
-                    .FirstOrDefault();
+                var account = await _context.TaiKhoans
+                    .Include(t => t.NhanVien)
+                    .FirstOrDefaultAsync(t => t.Username == username && t.NhanVien.Email == email);
 
                 if (account != null)
                 {
-                    _foundAccount = account.TaiKhoan;
+                    _foundAccount = account;
+                    _generatedOTP = new Random().Next(100000, 999999).ToString();
 
-                    // Show found user info
-                    lblFoundName.Text = account.HoTen;
-                    lblFoundRole.Text = account.ChucVu;
-                    pnlFoundUser.Visibility = Visibility.Visible;
-                    pnlFindError.Visibility = Visibility.Collapsed;
+                    await System.Threading.Tasks.Task.Run(() => SendEmailOTP(email, _generatedOTP));
 
-                    // Transition to step 2 after a short display
-                    btnFind.Content = "Tiếp tục →";
-                    btnFind.Click -= BtnFind_Click;
-                    btnFind.Click += BtnGoToStep2_Click;
+                    pnlStep1.Visibility = Visibility.Collapsed;
+                    pnlStep2.Visibility = Visibility.Visible;
+                    txtOTP.Focus();
                 }
                 else
                 {
-                    _foundAccount = null;
-                    pnlFoundUser.Visibility = Visibility.Collapsed;
-                    ShowFindError("Không tìm thấy tài khoản hợp lệ với thông tin đã nhập.");
+                    ShowFindError("Username hoặc Email không tồn tại trong hệ thống.");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                ShowFindError("Lỗi kết nối: " + ex.Message);
+                ShowFindError("Lỗi hệ thống: " + ex.Message);
             }
             finally
             {
                 btnFind.IsEnabled = true;
+                btnFind.Content = "Gửi mã OTP";
             }
         }
 
-        private void BtnGoToStep2_Click(object sender, RoutedEventArgs e)
+        private void SendEmailOTP(string toEmail, string otpCode)
         {
-            pnlStep1.Visibility = Visibility.Collapsed;
-            pnlStep2.Visibility = Visibility.Visible;
-            txtNewPassword.Focus();
+            var fromAddress = new MailAddress(_myEmail, "Hotel Manager System");
+            var toAddress = new MailAddress(toEmail);
+
+            var smtp = new SmtpClient
+            {
+                Host = "smtp.gmail.com",
+                Port = 587,
+                EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(fromAddress.Address, _myAppPassword)
+            };
+
+            using (var message = new MailMessage(fromAddress, toAddress)
+            {
+                Subject = "Mã xác thực cấp lại mật khẩu - Hotel Manager",
+                Body = $"Xin chào,\n\nMã xác thực OTP của bạn là: {otpCode}\n\nVui lòng không chia sẻ mã này cho bất kỳ ai.\nMã có hiệu lực trong 5 phút."
+            })
+            {
+                smtp.Send(message);
+            }
         }
 
+        // ═══════════════════════════════════════
+        // STEP 2: XÁC NHẬN OTP
+        // ═══════════════════════════════════════
+        private void BtnVerifyOTP_Click(object sender, RoutedEventArgs e)
+        {
+            string inputOTP = txtOTP.Text.Trim();
+
+            if (inputOTP == _generatedOTP)
+            {
+                pnlStep2.Visibility = Visibility.Collapsed;
+                pnlStep3.Visibility = Visibility.Visible;
+                txtNewPassword.Focus();
+            }
+            else
+            {
+                MessageBox.Show("Mã OTP không chính xác!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // STEP 3: ĐẶT MẬT KHẨU MỚI
+        // ═══════════════════════════════════════
         private void BtnBack_Click(object sender, RoutedEventArgs e)
         {
+            pnlStep3.Visibility = Visibility.Collapsed;
             pnlStep2.Visibility = Visibility.Collapsed;
             pnlStep1.Visibility = Visibility.Visible;
-            pnlResetError.Visibility = Visibility.Collapsed;
+
+            txtOTP.Text = "";
             txtNewPassword.Password = "";
             txtConfirmPassword.Password = "";
-
-            // Restore step 1 button state
-            btnFind.Content = "Tiếp tục →"; // kept from previous state
-            // If user went back, re-enable find flow
-            btnFind.Click -= BtnGoToStep2_Click;
-            btnFind.Click -= BtnFind_Click;
-            btnFind.Click += BtnGoToStep2_Click; // already found, just go to step 2 again
+            _generatedOTP = "";
+            _foundAccount = null;
         }
-
-        // ═══════════════════════════════════════
-        //  STEP 2 – SET NEW PASSWORD
-        // ═══════════════════════════════════════
 
         private void TxtNewPassword_Changed(object sender, RoutedEventArgs e)
         {
             if (txtNewPassword == null || lblNewPwdPlaceholder == null) return;
             string pwd = txtNewPassword.Password;
-            lblNewPwdPlaceholder.Visibility = string.IsNullOrEmpty(pwd)
-                ? Visibility.Visible : Visibility.Collapsed;
-                
+            lblNewPwdPlaceholder.Visibility = string.IsNullOrEmpty(pwd) ? Visibility.Visible : Visibility.Collapsed;
+
             if (txtConfirmPassword != null && lblConfirmPwdPlaceholder != null)
             {
-                lblConfirmPwdPlaceholder.Visibility = string.IsNullOrEmpty(txtConfirmPassword.Password)
-                    ? Visibility.Visible : Visibility.Collapsed;
+                lblConfirmPwdPlaceholder.Visibility = string.IsNullOrEmpty(txtConfirmPassword.Password) ? Visibility.Visible : Visibility.Collapsed;
             }
 
             if (pnlResetError != null) pnlResetError.Visibility = Visibility.Collapsed;
 
-            // Password strength indicator
             if (lblStrength == null) return;
             if (string.IsNullOrEmpty(pwd))
             {
@@ -194,17 +190,17 @@ namespace QuanLyKhachSan_SE104.View.Login
             else if (pwd.Length < 6)
             {
                 lblStrength.Text = "⚡ Mật khẩu quá ngắn (tối thiểu 6 ký tự)";
-                lblStrength.Foreground = System.Windows.Media.Brushes.OrangeRed;
+                lblStrength.Foreground = Brushes.OrangeRed;
             }
             else if (pwd.Length < 10)
             {
                 lblStrength.Text = "🔶 Mật khẩu trung bình";
-                lblStrength.Foreground = System.Windows.Media.Brushes.Orange;
+                lblStrength.Foreground = Brushes.Orange;
             }
             else
             {
                 lblStrength.Text = "✅ Mật khẩu mạnh";
-                lblStrength.Foreground = System.Windows.Media.Brushes.LightGreen;
+                lblStrength.Foreground = Brushes.LightGreen;
             }
         }
 
@@ -251,14 +247,12 @@ namespace QuanLyKhachSan_SE104.View.Login
 
             try
             {
-                // Update password in database
                 var accountInDb = _context.TaiKhoans.Find(_foundAccount.MaTaiKhoan);
                 if (accountInDb != null)
                 {
                     accountInDb.PasswordHash = newPwd;
                     _context.SaveChanges();
 
-                    // Success — close dialog with True result
                     this.DialogResult = true;
                     this.Close();
                 }
@@ -267,7 +261,7 @@ namespace QuanLyKhachSan_SE104.View.Login
                     ShowResetError("Tài khoản không còn tồn tại trong hệ thống.");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ShowResetError("Lỗi khi lưu dữ liệu: " + ex.Message);
             }
@@ -281,10 +275,8 @@ namespace QuanLyKhachSan_SE104.View.Login
         // ═══════════════════════════════════════
         //  HELPERS
         // ═══════════════════════════════════════
-
         private void ShowFindError(string message)
         {
-            pnlFoundUser.Visibility = Visibility.Collapsed;
             lblFindError.Text = message;
             pnlFindError.Visibility = Visibility.Visible;
         }
