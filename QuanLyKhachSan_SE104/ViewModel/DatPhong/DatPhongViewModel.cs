@@ -468,7 +468,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
                 MaKhachHang = NewCustomer.MaKhachHang,
                 NgayDat = DateTime.Now,
                 TrangThaiDat = trangThaiDat,
-                MaNhanVien = 1,              // TODO: LoginSession.CurrentUserId
+                MaNhanVien = LoginSession.CurrentNhanVienId,
                 TienCoc = depositAmount,
                 TrangThaiCoc = depositAmount > 0 ? 0 : 2  // 0=Đang giữ, 2=Không cọc(thu luôn)
             };
@@ -484,7 +484,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
                     LoaiGiaoDich = 0,              // Thu cọc
                     SoTien = depositAmount,
                     ThoiGian = DateTime.Now,
-                    MaNhanVien = 1,              // TODO: LoginSession.CurrentUserId
+                    MaNhanVien = LoginSession.CurrentNhanVienId,
                     GhiChu = $"Thu cọc khi đặt phòng {string.Join(", ", SelectedRoomsList.Select(r => r.RoomName))}"
                 });
             }
