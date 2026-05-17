@@ -97,6 +97,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             return sum;
         }
 
+        // Giá trị tối đa hợp lệ cho một hóa đơn (10 tỷ VND — bất kỳ khách sạn thực tế nào cũng không vượt quá mức này)
+        private const decimal MAX_VALID_HOA_DON = 10_000_000_000m; // 10 tỷ VND
+
         private decimal SafeSumSingle(decimal value)
         {
             try { checked { return value; } }
@@ -122,11 +125,25 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                     else // "Năm nay"
                         startDate = new DateTime(now.Year, 1, 1);
 
-                    // Load basic KPI — filter out invalid dates (year < 2000)
+                    // Load basic KPI — filter out invalid dates (year < 2000) và data test bất thường
                     var minDate = new DateTime(2000, 1, 1);
                     var hoaDons = context.HoaDons
-                        .Where(h => h.NgayThanhToan >= minDate && h.NgayThanhToan >= startDate && h.NgayThanhToan <= now)
+                        .Where(h => h.NgayThanhToan >= minDate
+                                 && h.NgayThanhToan >= startDate
+                                 && h.NgayThanhToan <= now
+                                 && h.TongThanhToan >= 0
+                                 && h.TongThanhToan <= MAX_VALID_HOA_DON) // loại bỏ data test / giá trị bất thường
                         .ToList();
+                    if (hoaDons.Count == 0)
+                    {
+                        // Kiểm tra xem có data nhưng bị lọc không — cảnh báo nếu cần
+                        var allHoaDonCount = context.HoaDons.Count(h => h.NgayThanhToan >= startDate && h.NgayThanhToan <= now);
+                        if (allHoaDonCount > 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[BaoCao] Có {allHoaDonCount} hóa đơn trong kỳ nhưng bị loại do TongThanhToan > {MAX_VALID_HOA_DON:#,0} đồng.");
+                        }
+                    }
                     TongDoanhThu = SafeSum(hoaDons);
                     TongLoiNhuan = TongDoanhThu * 0.52m; // Lợi nhuận = 52% doanh thu
 
@@ -211,14 +228,16 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 new LineSeries { Title = "Lấp đầy (%)", Values = occValues, Stroke = System.Windows.Media.Brushes.MediumPurple, Fill = System.Windows.Media.Brushes.Transparent }
             };
 
-            // Service Usage Pie Chart — use Include to avoid NullReferenceException
+            // Service Usage Pie Chart — filter null navigation props AFTER AsEnumerable
             var serviceUsage = context.ChiTietDichVus
                 .Include(c => c.ChiTietDatPhong)
                 .Include(c => c.DichVu)
                 .Where(c => c.ChiTietDatPhong != null && c.DichVu != null
                          && c.ChiTietDatPhong.NgayCheckIn >= start)
                 .AsEnumerable()
-                .GroupBy(c => c.DichVu.TenDichVu)
+                // Cần kiểm tra lại sau AsEnumerable() vì EF có thể không load được nav prop
+                .Where(c => c.DichVu != null && c.ChiTietDatPhong != null)
+                .GroupBy(c => c.DichVu.TenDichVu ?? "(Không tên)")
                 .Select(g => new { Name = g.Key, Count = g.Sum(c => c.SoLuong) })
                 .ToList();
 
@@ -260,11 +279,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 }
             };
 
-            // Room Productivity — use Include to avoid NullReferenceException on LoaiPhong
+            // Room Productivity — filter null nav props AGAIN after AsEnumerable
             var roomProd = context.ChiTietDatPhongs
                 .Include(c => c.Phong).ThenInclude(p => p.LoaiPhong)
                 .Where(c => c.NgayCheckIn >= start && c.Phong != null && c.Phong.LoaiPhong != null)
                 .AsEnumerable()
+                // Kiểm tra lại sau AsEnumerable() vì EF có thể không load được nav prop
+                .Where(c => c.Phong?.LoaiPhong?.TenLoaiPhong != null)
                 .GroupBy(c => c.Phong.LoaiPhong.TenLoaiPhong)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
                 .ToList();
