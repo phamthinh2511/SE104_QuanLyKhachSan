@@ -286,11 +286,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
         catch (Exception ex) { MessageBox.Show("Lỗi tải dữ liệu: " + ex.Message); }
     }
 
-    /// <summary>
-    /// Recalculates the minimum deposit (1st-night rate of the cheapest selected room).
-    /// Also bumps TienCoc up to the new minimum if it has fallen below — but never
-    /// reduces a manually-entered amount that is already above the minimum.
-    /// </summary>
     private void RecalculateDefaultDeposit()
     {
         if (SelectedRoomsList == null || SelectedRoomsList.Count == 0)
@@ -351,7 +346,11 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private List<int> GetBusyRoomIds() =>
         _context.ChiTietDatPhongs
-            .Where(ct => !(NgayCheckOut <= ct.NgayCheckIn || NgayCheckIn >= ct.NgayCheckOut))
+            .Where(ct =>
+                // Only active bookings (confirmed=1 or checked-in=2) block a room
+                (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
+                // Date range overlaps with the requested period
+                !(NgayCheckOut <= ct.NgayCheckIn || NgayCheckIn >= ct.NgayCheckOut))
             .Select(ct => ct.MaPhong)
             .ToList();
 
@@ -535,36 +534,50 @@ public class DatPhongViewModel : INotifyPropertyChanged
         using var tx = _context.Database.BeginTransaction();
         try
         {
+            DateTime thoiDiemDoiPhong = DateTime.Now;
+
+            // 1. Giải phóng phòng cũ về trạng thái trống (Trạng thái = 0)
             var oldPhong = _context.Phongs.Find(_chiTietDatPhong.MaPhong);
             if (oldPhong != null) oldPhong.TrangThai = 0;
 
-            var newPhong = _context.Phongs.Include(p => p.LoaiPhong)
-                                   .First(p => p.MaPhong == newRoomItem.MaPhong);
-            newPhong.TrangThai = _chiTietDatPhong.DatPhong?.TrangThaiDat == 2 ? 2 : 1;
-
-            var ct = _context.ChiTietDatPhongs.Find(_chiTietDatPhong.MaChiTietDatPhong);
-            if (ct != null)
+            // 2. Chốt thời gian ở và giữ nguyên giá của PHÒNG CŨ
+            var ctOld = _context.ChiTietDatPhongs.Find(_chiTietDatPhong.MaChiTietDatPhong);
+            if (ctOld != null)
             {
-                ct.MaPhong = newRoomItem.MaPhong;
-                ct.GiaDat = newPhong.LoaiPhong.GiaMacDinh;
-                ct.NgayCheckIn = NgayCheckIn;
-                ct.NgayCheckOut = NgayCheckOut;
-                ct.SoNguoi = newRoomItem.Capacity;
+                // Ngày check-out thực tế của phòng cũ chính là lúc thực hiện đổi phòng
+                ctOld.NgayCheckOut = thoiDiemDoiPhong;
             }
 
-            // Rule 04 audit log: deposit transferred to same booking (room changed, booking ID unchanged)
+            // 3. Khởi tạo và thiết lập trạng thái cho PHÒNG MỚI
+            var newPhong = _context.Phongs.Include(p => p.LoaiPhong)
+                                          .First(p => p.MaPhong == newRoomItem.MaPhong);
+            // Giữ nguyên trạng thái thuê của hóa đơn tổng (Đặt trước = 1 hoặc Khách lẻ = 2)
+            newPhong.TrangThai = _chiTietDatPhong.DatPhong?.TrangThaiDat == 2 ? 2 : 1;
+
+            // 4. THÊM MỚI một dòng chi tiết cho phòng mới (Không UPDATE dòng cũ nữa)
+            _context.ChiTietDatPhongs.Add(new ChiTietDatPhong
+            {
+                MaDatPhong = _chiTietDatPhong.MaDatPhong,
+                MaPhong = newRoomItem.MaPhong,
+                NgayCheckIn = thoiDiemDoiPhong,               // Bắt đầu tính tiền phòng mới từ lúc này
+                NgayCheckOut = NgayCheckOut,                  // Đến ngày dự kiến trả phòng ban đầu
+                GiaDat = newPhong.LoaiPhong.GiaMacDinh,       // Đơn giá phòng mới (80k)
+                SoNguoi = newRoomItem.Capacity
+            });
+
+            // 5. Ghi lịch sử chuyển cọc (Audit Log)
             var dat = _context.DatPhongs.Find(_chiTietDatPhong.MaDatPhong);
             if (dat != null && dat.TienCoc > 0)
             {
                 _context.LichSuCocs.Add(new LichSuCoc
                 {
                     MaDatPhong = dat.MaDatPhong,
-                    LoaiGiaoDich = 3,              // Chuyển booking
+                    LoaiGiaoDich = 3, // Chuyển booking
                     SoTien = dat.TienCoc,
-                    ThoiGian = DateTime.Now,
-                    MaNhanVien = 1,              // TODO: LoginSession.CurrentUserId
+                    ThoiGian = thoiDiemDoiPhong,
+                    MaNhanVien = LoginSession.CurrentNhanVienId,
                     GhiChu = $"Đổi phòng: {oldPhong?.TenPhong} → {newPhong.TenPhong}. Cọc giữ nguyên.",
-                    MaDatPhongMoi = dat.MaDatPhong  // same booking, different room
+                    MaDatPhongMoi = dat.MaDatPhong
                 });
             }
 
@@ -575,7 +588,11 @@ public class DatPhongViewModel : INotifyPropertyChanged
             HotelEventBus.PublishRoomStatusChanged();
             CloseAction?.Invoke();
         }
-        catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi đổi phòng: " + ex.Message); }
+        catch (Exception ex)
+        {
+            tx.Rollback();
+            MessageBox.Show("Lỗi đổi phòng: " + ex.Message);
+        }
     }
 
     // ── Save: GiaHan ──────────────────────────────────────────────────────

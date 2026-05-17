@@ -190,12 +190,15 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (phong.TrangThai == 1 || phong.TrangThai == 2 || phong.TrangThai == 3)
                 {
                     using var ctx = new QuanLyKhachSanContext();
+                    var now = DateTime.Now;
+
                     chiTiet = ctx.ChiTietDatPhongs
-                        .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
-                        .Include(c => c.ChiTietDichVus).ThenInclude(dv => dv.DichVu)
-                        .FirstOrDefault(c => c.MaPhong == phong.MaPhong
-                            && (c.DatPhong.TrangThaiDat == 1
-                            || c.DatPhong.TrangThaiDat == 2));
+                            .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
+                            .Include(c => c.ChiTietDichVus).ThenInclude(dv => dv.DichVu)
+                            .Where(c => c.MaPhong == phong.MaPhong
+                                && (c.DatPhong.TrangThaiDat == 1 || c.DatPhong.TrangThaiDat == 2))
+                            .OrderByDescending(c => c.MaChiTietDatPhong) // Thằng nào mới tạo/mới đổi phòng sẽ nằm lên đầu
+                            .FirstOrDefault();
                 }
 
                 var win = new QuanLyKhachSan_SE104.View.Phong.ChiTietPhong(phong, chiTiet);
@@ -303,6 +306,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 .Include(p => p.LoaiPhong)
                 .Include(p => p.ChiTietDatPhongs)
                     .ThenInclude(ct => ct.DatPhong)
+                .Where(p => !p.IsDeleted)
                 .OrderBy(p => p.TenPhong)
                 .ToList();
 
@@ -316,8 +320,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                               && ct.DatPhong.TrangThaiDat != 5)  // not no-show
                     .ToList();
 
-                phong.IsCheckInToday = activeBookings?.Any(ct => ct.NgayCheckIn.Date == today) ?? false;
-                phong.IsCheckOutToday = activeBookings?.Any(ct => ct.NgayCheckOut.Date == today) ?? false;
+                phong.IsCheckInToday = phong.TrangThai == 1
+                    && (activeBookings?.Any(ct =>
+                            ct.NgayCheckIn.Date == today
+                            && ct.DatPhong.TrangThaiDat == 1) ?? false);
+                phong.IsCheckOutToday = (phong.TrangThai == 2 || phong.TrangThai == 3)
+                    && (activeBookings?.Any(ct => ct.NgayCheckOut.Date == today) ?? false);
             }
 
             _allPhongs = new ObservableCollection<PhongModel>(allPhongsFromDb);
