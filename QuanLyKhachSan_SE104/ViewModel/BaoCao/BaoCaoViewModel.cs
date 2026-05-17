@@ -204,7 +204,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 
             // Occupancy
             var occValues = new ChartValues<double>();
-            foreach (var rev in revValues) occValues.Add(Math.Min(100, Math.Max(0, rev / 10000.0 + 30)));
+            foreach (var rev in revValues) occValues.Add(Math.Min(100, Math.Max(0, (double)rev / 10000.0 + 30)));   
 
             OccupancySeries = new SeriesCollection
             {
