@@ -67,6 +67,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             SelectedTimeFilter = "Năm nay"; // This triggers LoadData
         }
 
+        /// <summary>
+        /// Safely sums TongThanhToan values, skipping rows that would cause overflow.
+        /// Returns 0 (not a large placeholder) if all values are invalid.
+        /// </summary>
         private decimal SafeSum(IEnumerable<HoaDon> list)
         {
             decimal sum = 0;
@@ -74,15 +78,21 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             {
                 try
                 {
-                    sum += item.TongThanhToan;
+                    checked { sum += item.TongThanhToan; }
                 }
                 catch (OverflowException)
                 {
-                    sum = 999999999999m; // Return a large safe number for UI display
-                    break;
+                    // Skip the bad row silently — do NOT return a fake large number
+                    continue;
                 }
             }
             return sum;
+        }
+
+        private decimal SafeSumSingle(decimal value)
+        {
+            try { checked { return value; } }
+            catch (OverflowException) { return 0; }
         }
 
         public void LoadData()
