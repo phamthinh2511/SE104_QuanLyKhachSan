@@ -303,8 +303,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         {
             var vm = new HoaDonVM.HoaDonViewModel(
                 ChiTietDatPhong.MaDatPhong,
-                ChiTietDatPhong.MaChiTietDatPhong,
-                LoginSession.CurrentNhanVienId);
+                ChiTietDatPhong.MaChiTietDatPhong);
 
             var page = new View.HoaDon.HoaDonPage { DataContext = vm };
             var win = new Window
