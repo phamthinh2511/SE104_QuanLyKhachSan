@@ -1,5 +1,6 @@
 using LiveCharts;
 using LiveCharts.Wpf;
+using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
 
 namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 {
@@ -85,40 +87,54 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 
         public void LoadData()
         {
-            using (var context = new QuanLyKhachSanContext())
+            try
             {
-                var now = DateTime.Now;
-                DateTime startDate;
-
-                if (SelectedTimeFilter == "Tháng này")
-                    startDate = new DateTime(now.Year, now.Month, 1);
-                else if (SelectedTimeFilter == "Quý này")
+                using (var context = new QuanLyKhachSanContext())
                 {
-                    int quarter = (now.Month - 1) / 3 + 1;
-                    startDate = new DateTime(now.Year, (quarter - 1) * 3 + 1, 1);
+                    var now = DateTime.Now;
+                    DateTime startDate;
+
+                    if (SelectedTimeFilter == "Tháng này")
+                        startDate = new DateTime(now.Year, now.Month, 1);
+                    else if (SelectedTimeFilter == "Quý này")
+                    {
+                        int quarter = (now.Month - 1) / 3 + 1;
+                        startDate = new DateTime(now.Year, (quarter - 1) * 3 + 1, 1);
+                    }
+                    else // "Năm nay"
+                        startDate = new DateTime(now.Year, 1, 1);
+
+                    // Load basic KPI — filter out invalid dates (year < 2000)
+                    var minDate = new DateTime(2000, 1, 1);
+                    var hoaDons = context.HoaDons
+                        .Where(h => h.NgayThanhToan >= minDate && h.NgayThanhToan >= startDate && h.NgayThanhToan <= now)
+                        .ToList();
+                    TongDoanhThu = SafeSum(hoaDons);
+                    TongLoiNhuan = TongDoanhThu * 0.52m; // Lợi nhuận = 52% doanh thu
+
+                    var bookings = context.ChiTietDatPhongs
+                        .Where(c => c.NgayCheckIn >= startDate && c.NgayCheckIn <= now)
+                        .ToList();
+                    TongKhach = bookings.Sum(b => b.SoNguoi);
+
+                    var totalRooms = context.Phongs.Count();
+                    int days = (now - startDate).Days;
+                    if (days <= 0) days = 1;
+                    int occupiedDays = bookings.Sum(b => (b.NgayCheckOut - b.NgayCheckIn).Days);
+
+                    if (totalRooms * days > 0)
+                        TyLeLapDay = Math.Min(100.0, Math.Round((double)occupiedDays / (totalRooms * days) * 100, 1));
+                    else
+                        TyLeLapDay = 0;
+
+                    UpdateCharts(hoaDons, bookings, context, startDate, now);
                 }
-                else // "Năm nay"
-                    startDate = new DateTime(now.Year, 1, 1);
-
-                // Load basic KPI
-                var hoaDons = context.HoaDons.Where(h => h.NgayThanhToan >= startDate && h.NgayThanhToan <= now).ToList();
-                TongDoanhThu = SafeSum(hoaDons);
-                TongLoiNhuan = TongDoanhThu * 0.52m; // Lợi nhuận = 52% doanh thu
-
-                var bookings = context.ChiTietDatPhongs.Where(c => c.NgayCheckIn >= startDate && c.NgayCheckIn <= now).ToList();
-                TongKhach = bookings.Sum(b => b.SoNguoi);
-
-                var totalRooms = context.Phongs.Count();
-                int days = (now - startDate).Days;
-                if (days <= 0) days = 1;
-                int occupiedDays = bookings.Sum(b => (b.NgayCheckOut - b.NgayCheckIn).Days);
-                
-                if (totalRooms * days > 0)
-                    TyLeLapDay = Math.Min(100.0, Math.Round((double)occupiedDays / (totalRooms * days) * 100, 1));
-                else
-                    TyLeLapDay = 0;
-
-                UpdateCharts(hoaDons, bookings, context, startDate, now);
+            }
+            catch (Exception ex)
+            {
+                // Prevent crash on page navigation — show friendly message
+                MessageBox.Show("Lỗi tải dữ liệu báo cáo: " + ex.Message, "Lỗi",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
         }
 
@@ -177,9 +193,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 new LineSeries { Title = "Lấp đầy (%)", Values = occValues, Stroke = System.Windows.Media.Brushes.MediumPurple, Fill = System.Windows.Media.Brushes.Transparent }
             };
 
-            // Service Usage Pie Chart
+            // Service Usage Pie Chart — use Include to avoid NullReferenceException
             var serviceUsage = context.ChiTietDichVus
-                .Where(c => c.ChiTietDatPhong.NgayCheckIn >= start)
+                .Include(c => c.ChiTietDatPhong)
+                .Include(c => c.DichVu)
+                .Where(c => c.ChiTietDatPhong != null && c.DichVu != null
+                         && c.ChiTietDatPhong.NgayCheckIn >= start)
+                .AsEnumerable()
                 .GroupBy(c => c.DichVu.TenDichVu)
                 .Select(g => new { Name = g.Key, Count = g.Sum(c => c.SoLuong) })
                 .ToList();
@@ -187,7 +207,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             var pieSeries = new SeriesCollection();
             foreach (var item in serviceUsage)
             {
-                pieSeries.Add(new PieSeries { Title = item.Name, Values = new ChartValues<int> { item.Count }, DataLabels = true });
+                pieSeries.Add(new PieSeries { Title = item.Name ?? "(Không tên)", Values = new ChartValues<int> { item.Count }, DataLabels = true });
             }
             if (pieSeries.Count == 0) // Dummy if no data
             {
@@ -197,9 +217,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             }
             ServiceUsageSeries = pieSeries;
 
-            // Room Productivity
+            // Room Productivity — use Include to avoid NullReferenceException on LoaiPhong
             var roomProd = context.ChiTietDatPhongs
-                .Where(c => c.NgayCheckIn >= start)
+                .Include(c => c.Phong).ThenInclude(p => p.LoaiPhong)
+                .Where(c => c.NgayCheckIn >= start && c.Phong != null && c.Phong.LoaiPhong != null)
+                .AsEnumerable()
                 .GroupBy(c => c.Phong.LoaiPhong.TenLoaiPhong)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
                 .ToList();
