@@ -49,8 +49,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
         private readonly DichVuDAL _dichVuDal = new();
 
-        // ── TODO: replace with LoginSession.CurrentUserId ─────────────────────
-        private const int STAFF_ID = 1;
 
         // ════════════════════════════════════════════════════════════════
         //  Commands
@@ -174,7 +172,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                         LoaiGiaoDich = isTimelyCancel ? 1 : 2,   // 1=Hoàn trả, 2=Thu doanh thu
                         SoTien = dat.TienCoc,
                         ThoiGian = DateTime.Now,
-                        MaNhanVien = STAFF_ID,
+                        MaNhanVien = LoginSession.CurrentNhanVienId,
                         GhiChu = isTimelyCancel
                             ? $"Hủy đúng hạn phòng {phong.TenPhong} — hoàn cọc {dat.TienCoc:#,0}₫"
                             : $"No-show / hủy trễ phòng {phong.TenPhong} — thu cọc {dat.TienCoc:#,0}₫ vào doanh thu"
@@ -306,7 +304,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             var vm = new HoaDonVM.HoaDonViewModel(
                 ChiTietDatPhong.MaDatPhong,
                 ChiTietDatPhong.MaChiTietDatPhong,
-                STAFF_ID);
+                LoginSession.CurrentNhanVienId);
 
             var page = new View.HoaDon.HoaDonPage { DataContext = vm };
             var win = new Window

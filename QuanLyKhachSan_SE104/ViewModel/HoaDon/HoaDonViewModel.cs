@@ -15,8 +15,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
 {
     public class HoaDonViewModel : INotifyPropertyChanged
     {
-        // ── TODO: replace with LoginSession.CurrentUserId ─────────────────────
-        private const int STAFF_ID = 1;
 
         // ══════════════════════════════════════════════
         //  Internal state

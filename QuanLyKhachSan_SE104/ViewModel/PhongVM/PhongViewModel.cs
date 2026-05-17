@@ -17,9 +17,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 {
     public class PhongViewModel : INotifyPropertyChanged, IDisposable
     {
-        // ── TODO: replace with LoginSession.CurrentUserId ─────────────────────
-        private const int STAFF_ID = 1;
-
         // ── Data ──────────────────────────────────────────────────────────────
         private ObservableCollection<PhongModel> _allPhongs;
         private ObservableCollection<PhongModel> _listPhong;
@@ -286,7 +283,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                         LoaiGiaoDich = 2,                   // Thu doanh thu
                         SoTien = dat.TienCoc,
                         ThoiGian = now,
-                        MaNhanVien = STAFF_ID,
+                        MaNhanVien = LoginSession.CurrentNhanVienId,
                         GhiChu = $"Auto no-show: phòng {phong.TenPhong}, " +
                                        $"ngày nhận dự kiến {ct.NgayCheckIn:dd/MM/yyyy}. " +
                                        $"Cọc {dat.TienCoc:#,0}₫ chuyển doanh thu."
