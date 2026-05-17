@@ -65,6 +65,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             SelectedTimeFilter = "Năm nay"; // This triggers LoadData
         }
 
+        private decimal SafeSum(IEnumerable<HoaDon> list)
+        {
+            decimal sum = 0;
+            foreach (var item in list)
+            {
+                try
+                {
+                    sum += item.TongThanhToan;
+                }
+                catch (OverflowException)
+                {
+                    sum = 999999999999m; // Return a large safe number for UI display
+                    break;
+                }
+            }
+            return sum;
+        }
+
         public void LoadData()
         {
             using (var context = new QuanLyKhachSanContext())
@@ -84,7 +102,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 
                 // Load basic KPI
                 var hoaDons = context.HoaDons.Where(h => h.NgayThanhToan >= startDate && h.NgayThanhToan <= now).ToList();
-                TongDoanhThu = hoaDons.Sum(h => h.TongThanhToan);
+                TongDoanhThu = SafeSum(hoaDons);
                 TongLoiNhuan = TongDoanhThu * 0.52m; // Lợi nhuận = 52% doanh thu
 
                 var bookings = context.ChiTietDatPhongs.Where(c => c.NgayCheckIn >= startDate && c.NgayCheckIn <= now).ToList();
@@ -116,7 +134,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             {
                 for (int m = 1; m <= 12; m++)
                 {
-                    var rev = hoaDons.Where(h => h.NgayThanhToan.Month == m).Sum(h => h.TongThanhToan);
+                    var rev = SafeSum(hoaDons.Where(h => h.NgayThanhToan.Month == m));
                     revValues.Add(rev);
                     profitValues.Add(rev * 0.52m);
                     labels.Add($"Tháng {m}");
@@ -128,7 +146,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 int step = SelectedTimeFilter == "Quý này" ? 7 : 2;
                 for (var d = start; d <= end; d = d.AddDays(step))
                 {
-                    var rev = hoaDons.Where(h => h.NgayThanhToan >= d && h.NgayThanhToan < d.AddDays(step)).Sum(h => h.TongThanhToan);
+                    var rev = SafeSum(hoaDons.Where(h => h.NgayThanhToan >= d && h.NgayThanhToan < d.AddDays(step)));
                     revValues.Add(rev);
                     profitValues.Add(rev * 0.52m);
                     labels.Add(d.ToString("dd/MM"));
