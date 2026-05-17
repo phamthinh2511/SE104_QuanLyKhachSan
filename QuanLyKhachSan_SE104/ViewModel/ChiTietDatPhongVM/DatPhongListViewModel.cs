@@ -8,10 +8,10 @@ using System.Windows.Input;
 using QuanLyKhachSan_SE104.DAL;
 using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Utilities;
-using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
+using QuanLyKhachSan_SE104.View.ChiTietDatPhongView;
 
 //// Quản lý màn hình danh sách bên ngoài cùng 
-namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhong
+namespace QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhongVM
 {
     public class DatPhongListViewModel : INotifyPropertyChanged
     {

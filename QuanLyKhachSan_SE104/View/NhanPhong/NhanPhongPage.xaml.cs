@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using QuanLyKhachSan_SE104.ViewModel;
-using QuanLyKhachSan_SE104.View.ChiTietDatPhong;
+using QuanLyKhachSan_SE104.View.ChiTietDatPhongView;
 
 // Alias tránh conflict
 using ModelChiTiet = QuanLyKhachSan_SE104.Model.ChiTietDatPhong;
