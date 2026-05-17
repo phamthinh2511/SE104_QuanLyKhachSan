@@ -57,58 +57,59 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             SelectPageCommand = new RelayCommand<NavigationItem>(p => CurrentPage = p);
 
             // ════════════════════════════════════════════════
-            // Muốn thêm: copy 1 block, đổi Title/Icon/BadgeCount
-            // Muốn bớt: xóa block tương ứng
+            // Trang được tạo LAZY (chỉ khi người dùng click vào lần đầu)
+            // để tránh crash khi khởi động nếu một trang nào đó lỗi.
             // ════════════════════════════════════════════════
             Pages.Add(new NavigationItem
             {
                 Icon = "🏠",
                 Title = "Tổng quan",
                 BadgeCount = 0,
-                PageContent = new DashboardPage()
+                PageFactory = () => new DashboardPage()
             });
 
             Pages.Add(new NavigationItem
             {
                 Icon = "🛏",
                 Title = "Phòng",
-                BadgeCount = 3,   // 3 phòng cần dọn
-                PageContent = new PhongPage()
+                BadgeCount = 3,
+                PageFactory = () => new PhongPage()
             });
 
             Pages.Add(new NavigationItem
             {
                 Icon = "📅",
                 Title = "Đặt phòng",
-                BadgeCount = 12,  // 12 booking mới
-                PageContent = new DatPhongPage()
+                BadgeCount = 12,
+                PageFactory = () => new DatPhongPage()
             });
             Pages.Add(new NavigationItem
             {
                 Icon = "📅",
                 Title = "Chi Tiết Đặt phòng",
-                BadgeCount = 12,  
-                PageContent = new ChiTietDatPhongPage()
+                BadgeCount = 12,
+                PageFactory = () => new ChiTietDatPhongPage()
             });
             Pages.Add(new NavigationItem
             {
+                Icon = "🔑",
                 Title = "Nhận phòng",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new NhanPhongPage()
+                BadgeCount = 1,
+                PageFactory = () => new NhanPhongPage()
             });
             Pages.Add(new NavigationItem
             {
                 Icon = "📋",
                 Title = "Trả Phòng",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new TraPhongPage()
+                BadgeCount = 1,
+                PageFactory = () => new TraPhongPage()
             });
             Pages.Add(new NavigationItem
             {
                 Icon = "👥",
                 Title = "Khách hàng",
                 BadgeCount = 0,
-                PageContent = new KhachHangPage()
+                PageFactory = () => new KhachHangPage()
             });
 
             Pages.Add(new NavigationItem
@@ -116,29 +117,29 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 Icon = "💰",
                 Title = "Hóa Đơn",
                 BadgeCount = 0,
-                PageContent = new HoaDonPage()
+                PageFactory = () => new HoaDonPage()
             });
 
             Pages.Add(new NavigationItem
             {
                 Icon = "👔",
                 Title = "Nhân Viên",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new NhanVienPage()
+                BadgeCount = 1,
+                PageFactory = () => new NhanVienPage()
             });
             Pages.Add(new NavigationItem
             {
-                Icon = "📋",
+                Icon = "📊",
                 Title = "Báo Cáo",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new BaoCaoPage()
+                BadgeCount = 0,
+                PageFactory = () => new BaoCaoPage()
             });
             Pages.Add(new NavigationItem
             {
                 Icon = "📋",
                 Title = "Danh Mục",
-                BadgeCount = 1,   // 1 cập nhật mới
-                PageContent = new QuanLyKhachSan_SE104.View.DanhMuc.DanhMuc()
+                BadgeCount = 0,
+                PageFactory = () => new QuanLyKhachSan_SE104.View.DanhMuc.DanhMuc()
             });
 
             // Chọn trang đầu tiên mặc định
