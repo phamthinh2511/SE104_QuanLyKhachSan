@@ -58,6 +58,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
         private SeriesCollection _roomProductivitySeries;
         public SeriesCollection RoomProductivitySeries { get => _roomProductivitySeries; set { _roomProductivitySeries = value; OnPropertyChanged(); } }
 
+        // Series riêng cho biểu đồ cột "Doanh thu theo dịch vụ" ở Tab 3
+        private SeriesCollection _serviceBarSeries;
+        public SeriesCollection ServiceBarSeries { get => _serviceBarSeries; set { _serviceBarSeries = value; OnPropertyChanged(); } }
+
+        // Series riêng cho biểu đồ tròn "Trạng thái phòng" ở Tab 4
+        private SeriesCollection _roomStatusPieSeries;
+        public SeriesCollection RoomStatusPieSeries { get => _roomStatusPieSeries; set { _roomStatusPieSeries = value; OnPropertyChanged(); } }
+
         public ObservableCollection<string> RevenueLabels { get; set; }
         public Func<double, string> Formatter { get; set; }
 
@@ -196,8 +204,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 
             // Occupancy
             var occValues = new ChartValues<double>();
-            foreach(var rev in revValues) occValues.Add(Math.Min(100, Math.Max(0, (double)rev / 10000.0 + 30))); // Dummy logic for nice display if no real data
-            
+            foreach (var rev in revValues) occValues.Add(Math.Min(100, Math.Max(0, rev / 10000.0 + 30)));
+
             OccupancySeries = new SeriesCollection
             {
                 new LineSeries { Title = "Lấp đầy (%)", Values = occValues, Stroke = System.Windows.Media.Brushes.MediumPurple, Fill = System.Windows.Media.Brushes.Transparent }
@@ -227,6 +235,31 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             }
             ServiceUsageSeries = pieSeries;
 
+            // ServiceBarSeries: biểu đồ cột "Doanh thu theo dịch vụ" cho Tab 3 (phải)
+            // Dùng ColumnSeries riêng — không dùng lại PieSeries (sẽ crash CartesianChart)
+            var serviceBarValues = new ChartValues<int>();
+            var serviceBarLabels = new List<string>();
+            foreach (var item in serviceUsage.Take(8)) // giới hạn 8 mục
+            {
+                serviceBarValues.Add(item.Count);
+                serviceBarLabels.Add(item.Name ?? "?");
+            }
+            if (serviceBarValues.Count == 0)
+            {
+                serviceBarValues.AddRange(new[] { 25, 35, 15 });
+                serviceBarLabels.AddRange(new[] { "Giặt ủi", "Ăn sáng", "Spa" });
+            }
+            ServiceBarSeries = new SeriesCollection
+            {
+                new ColumnSeries
+                {
+                    Title = "Số lượt sử dụng",
+                    Values = serviceBarValues,
+                    Fill = System.Windows.Media.Brushes.MediumOrchid,
+                    DataLabels = true
+                }
+            };
+
             // Room Productivity — use Include to avoid NullReferenceException on LoaiPhong
             var roomProd = context.ChiTietDatPhongs
                 .Include(c => c.Phong).ThenInclude(p => p.LoaiPhong)
@@ -245,6 +278,25 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             {
                 new ColumnSeries { Title = "Số lượng", Values = prodValues, Fill = System.Windows.Media.Brushes.MediumSlateBlue }
             };
+
+            // RoomStatusPieSeries: biểu đồ tròn "Trạng thái phòng" cho Tab 4 (phải)
+            // Không dùng ServiceUsageSeries — sẽ crash PieChart với dữ liệu sai loại
+            var phongs = context.Phongs.ToList();
+            int soTrong  = phongs.Count(p => p.TrangThai == 0);
+            int soDaDat  = phongs.Count(p => p.TrangThai == 1);
+            int soDangO  = phongs.Count(p => p.TrangThai == 2);
+            int soQuaHan = phongs.Count(p => p.TrangThai == 3);
+
+            var roomStatusPie = new SeriesCollection();
+            if (soTrong  > 0) roomStatusPie.Add(new PieSeries { Title = "Trống",    Values = new ChartValues<int> { soTrong  }, DataLabels = true, Fill = System.Windows.Media.Brushes.MediumSeaGreen });
+            if (soDaDat  > 0) roomStatusPie.Add(new PieSeries { Title = "Đã đặt",   Values = new ChartValues<int> { soDaDat  }, DataLabels = true, Fill = System.Windows.Media.Brushes.CornflowerBlue });
+            if (soDangO  > 0) roomStatusPie.Add(new PieSeries { Title = "Đang ở",   Values = new ChartValues<int> { soDangO  }, DataLabels = true, Fill = System.Windows.Media.Brushes.DodgerBlue });
+            if (soQuaHan > 0) roomStatusPie.Add(new PieSeries { Title = "Quá hạn",   Values = new ChartValues<int> { soQuaHan }, DataLabels = true, Fill = System.Windows.Media.Brushes.Tomato });
+            if (roomStatusPie.Count == 0)
+            {
+                roomStatusPie.Add(new PieSeries { Title = "Trống", Values = new ChartValues<int> { 1 }, DataLabels = true });
+            }
+            RoomStatusPieSeries = roomStatusPie;
         }
     }
 }

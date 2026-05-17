@@ -280,8 +280,8 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Doanh thu theo dịch vụ" FontWeight="Bold" FontSize="16" Foreground="#1E293B" Margin="0,0,0,16"/>
-                        <!-- We use ColumnSeries instead of Horizontal for simplicity with existing bindings -->
-                        <lvc:CartesianChart Grid.Row="1" Series="{Binding ServiceUsageSeries}" LegendLocation="Bottom"/>
+                        <!-- Dùng ServiceBarSeries (ColumnSeries) — không dùng ServiceUsageSeries (PieSeries) -->
+                        <lvc:CartesianChart Grid.Row="1" Series="{Binding ServiceBarSeries}" LegendLocation="None"/>
                     </Grid>
                 </Border>
             </Grid>
@@ -312,7 +312,8 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Trạng thái phòng hiện tại" FontWeight="Bold" FontSize="16" Foreground="#1E293B" Margin="0,0,0,16"/>
-                        <lvc:PieChart Grid.Row="1" Series="{Binding ServiceUsageSeries}" LegendLocation="Bottom"/>
+                        <!-- Dùng RoomStatusPieSeries — không dùng ServiceUsageSeries -->
+                        <lvc:PieChart Grid.Row="1" Series="{Binding RoomStatusPieSeries}" LegendLocation="Bottom"/>
                     </Grid>
                 </Border>
             </Grid>
