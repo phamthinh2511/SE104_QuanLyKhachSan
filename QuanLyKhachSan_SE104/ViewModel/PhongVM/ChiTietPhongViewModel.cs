@@ -112,7 +112,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         {
             if (phong == null || ChiTietDatPhong == null) return;
 
-            // ── Step 1: Ask which cancellation type ──────────────────────────
             var choiceResult = MessageBox.Show(
                 $"Hủy đặt phòng {phong.TenPhong}\n\n" +
                 "Chọn loại hủy:\n" +
@@ -124,11 +123,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 
             if (choiceResult == MessageBoxResult.Cancel) return;
 
-            bool isTimelyCancel = choiceResult == MessageBoxResult.Yes;
+            bool isTimelyCancel = (choiceResult == MessageBoxResult.Yes);
 
-            // ── Step 2: Confirm ───────────────────────────────────────────────
             string confirmMsg = isTimelyCancel
-                ? $"Xác nhận HỦY ĐỦ HẠN phòng {phong.TenPhong}?\nTiền cọc sẽ được HOÀN TRẢ cho khách."
+                ? $"Xác nhận HỦY ĐÚNG HẠN phòng {phong.TenPhong}?\nTiền cọc sẽ được HOÀN TRẢ cho khách."
                 : $"Xác nhận NO-SHOW / HỦY TRỄ phòng {phong.TenPhong}?\nTiền cọc sẽ được GHI VÀO DOANH THU.";
 
             if (MessageBox.Show(confirmMsg, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning)
@@ -138,38 +136,61 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             {
                 using var ctx = new QuanLyKhachSanContext();
 
-                var dat = ctx.DatPhongs.Find(ChiTietDatPhong.MaDatPhong);
+                var dat = ctx.DatPhongs
+                    .Include(d => d.ChiTietDatPhongs)
+                    .FirstOrDefault(d => d.MaDatPhong == ChiTietDatPhong.MaDatPhong);
+
                 if (dat == null) return;
 
-                if (isTimelyCancel)
+                // ── Ràng buộc: chỉ có thể hủy đơn đặt phòng ở trạng thái 1 (đã xác nhận, chưa check-in) ──
+                if (dat.TrangThaiDat != 1)
                 {
-                    // Rule 01: Timely cancellation
-                    dat.TrangThaiDat = 4;   // Đã hủy
-                    dat.TrangThaiCoc = 1;   // Đã hoàn trả
-                }
-                else
-                {
-                    // Rule 02: No-show / late cancellation
-                    dat.TrangThaiDat = 5;   // No-show
-                    dat.TrangThaiCoc = 2;   // Đã thu vào doanh thu
+                    MessageBox.Show(
+                        "Chỉ có thể hủy đặt phòng ở trạng thái 'Đã xác nhận'.\n" +
+                        "Khách đang ở hoặc đã trả phòng không thể hủy theo quy trình này.",
+                        "Không hợp lệ", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
 
-                // Free the room
+                // ── Ràng buộc: TrangThaiCoc chưa từng được xử lý trước đó ──────────────
+                if (dat.TrangThaiCoc != 0)
+                {
+                    MessageBox.Show(
+                        "Tiền cọc đã được xử lý trước đó. Kiểm tra lịch sử cọc trước khi tiếp tục.",
+                        "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                dat.TrangThaiDat = isTimelyCancel ? 4 : 5;
+                dat.TrangThaiCoc = isTimelyCancel ? 1 : 2;
+
+                // ── Giải phóng phòng + Đặt lại trạng thái dọn dẹp ─────────────────────
                 var p = ctx.Phongs.Find(phong.MaPhong);
-                if (p != null) p.TrangThai = 0;
+                if (p != null)
+                {
+                    p.TrangThai = 0;
+                    p.TrangThaiDonDep = 0;   // Đặt lại thành Sạch sẽ (vì khách chưa từng vào phòng đối với đơn hủy trước check-in)
+                }
 
-                // Soft-delete the ChiTietDatPhong — keep row for audit, just detach room
-                // (We don't hard-delete so LichSuCoc retains a valid foreign key chain)
+                // ── SỬA BUG-01: KHÔNG sử dụng Remove() — đóng dấu NgayCheckOut để đánh dấu kết thúc phân đoạn ──
+                // Dòng dữ liệu ChiTietDatPhong được giữ lại để đảm bảo tính toàn vẹn kiểm toán.
+                // Các đoạn mã lọc dữ liệu hiện tại đã loại trừ các booking có TrangThaiDat 4/5 ra khỏi truy vấn phòng đang hoạt động.
                 var ct = ctx.ChiTietDatPhongs.Find(ChiTietDatPhong.MaChiTietDatPhong);
-                if (ct != null) ctx.ChiTietDatPhongs.Remove(ct);
+                if (ct != null)
+                {
+                    // Đóng dấu thời gian hủy phòng như là thời gian check-out thực tế
+                    ct.NgayCheckOut = DateTime.Now;
+                    // LƯU Ý: Không dùng Remove(). Sự hiện diện của nó trong DB không gây hại — tất cả các truy vấn phòng hoạt động
+                    // đều lọc theo điều kiện DatPhong.TrangThaiDat thuộc (1, 2), mà booking này thì không còn thỏa mãn nữa.
+                }
 
-                // Write deposit audit log
+                // ── Ghi lịch sử kiểm toán tiền cọc ────────────────────────────────────
                 if (dat.TienCoc > 0)
                 {
                     ctx.LichSuCocs.Add(new LichSuCoc
                     {
                         MaDatPhong = dat.MaDatPhong,
-                        LoaiGiaoDich = isTimelyCancel ? 1 : 2,   // 1=Hoàn trả, 2=Thu doanh thu
+                        LoaiGiaoDich = isTimelyCancel ? 1 : 2,
                         SoTien = dat.TienCoc,
                         ThoiGian = DateTime.Now,
                         MaNhanVien = LoginSession.CurrentNhanVienId,
@@ -189,7 +210,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 HotelEventBus.PublishRoomStatusChanged();
                 _window.Close();
             }
-            catch (Exception ex) { MessageBox.Show("Lỗi hủy đặt: " + ex.Message); }
+            catch (Exception ex) { MessageBox.Show("Lỗi hủy đặt: " + (ex.InnerException?.Message ?? ex.Message)); }
         });
 
         // ── Room transfer (Rule 04) ────────────────────────────────────────────

@@ -115,7 +115,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
 
         // ══════════════════════════════════════════════
         //  Charge totals
-        //  TongTienPhong = SUM of all segment sub-totals
         // ══════════════════════════════════════════════
         public decimal TongTienPhong => _danhSachSegment?.Sum(s => s.ThanhTien) ?? 0;
         public decimal TongTienDichVu => DanhSachDichVu?.Sum(x => x.ThanhTien) ?? 0;
@@ -199,7 +198,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             _maChiTietDatPhong = maChiTietDatPhong;
             _maNhanVien = LoginSession.CurrentNhanVienId;
 
-
             CheckOutCommand = new RelayCommand(ExecuteCheckOut, () => IsNotPaid);
             InHoaDonCommand = new RelayCommand(ExecuteInHoaDon);
 
@@ -241,8 +239,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
 
                 DateTime now = DateTime.Now;
 
+                // ── Phân giải phân đoạn hoạt động ───────────────────────────
                 var allSegments = datPhong.ChiTietDatPhongs
                     .OrderBy(ct => ct.NgayCheckIn)
+                    .ThenBy(ct => ct.MaChiTietDatPhong)
                     .ToList();
 
                 if (!allSegments.Any())
@@ -251,22 +251,22 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     return;
                 }
 
-                var activeSegment = _maChiTietDatPhong > 0
-                    ? allSegments.FirstOrDefault(ct => ct.MaChiTietDatPhong == _maChiTietDatPhong) ?? allSegments.Last()
-                    : allSegments.Last();
+                var activeSegment = (_maChiTietDatPhong > 0
+                    ? allSegments.FirstOrDefault(ct => ct.MaChiTietDatPhong == _maChiTietDatPhong)
+                    : null)
+                    ?? allSegments.OrderByDescending(ct => ct.MaChiTietDatPhong).First();
 
                 _maChiTietDatPhongActive = activeSegment.MaChiTietDatPhong;
 
-                // Check hóa đơn trước để tí nữa phân nhánh tính phụ phí
+                // Kiểm tra trạng thái hóa đơn trước
                 _hoaDon = ctx.HoaDons.FirstOrDefault(h => h.MaDatPhong == _maDatPhong);
                 _isPaid = _hoaDon != null && _hoaDon.TrangThaiThanhToan == "Đã thanh toán";
 
                 NgayCheckIn = allSegments.First().NgayCheckIn;
-                // Nếu đã thanh toán, thời gian checkout thực tế lấy theo hóa đơn, ngược lại lấy 'now'
                 NgayCheckOut = _isPaid ? _hoaDon.NgayThanhToan : now;
                 NgayCheckOutHopDong = activeSegment.NgayCheckOut;
 
-                // ── Build room segments ───────────────────────────────────────
+                // ── Vòng lặp phân đoạn (Đã sửa lỗi khai báo & gộp vòng lặp) ──
                 var segments = new List<PhongSegmentDTO>();
                 foreach (var ct in allSegments)
                 {
@@ -274,7 +274,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     DateTime segCheckOut = isActive ? NgayCheckOut : ct.NgayCheckOut;
                     DateTime segCheckIn = ct.NgayCheckIn;
 
-                    int soDem = (int)Math.Max(1, Math.Round((segCheckOut.Date - segCheckIn.Date).TotalDays));
+                    // Sử dụng Ceiling để tính tròn đêm lẻ, tối thiểu là 1 đêm
+                    int soDem = (int)Math.Max(1, Math.Ceiling((segCheckOut.Date - segCheckIn.Date).TotalDays));
 
                     segments.Add(new PhongSegmentDTO
                     {
@@ -283,6 +284,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                         NgayCheckOut = segCheckOut,
                         SoDem = soDem,
                         GiaMoiDem = ct.GiaDat,
+                        //ThanhTien = soDem * ct.GiaDat, // Cần gán giá trị này để tránh Tổng tiền phòng bằng 0
                         IsCurrentRoom = isActive
                     });
                 }
@@ -293,14 +295,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
 
                 if (_isPaid)
                 {
-                    // Nếu đã thanh toán: Đọc thẳng từ hóa đơn cũ ra hiển thị
                     _phuPhiInput = _hoaDon.PhuPhi.ToString("N0");
                     GhiChu = _hoaDon.GhiChu ?? "";
                     _phuongThucThanhToan = _hoaDon.PhuongThucThanhToan;
                     PhuongThucThanhToanText = ToPaymentLabel(_hoaDon.PhuongThucThanhToan);
                     _ngayThanhToanText = $"Ngày TT: {_hoaDon.NgayThanhToan:dd/MM/yyyy HH:mm}";
 
-                    // Tính ngược số giờ quá hạn dựa trên thời điểm thanh toán thực tế để hiển thị giao diện cho đúng
                     if (_hoaDon.NgayThanhToan > NgayCheckOutHopDong && PhuPhiMoiGio > 0)
                     {
                         SoGioQuaHan = (int)Math.Floor((_hoaDon.NgayThanhToan - NgayCheckOutHopDong).TotalHours);
@@ -309,7 +309,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 }
                 else
                 {
-                    // Nếu CHƯA thanh toán: Tính tự động theo thời gian thực (now)
                     if (now > NgayCheckOutHopDong)
                     {
                         double lateHours = (now - NgayCheckOutHopDong).TotalHours;
@@ -324,11 +323,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     _hoaDon = null;
                 }
 
-                // ── Room name for header ──────────────────────────────────────
+                // ── Tên phòng hiển thị trên Header ─────────────────────────────
                 var roomNames = segments.Select(s => s.TenPhong).Distinct().ToList();
                 TenPhong = roomNames.Count > 1 ? string.Join(" → ", roomNames) : roomNames.First();
 
-                // ── Services — aggregate across ALL segments ──────────────────
+                // ── Dịch vụ tổng hợp ──────────────────────────────────────────
                 var allDichVu = allSegments
                     .SelectMany(ct => ct.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>())
                     .Where(x => x.DichVu != null)
@@ -374,12 +373,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             {
                 using var ctx = new QuanLyKhachSanContext();
 
-                // ── Write invoice ─────────────────────────────────────────────
+                // ── Lưu Hóa Đơn ─────────────────────────────────────────────
                 var hoaDon = new HoaDon
                 {
                     MaDatPhong = _maDatPhong,
                     MaNhanVien = _maNhanVien,
-                    TongTienPhong = TongTienPhong,   // multi-segment total
+                    TongTienPhong = TongTienPhong,
                     TongTienDichVu = TongTienDichVu,
                     PhuPhi = ParsedPhuPhi,
                     TienCoc = TienCoc,
@@ -391,16 +390,16 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 };
                 ctx.HoaDons.Add(hoaDon);
 
-                // ── Update booking status ─────────────────────────────────────
+                // ── Cập nhật trạng thái đặt phòng ─────────────────────────────
                 var datPhong = ctx.DatPhongs.Find(_maDatPhong);
                 if (datPhong != null)
                 {
-                    datPhong.TrangThaiDat = 3;
+                    datPhong.TrangThaiDat = 3; // Hoàn tất
                     if (datPhong.TrangThaiCoc == 0)
-                        datPhong.TrangThaiCoc = 2;
+                        datPhong.TrangThaiCoc = 2; // Đã khấu trừ/hoàn thành cọc
                 }
 
-                // ── Deposit audit log ─────────────────────────────────────────
+                // ── Log lịch sử cọc nếu có ────────────────────────────────────
                 if (TienCoc > 0 && !_depositAlreadyApplied)
                 {
                     ctx.LichSuCocs.Add(new LichSuCoc
@@ -411,32 +410,28 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                         ThoiGian = DateTime.Now,
                         MaNhanVien = _maNhanVien,
                         GhiChu = $"Khấu trừ cọc khi checkout {TenPhong}. " +
-                                        $"Tổng trước cọc: {TongTienPhong + TongTienDichVu + ParsedPhuPhi:#,0}₫. " +
-                                        $"Thực thu: {tongCuoi:#,0}₫."
+                                 $"Tổng trước cọc: {TongTienPhong + TongTienDichVu + ParsedPhuPhi:#,0}₫. " +
+                                 $"Thực thu: {tongCuoi:#,0}₫."
                     });
                 }
 
-                // ── Free the CURRENTLY ACTIVE room only ───────────────────────
-                // Old (transferred) rooms were already freed during DoiPhong.
-                var activeChiTiet = ctx.ChiTietDatPhongs
-                    .Find(_maChiTietDatPhongActive);
-
+                // ── Trả phòng đang hoạt động (Active segment) ──────────────────
+                var activeChiTiet = ctx.ChiTietDatPhongs.Find(_maChiTietDatPhongActive);
                 if (activeChiTiet != null)
                 {
-                    // Stamp the actual checkout time on the open segment
                     activeChiTiet.NgayCheckOut = NgayCheckOut;
 
                     var activePhong = ctx.Phongs.Find(activeChiTiet.MaPhong);
                     if (activePhong != null)
                     {
-                        activePhong.TrangThai = 0;  // Trống
-                        activePhong.TrangThaiDonDep = 1; // Cần dọn
+                        activePhong.TrangThai = 0;       // Trống
+                        activePhong.TrangThaiDonDep = 1; // Cần dọn dẹp
                     }
                 }
 
                 ctx.SaveChanges();
 
-                // ── Update local UI state ─────────────────────────────────────
+                // ── Cập nhật Local UI State ─────────────────────────────────────
                 _hoaDon = hoaDon;
                 _depositAlreadyApplied = true;
                 _phuongThucThanhToan = phuongThuc;
@@ -502,7 +497,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             OnPropertyChanged(nameof(IsNotPaid));
             OnPropertyChanged(nameof(PhuongThucThanhToanText));
             OnPropertyChanged(nameof(NgayThanhToanText));
-            OnPropertyChanged(nameof(MaHoaDonText));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
