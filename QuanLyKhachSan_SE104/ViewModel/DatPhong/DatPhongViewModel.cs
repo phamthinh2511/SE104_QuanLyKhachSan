@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.DTO;
+using QuanLyKhachSan_SE104.DTOs;
 using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Services;
 using QuanLyKhachSan_SE104.Utilities;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -36,7 +38,8 @@ public class DatPhongViewModel : INotifyPropertyChanged
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-    private readonly QuanLyKhachSanContext _context;
+    private readonly RoomService _roomService = new();
+    private readonly BookingService _bookingService = new();
 
     // ── Customer ──────────────────────────────────────────────────────────
     private KhachHang _newCustomer = new KhachHang();
@@ -206,7 +209,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
     // ── Constructor 1: Normal mode ────────────────────────────────────────
     public DatPhongViewModel()
     {
-        _context = new QuanLyKhachSanContext();
         ListGioiTinh = new ObservableCollection<string> { "Nam", "Nữ" };
         ListQuocTich = new ObservableCollection<string> { "Việt Nam", "Nước Ngoài" };
         LoadInitialData();
@@ -272,13 +274,15 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         try
         {
+            using var ctx = new QuanLyKhachSanContext();
+
             ListTang = new ObservableCollection<int>(
-                _context.Phongs
+                ctx.Phongs
                     .Where(p => !p.IsDeleted)
                     .Select(p => p.SoTang).Distinct().OrderBy(t => t).ToList());
 
             ListLoaiPhong = new ObservableCollection<LoaiPhong>(
-                _context.LoaiPhongs.Where(lp => !lp.IsDeleted).ToList());
+                ctx.LoaiPhongs.Where(lp => !lp.IsDeleted).ToList());
 
             OnPropertyChanged(nameof(ListTang));
             OnPropertyChanged(nameof(ListLoaiPhong));
@@ -294,17 +298,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
             return;
         }
 
-        // Cheapest room's nightly rate drives the minimum
-        var maPhongList = SelectedRoomsList.Select(r => r.MaPhong).ToList();
-        var lowestRate = _context.Phongs
-            .Include(p => p.LoaiPhong)
-            .Where(p => maPhongList.Contains(p.MaPhong))
-            .Select(p => p.LoaiPhong.GiaMacDinh)
-            .AsEnumerable()
-            .DefaultIfEmpty(0)
-            .Min();
-
-        MinTienCoc = lowestRate;
+        MinTienCoc = _roomService.TinhTienCocToiThieu(SelectedRoomsList.Select(r => r.MaPhong));
 
         // Auto-fill only if the user hasn't entered anything yet
         if (TienCoc < MinTienCoc && Mode == DatPhongMode.Normal)
@@ -316,15 +310,14 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         try
         {
-            var busyIds = GetBusyRoomIds();
-            var query = BuildRoomQuery(busyIds, excludeMaPhong: null);
+            var rooms = _roomService.TimPhongTrong(CreateRoomSearchDTO(), excludeMaPhong: null);
 
             AvailableRooms.Clear();
             SelectedRoomsList.Clear();
             _selectedRoom = null;
             OnPropertyChanged(nameof(SelectedRoom));
 
-            foreach (var r in query.ToList()) AvailableRooms.Add(r);
+            foreach (var r in rooms) AvailableRooms.Add(ToPhongModel(r));
             CommandManager.InvalidateRequerySuggested();
         }
         catch (Exception ex) { MessageBox.Show("Lỗi truy vấn: " + ex.Message); }
@@ -334,43 +327,42 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         try
         {
-            var busyIds = GetBusyRoomIds();
-            var query = BuildRoomQuery(busyIds, excludeMaPhong);
+            var rooms = _roomService.TimPhongTrong(CreateRoomSearchDTO(), excludeMaPhong);
 
             AvailableRooms.Clear();
-            foreach (var r in query.ToList()) AvailableRooms.Add(r);
+            foreach (var r in rooms) AvailableRooms.Add(ToPhongModel(r));
             CommandManager.InvalidateRequerySuggested();
         }
         catch (Exception ex) { MessageBox.Show("Lỗi truy vấn: " + ex.Message); }
     }
 
-    // FIX BUG-04: Sử dụng khoảng nửa mở dựa trên .Date để tránh va chạm biên thời gian thực tế giữa các phân đoạn
-    private List<int> GetBusyRoomIds() =>
-        _context.ChiTietDatPhongs
-            .Where(ct =>
-                (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
-                ct.NgayCheckIn.Date < NgayCheckOut.Date &&
-                ct.NgayCheckOut.Date > NgayCheckIn.Date)
-            .Select(ct => ct.MaPhong)
-            .ToList();
-
-    private IQueryable<Phong> BuildRoomQuery(List<int> busyIds, int? excludeMaPhong)
+    private RoomSearchDTO CreateRoomSearchDTO()
     {
-        var q = _context.Phongs
-            .Include(r => r.LoaiPhong)
-            .Where(r => !busyIds.Contains(r.MaPhong) && r.TrangThai == 0 && !r.IsDeleted)
-            .AsQueryable();
+        return new RoomSearchDTO
+        {
+            NgayCheckIn = NgayCheckIn,
+            NgayCheckOut = NgayCheckOut,
+            SoTang = SelectedTang > 0 ? SelectedTang : null,
+            MaLoaiPhong = SelectedLoaiPhong?.MaLoaiPhong > 0 ? SelectedLoaiPhong.MaLoaiPhong : null
+        };
+    }
 
-        if (excludeMaPhong.HasValue)
-            q = q.Where(r => r.MaPhong != excludeMaPhong.Value);
-
-        if (SelectedTang > 0)
-            q = q.Where(r => r.SoTang == SelectedTang);
-
-        if (SelectedLoaiPhong != null)
-            q = q.Where(r => r.MaLoaiPhong == SelectedLoaiPhong.MaLoaiPhong);
-
-        return q;
+    private static Phong ToPhongModel(PhongDTO dto)
+    {
+        return new Phong
+        {
+            MaPhong = dto.MaPhong,
+            TenPhong = dto.TenPhong,
+            SoTang = dto.SoTang,
+            TrangThai = 0,
+            TrangThaiDonDep = dto.TrangThaiDonDep,
+            LoaiPhong = new LoaiPhong
+            {
+                TenLoaiPhong = dto.TenLoaiPhong,
+                GiaMacDinh = dto.GiaMacDinh,
+                SoNguoiToiDa = dto.SoNguoiToiDa
+            }
+        };
     }
 
     // ── Room list helpers ─────────────────────────────────────────────────
@@ -412,274 +404,141 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     // ── Save Router ────────────────────────────────────────────────────────
     private bool CanExecuteSave()
-        => SelectedRoomsList.Count > 0 && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
+    {
+        if (Mode == DatPhongMode.GiaHan)
+            return _chiTietDatPhong != null;
+
+        return SelectedRoomsList.Count > 0 && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
+    }
 
     private void ExecuteSave()
     {
-        // Validate deposit minimum (skip for GiaHan and DoiPhong)
-        if (Mode == DatPhongMode.Normal && TienCoc < MinTienCoc)
+        var validationMessage = ValidateBeforeSave();
+        if (!string.IsNullOrWhiteSpace(validationMessage))
         {
-            MessageBox.Show(
-                $"Tiền cọc tối thiểu là {MinTienCoc:#,0}₫ (bằng giá 1 đêm).",
-                "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(validationMessage, "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        // Validate capacity (skip for GiaHan)
+        BookingResult result = Mode switch
+        {
+            DatPhongMode.DoiPhong => _bookingService.DoiPhong(CreateDoiPhongRequest()),
+            DatPhongMode.GiaHan => _bookingService.GiaHan(CreateGiaHanRequest()),
+            _ => _bookingService.TaoDatPhong(CreateBookingRequest())
+        };
+
+        if (!result.IsSuccess)
+        {
+            var icon = result.IsConflict ? MessageBoxImage.Stop : MessageBoxImage.Warning;
+            MessageBox.Show(result.Message, result.IsConflict ? "Lỗi xung đột" : "Không thể lưu", MessageBoxButton.OK, icon);
+            return;
+        }
+
+        MessageBox.Show(result.Message, "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+        HotelEventBus.PublishRoomStatusChanged();
+
+        if (Mode == DatPhongMode.Normal)
+            ResetFields();
+        else
+            CloseAction?.Invoke();
+    }
+
+    private string ValidateBeforeSave()
+    {
+        if (NgayCheckOut <= NgayCheckIn)
+            return "Ngày check-out phải sau thời điểm check-in.";
+
+        if (Mode == DatPhongMode.Normal && TienCoc < MinTienCoc)
+            return $"Tiền cọc tối thiểu là {MinTienCoc:#,0}₫ (bằng giá 1 đêm).";
+
         if (Mode != DatPhongMode.GiaHan)
         {
-            foreach (var item in SelectedRoomsList)
-            {
-                var phong = _context.Phongs.Include(p => p.LoaiPhong)
-                                           .FirstOrDefault(p => p.MaPhong == item.MaPhong);
-                if (phong != null && item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
-                {
-                    MessageBox.Show(
-                        $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người.",
-                        "Lỗi nhập liệu");
-                    return;
-                }
-            }
+            if (SelectedRoomsList.Count == 0)
+                return "Vui lòng chọn ít nhất một phòng.";
+
+            if (string.IsNullOrWhiteSpace(NewCustomer?.HoTen))
+                return "Vui lòng nhập họ tên khách hàng.";
+
+            var capacityError = ValidateSelectedRoomCapacities();
+            if (!string.IsNullOrWhiteSpace(capacityError))
+                return capacityError;
         }
 
-        switch (Mode)
+        if (Mode == DatPhongMode.DoiPhong)
         {
-            case DatPhongMode.DoiPhong: ExecuteDoiPhongSave(); break;
-            case DatPhongMode.GiaHan: ExecuteGiaHanSave(); break;
-            default: ExecuteNormalSave(); break;
+            if (_chiTietDatPhong == null)
+                return "Không tìm thấy thông tin đặt phòng cần đổi.";
+
+            var newRoomItem = SelectedRoomsList.FirstOrDefault();
+            if (newRoomItem == null)
+                return "Vui lòng chọn phòng mới.";
+
+            if (newRoomItem.MaPhong == _chiTietDatPhong.MaPhong)
+                return "Vui lòng chọn phòng khác với phòng hiện tại.";
         }
+
+        if (Mode == DatPhongMode.GiaHan && _chiTietDatPhong == null)
+            return "Không tìm thấy thông tin đặt phòng cần gia hạn.";
+
+        return string.Empty;
     }
 
-    // ── Save: Normal / WalkIn ─────────────────────────────────────────────
-    private void ExecuteNormalSave()
+    private string ValidateSelectedRoomCapacities()
     {
-        using var tx = _context.Database.BeginTransaction();
-        try
+        using var ctx = new QuanLyKhachSanContext();
+
+        foreach (var item in SelectedRoomsList)
         {
-            _context.KhachHangs.Add(NewCustomer);
-            _context.SaveChanges();
-
-            var trangThaiDat = Mode == DatPhongMode.WalkIn ? 2 : 1;
-            var depositAmount = Mode == DatPhongMode.WalkIn ? 0 : TienCoc;
-
-            // FIX BUG-07: Gán TrangThaiCoc mặc định bằng 0 để tránh xung đột lịch sử kiểm toán dòng doanh thu no-show
-            var booking = new DatPhong
-            {
-                MaKhachHang = NewCustomer.MaKhachHang,
-                NgayDat = DateTime.Now,
-                TrangThaiDat = trangThaiDat,
-                MaNhanVien = LoginSession.CurrentNhanVienId,
-                TienCoc = depositAmount,
-                TrangThaiCoc = 0
-            };
-            _context.DatPhongs.Add(booking);
-            _context.SaveChanges();
-
-            // Write audit log entry if a deposit was collected
-            if (depositAmount > 0)
-            {
-                _context.LichSuCocs.Add(new LichSuCoc
-                {
-                    MaDatPhong = booking.MaDatPhong,
-                    LoaiGiaoDich = 0,              // Thu cọc
-                    SoTien = depositAmount,
-                    ThoiGian = DateTime.Now,
-                    MaNhanVien = LoginSession.CurrentNhanVienId,
-                    GhiChu = $"Thu cọc khi đặt phòng {string.Join(", ", SelectedRoomsList.Select(r => r.RoomName))}"
-                });
-            }
-
-            foreach (var roomItem in SelectedRoomsList)
-            {
-                var phongDb = _context.Phongs.Include(p => p.LoaiPhong)
-                                             .First(p => p.MaPhong == roomItem.MaPhong);
-
-                phongDb.TrangThai = Mode == DatPhongMode.WalkIn ? 2 : 1;
-
-                _context.ChiTietDatPhongs.Add(new ChiTietDatPhong
-                {
-                    MaDatPhong = booking.MaDatPhong,
-                    MaPhong = roomItem.MaPhong,
-                    NgayCheckIn = NgayCheckIn,
-                    NgayCheckOut = NgayCheckOut,
-                    GiaDat = phongDb.LoaiPhong.GiaMacDinh,
-                    SoNguoi = roomItem.Capacity
-                });
-            }
-
-            _context.SaveChanges();
-            tx.Commit();
-
-            var label = Mode == DatPhongMode.WalkIn ? "Check-in khách lẻ" : "Đặt phòng";
-            MessageBox.Show(
-                $"{label} thành công: {string.Join(", ", SelectedRoomsList.Select(r => r.RoomName))}\n" +
-                (depositAmount > 0 ? $"Tiền cọc đã thu: {depositAmount:#,0}₫" : ""),
-                "Thông báo");
-
-            HotelEventBus.PublishRoomStatusChanged();
-
-            if (Mode == DatPhongMode.Normal)
-                ResetFields();
-            else
-                CloseAction?.Invoke();
+            var phong = ctx.Phongs.Include(p => p.LoaiPhong)
+                                  .FirstOrDefault(p => p.MaPhong == item.MaPhong);
+            if (phong != null && item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
+                return $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người.";
         }
-        catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi lưu đơn đặt phòng: " + ex.Message); }
+
+        return string.Empty;
     }
 
-    // ── Save: DoiPhong ────────────────────────────────────────────────────
-    private void ExecuteDoiPhongSave()
+    private BookingRequestDTO CreateBookingRequest()
     {
-        if (_chiTietDatPhong == null || SelectedRoomsList.Count == 0) return;
+        return new BookingRequestDTO
+        {
+            MaPhongList = SelectedRoomsList.Select(r => r.MaPhong).ToList(),
+            NgayCheckIn = NgayCheckIn,
+            NgayCheckOut = NgayCheckOut,
+            HoTen = NewCustomer?.HoTen ?? string.Empty,
+            SDT = NewCustomer?.SDT ?? string.Empty,
+            CCCD = NewCustomer?.CCCD_Passport ?? string.Empty,
+            GioiTinh = NewCustomer?.GioiTinh ?? string.Empty,
+            QuocTich = NewCustomer?.QuocTich ?? string.Empty,
+            TienCoc = TienCoc,
+            IsWalkIn = Mode == DatPhongMode.WalkIn,
+            MaNhanVien = LoginSession.CurrentNhanVienId
+        };
+    }
+
+    private DoiPhongRequestDTO CreateDoiPhongRequest()
+    {
         var newRoomItem = SelectedRoomsList.First();
 
-        if (newRoomItem.MaPhong == _chiTietDatPhong.MaPhong)
+        return new DoiPhongRequestDTO
         {
-            MessageBox.Show("Vui lòng chọn phòng khác với phòng hiện tại.", "Lỗi");
-            return;
-        }
-
-        using var tx = _context.Database.BeginTransaction();
-        try
-        {
-            DateTime thoiDiemDoiPhong = DateTime.Now;
-
-            // ── 1. Tải lại DatPhong từ context mới (SỬA BUG-02) ──────
-            var dat = _context.DatPhongs.Find(_chiTietDatPhong.MaDatPhong);
-            if (dat == null)
-            {
-                MessageBox.Show("Không tìm thấy thông tin đặt phòng.");
-                return;
-            }
-
-            // ── 2. Chốt thời gian trả phòng của phân đoạn cũ ─────────────────────
-            var ctOld = _context.ChiTietDatPhongs.Find(_chiTietDatPhong.MaChiTietDatPhong);
-            if (ctOld == null)
-            {
-                MessageBox.Show("Không tìm thấy chi tiết đặt phòng cũ.");
-                return;
-            }
-            ctOld.NgayCheckOut = thoiDiemDoiPhong;   // Đóng phân đoạn cũ
-
-            // ── 3. Giải phóng phòng cũ ───────────────────────────────────────
-            var oldPhong = _context.Phongs.Find(_chiTietDatPhong.MaPhong);
-            if (oldPhong != null)
-            {
-                oldPhong.TrangThai = 0;          // Trống
-                oldPhong.TrangThaiDonDep = 1;    // Cần dọn dẹp
-            }
-
-            // ── 4. Kích hoạt phòng mới (sử dụng TrangThaiDat mới nhất — SỬA BUG-02) ─
-            var newPhong = _context.Phongs
-                .Include(p => p.LoaiPhong)
-                .FirstOrDefault(p => p.MaPhong == newRoomItem.MaPhong);
-
-            if (newPhong == null)
-            {
-                MessageBox.Show("Không tìm thấy phòng mới.");
-                return;
-            }
-
-            newPhong.TrangThai = dat.TrangThaiDat == 2 ? 2 : 1;
-
-            // Ràng buộc kiểm tra phòng bận trùng lịch
-            bool newRoomBusy = _context.ChiTietDatPhongs.Any(ct =>
-                ct.MaPhong == newRoomItem.MaPhong &&
-                (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
-                ct.NgayCheckIn.Date < NgayCheckOut.Date &&
-                ct.NgayCheckOut.Date > thoiDiemDoiPhong.Date);
-
-            if (newRoomBusy)
-            {
-                MessageBox.Show($"Phòng {newPhong.TenPhong} đã có khách đặt trong khoảng thời gian này.",
-                    "Lỗi xung đột");
-                tx.Rollback();
-                return;
-            }
-
-            // ── 5. Thêm phân đoạn mới ──────────────────────────────────────
-            var ctNew = new ChiTietDatPhong
-            {
-                MaDatPhong = dat.MaDatPhong,
-                MaPhong = newRoomItem.MaPhong,
-                NgayCheckIn = thoiDiemDoiPhong,    // Bắt đầu tính tiền từ bây giờ
-                NgayCheckOut = NgayCheckOut,         // Sử dụng ngày trả phòng khách đã xác nhận
-                GiaDat = newPhong.LoaiPhong?.GiaMacDinh ?? 0,
-                SoNguoi = newRoomItem.Capacity
-            };
-            _context.ChiTietDatPhongs.Add(ctNew);
-
-            // ── 6. Ghi lịch sử kiểm toán — đổi phòng nội bộ booking (SỬA BUG-03) ───
-            if (dat.TienCoc > 0)
-            {
-                _context.LichSuCocs.Add(new LichSuCoc
-                {
-                    MaDatPhong = dat.MaDatPhong,
-                    LoaiGiaoDich = 3,                   // Đổi phòng (nội bộ booking)
-                    SoTien = dat.TienCoc,
-                    ThoiGian = thoiDiemDoiPhong,
-                    MaNhanVien = LoginSession.CurrentNhanVienId,
-                    GhiChu = $"Đổi phòng: {oldPhong?.TenPhong} → {newPhong.TenPhong}. Cọc giữ nguyên.",
-                    MaDatPhongMoi = null                 // ← SỬA: không phải booking mới
-                });
-            }
-
-            _context.SaveChanges();
-            tx.Commit();
-
-            MessageBox.Show($"Đổi sang phòng {newPhong.TenPhong} thành công!", "Thông báo");
-            HotelEventBus.PublishRoomStatusChanged();
-            CloseAction?.Invoke();
-        }
-        catch (Exception ex)
-        {
-            tx.Rollback();
-            MessageBox.Show("Lỗi đổi phòng: " + (ex.InnerException?.Message ?? ex.Message));
-        }
+            MaDatPhong = _chiTietDatPhong.MaDatPhong,
+            MaChiTietDatPhong = _chiTietDatPhong.MaChiTietDatPhong,
+            MaPhongCu = _chiTietDatPhong.MaPhong,
+            MaPhongMoi = newRoomItem.MaPhong,
+            NgayCheckOut = NgayCheckOut,
+            MaNhanVien = LoginSession.CurrentNhanVienId
+        };
     }
 
-    // ── Save: GiaHan ──────────────────────────────────────────────────────
-    private void ExecuteGiaHanSave()
+    private GiaHanRequestDTO CreateGiaHanRequest()
     {
-        if (_chiTietDatPhong == null) return;
-
-        using var tx = _context.Database.BeginTransaction();
-        try
+        return new GiaHanRequestDTO
         {
-            var ct = _context.ChiTietDatPhongs.Find(_chiTietDatPhong.MaChiTietDatPhong);
-            if (ct == null) { MessageBox.Show("Không tìm thấy thông tin đặt phòng."); return; }
-
-            // CRITICAL LOGIC FIX: Kiểm tra xem khoảng thời gian gia hạn thêm có bị đè lịch bởi một booking khác trong tương lai không
-            bool isOverbooked = _context.ChiTietDatPhongs.Any(other =>
-                other.MaPhong == ct.MaPhong &&
-                other.MaChiTietDatPhong != ct.MaChiTietDatPhong &&
-                (other.DatPhong.TrangThaiDat == 1 || other.DatPhong.TrangThaiDat == 2) &&
-                other.NgayCheckIn.Date < NgayCheckOut.Date &&
-                other.NgayCheckOut.Date > ct.NgayCheckOut.Date); // Kiểm tra từ đoạn kết thúc cũ đến mốc gia hạn mới
-
-            if (isOverbooked)
-            {
-                MessageBox.Show("Không thể gia hạn! Phòng này đã có khách đặt trước ở khoảng thời gian tiếp theo.",
-                                "Lỗi xung đột lịch phòng", MessageBoxButton.OK, MessageBoxImage.Stop);
-                tx.Rollback();
-                return;
-            }
-
-            ct.NgayCheckOut = NgayCheckOut;
-
-            var phong = _context.Phongs.Find(ct.MaPhong);
-            if (phong != null) phong.TrangThai = 2;
-
-            var dat = _context.DatPhongs.Find(ct.MaDatPhong);
-            if (dat != null && dat.TrangThaiDat != 2) dat.TrangThaiDat = 2;
-
-            _context.SaveChanges();
-            tx.Commit();
-
-            MessageBox.Show($"Gia hạn phòng đến {NgayCheckOut:dd/MM/yyyy HH:mm} thành công!", "Thông báo");
-            HotelEventBus.PublishRoomStatusChanged();
-            CloseAction?.Invoke();
-        }
-        catch (Exception ex) { tx.Rollback(); MessageBox.Show("Lỗi gia hạn: " + ex.Message); }
+            MaChiTietDatPhong = _chiTietDatPhong.MaChiTietDatPhong,
+            NgayCheckOutMoi = NgayCheckOut,
+            MaNhanVien = LoginSession.CurrentNhanVienId
+        };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -687,11 +546,12 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         try
         {
-            var phongDb = _context.Phongs.Find(phong.MaPhong);
+            using var ctx = new QuanLyKhachSanContext();
+            var phongDb = ctx.Phongs.Find(phong.MaPhong);
             if (phongDb != null)
             {
                 phongDb.TrangThaiDonDep = 0;
-                _context.SaveChanges();
+                ctx.SaveChanges();
                 phong.TrangThaiDonDep = 0;
                 OnPropertyChanged(nameof(AvailableRooms));
             }

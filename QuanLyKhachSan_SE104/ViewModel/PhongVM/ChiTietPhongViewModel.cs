@@ -73,7 +73,19 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 Owner = _window
             };
             vm.CloseAction = () => { win.DialogResult = true; win.Close(); };
-            if (win.ShowDialog() == true) _window.Close();
+            if (win.ShowDialog() == true)
+            {
+                using var ctx = new QuanLyKhachSanContext();
+                var refreshedPhong = ctx.Phongs.Find(phong.MaPhong);
+                if (refreshedPhong != null)
+                {
+                    phong.TrangThai = refreshedPhong.TrangThai;
+                    phong.TrangThaiDonDep = refreshedPhong.TrangThaiDonDep;
+                    OnPropertyChanged(nameof(Phong));
+                }
+
+                _window.Close();
+            }
         });
 
         // ── Check-in for confirmed booking ────────────────────────────────────
@@ -169,19 +181,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (p != null)
                 {
                     p.TrangThai = 0;
-                    p.TrangThaiDonDep = 0;   // Đặt lại thành Sạch sẽ (vì khách chưa từng vào phòng đối với đơn hủy trước check-in)
+                    p.TrangThaiDonDep = 0;
                 }
 
-                // ── SỬA BUG-01: KHÔNG sử dụng Remove() — đóng dấu NgayCheckOut để đánh dấu kết thúc phân đoạn ──
-                // Dòng dữ liệu ChiTietDatPhong được giữ lại để đảm bảo tính toàn vẹn kiểm toán.
-                // Các đoạn mã lọc dữ liệu hiện tại đã loại trừ các booking có TrangThaiDat 4/5 ra khỏi truy vấn phòng đang hoạt động.
                 var ct = ctx.ChiTietDatPhongs.Find(ChiTietDatPhong.MaChiTietDatPhong);
                 if (ct != null)
                 {
-                    // Đóng dấu thời gian hủy phòng như là thời gian check-out thực tế
                     ct.NgayCheckOut = DateTime.Now;
-                    // LƯU Ý: Không dùng Remove(). Sự hiện diện của nó trong DB không gây hại — tất cả các truy vấn phòng hoạt động
-                    // đều lọc theo điều kiện DatPhong.TrangThaiDat thuộc (1, 2), mà booking này thì không còn thỏa mãn nữa.
                 }
 
                 // ── Ghi lịch sử kiểm toán tiền cọc ────────────────────────────────────
