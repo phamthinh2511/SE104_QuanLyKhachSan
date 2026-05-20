@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.DTOs;
 using QuanLyKhachSan_SE104.Model;
 using System.Data;
@@ -98,20 +98,20 @@ namespace QuanLyKhachSan_SE104.Services
 
                 var result = BookingResult.Success(booking.MaDatPhong);
                 result.Message = req.IsWalkIn
-                    ? "Check-in khach le thanh cong."
-                    : "Dat phong thanh cong.";
+                    ? "Check-in khách lẻ thành công."
+                    : "Đặt phòng thành công.";
                 return result;
             }
             catch (Exception ex)
             {
-                return BookingResult.Error("Loi luu don dat phong: " + GetExceptionMessage(ex));
+                return BookingResult.Error("Lỗi lưu đơn đặt phòng: " + GetExceptionMessage(ex));
             }
         }
 
         public BookingResult DoiPhong(DoiPhongRequestDTO req)
         {
             if (req.MaDatPhong <= 0 || req.MaChiTietDatPhong <= 0)
-                return BookingResult.ValidationError("Thong tin dat phong khong hop le.");
+                return BookingResult.ValidationError("Thông tin đặt phòng không hợp lệ.");
 
             if (req.MaPhongMoi <= 0 || req.MaPhongCu <= 0)
                 return BookingResult.ValidationError("Thong tin phong khong hop le.");
@@ -276,16 +276,16 @@ namespace QuanLyKhachSan_SE104.Services
         private static BookingResult? ValidateBookingRequest(BookingRequestDTO req)
         {
             if (req.MaPhongList == null || req.MaPhongList.Count == 0)
-                return BookingResult.ValidationError("Vui long chon it nhat mot phong.");
+                return BookingResult.ValidationError("Vui lòng chọn ít nhất một phòng.");
 
             if (req.NgayCheckOut <= req.NgayCheckIn)
-                return BookingResult.ValidationError("Ngay check-out phai sau ngay check-in.");
+                return BookingResult.ValidationError("Ngày check-out phải sau ngày check-in.");
 
             if (string.IsNullOrWhiteSpace(req.HoTen))
-                return BookingResult.ValidationError("Vui long nhap ho ten khach hang.");
+                return BookingResult.ValidationError("Vui lòng nhập họ tên khách hàng.");
 
             if (req.MaNhanVien <= 0)
-                return BookingResult.ValidationError("Thong tin nhan vien khong hop le.");
+                return BookingResult.ValidationError("Thông tin nhân viên không hợp lệ.");
 
             return null;
         }

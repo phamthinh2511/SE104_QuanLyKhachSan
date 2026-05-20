@@ -33,7 +33,7 @@ namespace QuanLyKhachSan_SE104.Migrations
                 type: "longtext",
                 nullable: true)
                 .Annotation("MySql:CharSet", "utf8mb4");
-
+            /*
             migrationBuilder.InsertData(
                 table: "NhanViens",
                 columns: new[] { "MaNhanVien", "CCCD", "ChucVu", "Email", "HoTen", "SoDienThoai", "TrangThaiLamViec" },
@@ -51,6 +51,7 @@ namespace QuanLyKhachSan_SE104.Migrations
                     { 1, new DateTime(2023, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "123", "admin" },
                     { 2, new DateTime(2023, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "123", "user" }
                 });
+            */
         }
 
         /// <inheritdoc />

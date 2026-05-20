@@ -385,6 +385,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
     {
         if (phong == null) return;
         if (Mode == DatPhongMode.GiaHan) return;   // locked in GiaHan
+        if (Mode == DatPhongMode.WalkIn) return;
 
         var existing = SelectedRoomsList.FirstOrDefault(x => x.MaPhong == phong.MaPhong);
         if (existing != null)

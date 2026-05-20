@@ -1,4 +1,4 @@
-namespace QuanLyKhachSan_SE104.DTOs
+﻿namespace QuanLyKhachSan_SE104.DTOs
 {
     public class BookingResult
     {
@@ -12,7 +12,7 @@ namespace QuanLyKhachSan_SE104.DTOs
             return new BookingResult
             {
                 IsSuccess = true,
-                Message = "Thao tac dat phong thanh cong.",
+                Message = "Thao tác đặt phòng thành công.",
                 MaDatPhong = id,
                 IsConflict = false
             };
@@ -23,7 +23,7 @@ namespace QuanLyKhachSan_SE104.DTOs
             return new BookingResult
             {
                 IsSuccess = false,
-                Message = $"Phong #{maPhong} da co nguoi dat trong khoang thoi gian nay.",
+                Message = $"Phòng #{maPhong} đã có người đặt trong khoảng thời gian này.",
                 IsConflict = true
             };
         }
