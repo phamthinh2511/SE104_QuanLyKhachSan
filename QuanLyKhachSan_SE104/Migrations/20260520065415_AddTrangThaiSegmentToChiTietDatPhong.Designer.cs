@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuanLyKhachSan_SE104.Model;
 
@@ -11,9 +12,11 @@ using QuanLyKhachSan_SE104.Model;
 namespace QuanLyKhachSan_SE104.Migrations
 {
     [DbContext(typeof(QuanLyKhachSanContext))]
-    partial class QuanLyKhachSanContextModelSnapshot : ModelSnapshot
+    [Migration("20260520065415_AddTrangThaiSegmentToChiTietDatPhong")]
+    partial class AddTrangThaiSegmentToChiTietDatPhong
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,14 +48,8 @@ namespace QuanLyKhachSan_SE104.Migrations
                     b.Property<DateTime>("NgayCheckOut")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("SoDem")
-                        .HasColumnType("int");
-
                     b.Property<int>("SoNguoi")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("ThanhTien")
-                        .HasColumnType("decimal(65,30)");
 
                     b.Property<int>("TrangThaiSegment")
                         .HasColumnType("int");

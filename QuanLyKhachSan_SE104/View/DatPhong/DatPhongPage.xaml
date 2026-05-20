@@ -198,8 +198,7 @@
 
                     <!-- ── Filter row: Loại Phòng + Search button
                          (Tầng ComboBox has been REMOVED — replaced by Deposit on the left panel) -->
-                    <Grid Grid.Row="2" Margin="0,0,0,20" 
-      Visibility="{Binding IsFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid Grid.Row="2" Margin="0,0,0,20" >
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="15"/>
@@ -227,7 +226,8 @@
                    Foreground="#94A3B8" FontStyle="Italic" Margin="0,2,0,0"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom"
+                                    Visibility="{Binding IsFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <TextBlock Text="Loại Phòng" Margin="0,0,0,5" Foreground="{StaticResource SecondaryBrush}"/>
                             <ComboBox Style="{StaticResource ModernComboBox}" Height="40"
                   ItemsSource="{Binding ListLoaiPhong}"
@@ -237,7 +237,8 @@
                             <TextBlock Text=" " FontSize="10" Margin="0,2,0,0"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                        <StackPanel Grid.Column="4" VerticalAlignment="Bottom"
+                                    Visibility="{Binding IsFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Button Style="{StaticResource PrimaryButton}"
                 Content="Tìm" Height="40"
                 Command="{Binding SearchRoomsCommand}"/>
