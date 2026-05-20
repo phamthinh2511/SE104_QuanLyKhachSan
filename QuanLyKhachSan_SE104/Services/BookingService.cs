@@ -7,6 +7,8 @@ namespace QuanLyKhachSan_SE104.Services
 {
     public class BookingService
     {
+        private const string ExtensionSurchargeServiceName = "Phụ phí gia hạn phòng";
+
         public BookingResult TaoDatPhong(BookingRequestDTO req)
         {
             var validation = ValidateBookingRequest(req);
@@ -33,7 +35,7 @@ namespace QuanLyKhachSan_SE104.Services
                 if (rooms.Count != maPhongList.Count)
                 {
                     tx.Rollback();
-                    return BookingResult.ValidationError("Mot hoac nhieu phong khong ton tai.");
+                    return BookingResult.ValidationError("Một hoặc nhiều phòng không tồn tại.");
                 }
 
                 var customer = new KhachHang
@@ -81,6 +83,7 @@ namespace QuanLyKhachSan_SE104.Services
                 foreach (var room in rooms)
                 {
                     room.TrangThai = req.IsWalkIn ? 2 : 1;
+                    var soDem = CalculateChargeableNights(req.NgayCheckIn, req.NgayCheckOut, minimumOneNight: true);
 
                     ctx.ChiTietDatPhongs.Add(new ChiTietDatPhong
                     {
@@ -89,7 +92,12 @@ namespace QuanLyKhachSan_SE104.Services
                         NgayCheckIn = req.NgayCheckIn,
                         NgayCheckOut = req.NgayCheckOut,
                         GiaDat = room.LoaiPhong?.GiaMacDinh ?? 0,
-                        SoNguoi = 1
+                        SoDem = soDem,
+                        ThanhTien = soDem * (room.LoaiPhong?.GiaMacDinh ?? 0),
+                        SoNguoi = 1,
+                        TrangThaiSegment = req.IsWalkIn
+                            ? TrangThaiSegment.DangO
+                            : TrangThaiSegment.ChoNhanPhong
                     });
                 }
 
@@ -170,6 +178,9 @@ namespace QuanLyKhachSan_SE104.Services
                 }
 
                 ctOld.NgayCheckOut = thoiDiemDoiPhong;
+                ctOld.SoDem = CalculateChargeableNights(ctOld.NgayCheckIn, thoiDiemDoiPhong, minimumOneNight: false);
+                ctOld.ThanhTien = ctOld.SoDem * ctOld.GiaDat;
+                ctOld.TrangThaiSegment = TrangThaiSegment.DaDoiPhong;
 
                 if (oldPhong != null)
                 {
@@ -179,6 +190,7 @@ namespace QuanLyKhachSan_SE104.Services
 
                 newPhong.TrangThai = dat.TrangThaiDat == 2 ? 2 : 1;
 
+                var soDemPhongMoi = CalculateChargeableNights(thoiDiemDoiPhong, req.NgayCheckOut, minimumOneNight: true);
                 ctx.ChiTietDatPhongs.Add(new ChiTietDatPhong
                 {
                     MaDatPhong = dat.MaDatPhong,
@@ -186,7 +198,10 @@ namespace QuanLyKhachSan_SE104.Services
                     NgayCheckIn = thoiDiemDoiPhong,
                     NgayCheckOut = req.NgayCheckOut,
                     GiaDat = newPhong.LoaiPhong?.GiaMacDinh ?? 0,
-                    SoNguoi = ctOld.SoNguoi
+                    SoDem = soDemPhongMoi,
+                    ThanhTien = soDemPhongMoi * (newPhong.LoaiPhong?.GiaMacDinh ?? 0),
+                    SoNguoi = ctOld.SoNguoi,
+                    TrangThaiSegment = TrangThaiSegment.DangO
                 });
 
                 if (dat.TienCoc > 0)
@@ -226,39 +241,65 @@ namespace QuanLyKhachSan_SE104.Services
                 using var ctx = new QuanLyKhachSanContext();
                 using var tx = ctx.Database.BeginTransaction();
 
-                var ct = ctx.ChiTietDatPhongs.Find(req.MaChiTietDatPhong);
+                var ct = ctx.ChiTietDatPhongs
+                    .Include(c => c.Phong)
+                        .ThenInclude(p => p.LoaiPhong)
+                    .FirstOrDefault(c => c.MaChiTietDatPhong == req.MaChiTietDatPhong);
                 if (ct == null)
                 {
                     tx.Rollback();
                     return BookingResult.ValidationError("Khong tim thay thong tin dat phong.");
                 }
 
+                if (ct.TrangThaiSegment != TrangThaiSegment.DangO)
+                {
+                    tx.Rollback();
+                    return BookingResult.ValidationError("Chi co the gia han phan doan phong dang o.");
+                }
+
                 if (req.NgayCheckOutMoi <= ct.NgayCheckOut)
                 {
                     tx.Rollback();
-                    return BookingResult.ValidationError("Ngay check-out moi phai sau ngay check-out hien tai.");
+                    return BookingResult.ValidationError("Ngày check-out mới phải sau ngày check-out hiện tại.");
                 }
 
                 var isOverbooked = ctx.ChiTietDatPhongs.Any(other =>
                     other.MaPhong == ct.MaPhong &&
                     other.MaChiTietDatPhong != ct.MaChiTietDatPhong &&
-                    (other.DatPhong.TrangThaiDat == 1 || other.DatPhong.TrangThaiDat == 2) &&
+                    (other.TrangThaiSegment == TrangThaiSegment.ChoNhanPhong ||
+                     other.TrangThaiSegment == TrangThaiSegment.DangO) &&
                     other.NgayCheckIn < req.NgayCheckOutMoi &&
                     other.NgayCheckOut > ct.NgayCheckOut);
 
                 if (isOverbooked)
                 {
                     tx.Rollback();
-                    return BookingResult.Conflict(ct.MaPhong);
+                    return BookingResult.ValidationError("Phong da co lich dat trong khoang thoi gian gia han.");
                 }
+
+                var oldNgayCheckOut = ct.NgayCheckOut;
+                var surcharge = CalculateExtensionSurcharge(
+                    req.NgayCheckOutMoi - oldNgayCheckOut,
+                    ct.GiaDat,
+                    ct.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0);
 
                 ct.NgayCheckOut = req.NgayCheckOutMoi;
 
                 var phong = ctx.Phongs.Find(ct.MaPhong);
                 if (phong != null) phong.TrangThai = 2;
 
-                var dat = ctx.DatPhongs.Find(ct.MaDatPhong);
-                if (dat != null && dat.TrangThaiDat != 2) dat.TrangThaiDat = 2;
+                if (surcharge > 0)
+                {
+                    var surchargeService = GetOrCreateExtensionSurchargeService(ctx);
+                    ctx.ChiTietDichVus.Add(new ChiTietDichVu
+                    {
+                        MaChiTietDatPhong = ct.MaChiTietDatPhong,
+                        MaDichVu = surchargeService.MaDichVu,
+                        SoLuong = 1,
+                        DonGia = surcharge,
+                        ThoiGianSuDung = DateTime.Now
+                    });
+                }
 
                 ctx.SaveChanges();
                 tx.Commit();
@@ -304,6 +345,55 @@ namespace QuanLyKhachSan_SE104.Services
                     ct.NgayCheckOut > ngayCheckIn)
                 .Select(ct => (int?)ct.MaPhong)
                 .FirstOrDefault();
+        }
+
+        private static decimal CalculateExtensionSurcharge(
+            TimeSpan extendedDuration, //khoang tg gia han
+            decimal roomDailyRate, // gia thue phong hien tai
+            decimal hourlySurchargeRate) // phu phi theo gio
+        {
+            if (extendedDuration <= TimeSpan.Zero)
+                return 0;
+
+            if (extendedDuration.TotalHours >= 24)
+            {
+                var days = (decimal)Math.Ceiling(extendedDuration.TotalDays);
+                return days * roomDailyRate;
+            }
+
+            var hours = (decimal)Math.Ceiling(extendedDuration.TotalHours);
+            var effectiveHourlyRate = hourlySurchargeRate > 0
+                ? hourlySurchargeRate
+                : Math.Ceiling(roomDailyRate / 24);
+
+            return hours * effectiveHourlyRate;
+        }
+
+        private static int CalculateChargeableNights(DateTime checkIn, DateTime checkOut, bool minimumOneNight)
+        {
+            var nights = (int)Math.Ceiling((checkOut.Date - checkIn.Date).TotalDays);
+            return minimumOneNight ? Math.Max(1, nights) : Math.Max(0, nights);
+        }
+
+        private static DichVu GetOrCreateExtensionSurchargeService(QuanLyKhachSanContext ctx)
+        {
+            var service = ctx.DichVus
+                .FirstOrDefault(d => d.TenDichVu == ExtensionSurchargeServiceName && !d.IsDeleted);
+
+            if (service != null)
+                return service;
+
+            service = new DichVu
+            {
+                TenDichVu = ExtensionSurchargeServiceName,
+                LoaiDichVu = 4,
+                DonGia = 0,
+                MoTa = "Dịch vụ hệ thống dùng để ghi nhận phụ phí phát sinh khi gia hạn phòng."
+            };
+
+            ctx.DichVus.Add(service);
+            ctx.SaveChanges();
+            return service;
         }
 
         private static string GetExceptionMessage(Exception ex)

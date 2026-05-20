@@ -12,9 +12,10 @@ namespace QuanLyKhachSan_SE104.Services
 
             var busyIds = ctx.ChiTietDatPhongs
                 .Where(ct =>
-                    (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
-                    ct.NgayCheckIn.Date < req.NgayCheckOut.Date &&
-                    ct.NgayCheckOut.Date > req.NgayCheckIn.Date)
+                    (ct.TrangThaiSegment == TrangThaiSegment.ChoNhanPhong ||
+                     ct.TrangThaiSegment == TrangThaiSegment.DangO) &&
+                    ct.NgayCheckIn < req.NgayCheckOut &&
+                    ct.NgayCheckOut > req.NgayCheckIn)
                 .Select(ct => ct.MaPhong)
                 .Distinct()
                 .ToList();

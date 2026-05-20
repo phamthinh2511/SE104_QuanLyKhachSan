@@ -182,7 +182,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (phong == null) return;
                 ChiTietDatPhongModel chiTiet = null;
 
-                if (phong.TrangThai == 1 || phong.TrangThai == 2 || phong.TrangThai == 3)
+                if (phong.TrangThai == 1)
+                    chiTiet = _bookingQueryService.GetRoomDetailBySegment(phong.MaPhong, TrangThaiSegment.ChoNhanPhong);
+                else if (phong.TrangThai == 2 || phong.TrangThai == 3)
                     chiTiet = _bookingQueryService.GetActiveRoomDetail(phong.MaPhong);
 
                 var win = new QuanLyKhachSan_SE104.View.Phong.ChiTietPhong(phong, chiTiet);

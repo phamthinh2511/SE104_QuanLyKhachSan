@@ -30,7 +30,7 @@ namespace QuanLyKhachSan_SE104.DAL
                 JOIN phongs p ON ct.MaPhong = p.MaPhong
                 JOIN loaiphongs lp ON p.MaLoaiPhong = lp.MaLoaiPhong
                 WHERE DATE(ct.NgayCheckIn) = CURDATE() 
-                    AND dp.TrangThaiDat = 1
+                    AND ct.TrangThaiSegment = 0
                     AND p.TrangThaiThue = 1";
 
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
@@ -81,7 +81,7 @@ namespace QuanLyKhachSan_SE104.DAL
                         }
 
                         // 2. Cập nhật chi tiết đặt phòng (Số người thực tế & thời gian check-in thực tế)
-                        string updateChiTiet = "UPDATE chitietdatphongs SET SoNguoi = @soNguoi, NgayCheckIn = NOW() WHERE MaChiTietDatPhong = @maCT";
+                        string updateChiTiet = "UPDATE chitietdatphongs SET SoNguoi = @soNguoi, NgayCheckIn = NOW(), TrangThaiSegment = 1 WHERE MaChiTietDatPhong = @maCT";
                         using (MySqlCommand cmd = new MySqlCommand(updateChiTiet, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@soNguoi", soNguoiThucTe);

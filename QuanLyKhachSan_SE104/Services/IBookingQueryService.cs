@@ -7,5 +7,6 @@ namespace QuanLyKhachSan_SE104.Services
     {
         IReadOnlyList<PhongDisplayDTO> GetAllRoomsForDisplay();
         ChiTietDatPhong? GetActiveRoomDetail(int maPhong);
+        ChiTietDatPhong? GetRoomDetailBySegment(int maPhong, TrangThaiSegment segmentStatus);
     }
 }

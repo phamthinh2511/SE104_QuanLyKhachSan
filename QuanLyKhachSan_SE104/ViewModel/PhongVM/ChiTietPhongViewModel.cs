@@ -103,7 +103,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (dat != null) dat.TrangThaiDat = 2;
 
                 var ct = ctx.ChiTietDatPhongs.Find(ChiTietDatPhong.MaChiTietDatPhong);
-                if (ct != null) ct.NgayCheckIn = DateTime.Now;
+                if (ct != null)
+                {
+                    ct.NgayCheckIn = DateTime.Now;
+                    ct.TrangThaiSegment = TrangThaiSegment.DangO;
+                }
 
                 ctx.SaveChanges();
                 MessageBox.Show($"Check-in thành công phòng {phong.TenPhong}!", "Thông báo");
@@ -188,6 +192,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (ct != null)
                 {
                     ct.NgayCheckOut = DateTime.Now;
+                    ct.TrangThaiSegment = TrangThaiSegment.DaCheckOut;
                 }
 
                 // ── Ghi lịch sử kiểm toán tiền cọc ────────────────────────────────────

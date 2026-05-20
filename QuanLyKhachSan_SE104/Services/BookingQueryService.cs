@@ -24,23 +24,23 @@ namespace QuanLyKhachSan_SE104.Services
 
             return rooms.Select(room =>
             {
-                var activeBookings = room.ChiTietDatPhongs?
-                    .Where(ct => ct.DatPhong != null
-                              && ct.DatPhong.TrangThaiDat != 3
-                              && ct.DatPhong.TrangThaiDat != 4
-                              && ct.DatPhong.TrangThaiDat != 5)
+                var activeSegments = room.ChiTietDatPhongs?
+                    .Where(ct => ct.TrangThaiSegment == TrangThaiSegment.ChoNhanPhong
+                              || ct.TrangThaiSegment == TrangThaiSegment.DangO)
                     .ToList();
 
                 var isCheckInToday = room.TrangThai == 1
-                    && (activeBookings?.Any(ct =>
-                        ct.NgayCheckIn.Date == today &&
-                        ct.DatPhong.TrangThaiDat == 1) ?? false);
+                    && (activeSegments?.Any(ct =>
+                        ct.TrangThaiSegment == TrangThaiSegment.ChoNhanPhong &&
+                        ct.NgayCheckIn.Date == today) ?? false);
 
                 var checkoutDeadlineToday = today + CheckoutDeadline; // so sanh gio check out voi hnay + 12 tieng
 
                 var isCheckOutToday = (room.TrangThai == 2 || room.TrangThai == 3)
                     && now < checkoutDeadlineToday
-                    && (activeBookings?.Any(ct => ct.NgayCheckOut.Date == today) ?? false);
+                    && (activeSegments?.Any(ct =>
+                        ct.TrangThaiSegment == TrangThaiSegment.DangO &&
+                        ct.NgayCheckOut.Date == today) ?? false);
 
                 return new PhongDisplayDTO
                 {
@@ -59,6 +59,9 @@ namespace QuanLyKhachSan_SE104.Services
         }
 
         public ChiTietDatPhong? GetActiveRoomDetail(int maPhong)
+            => GetRoomDetailBySegment(maPhong, TrangThaiSegment.DangO);
+
+        public ChiTietDatPhong? GetRoomDetailBySegment(int maPhong, TrangThaiSegment segmentStatus)
         {
             using var ctx = new QuanLyKhachSanContext();
 
@@ -67,7 +70,7 @@ namespace QuanLyKhachSan_SE104.Services
                 .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
                 .Include(c => c.ChiTietDichVus).ThenInclude(dv => dv.DichVu)
                 .Where(c => c.MaPhong == maPhong
-                    && (c.DatPhong.TrangThaiDat == 1 || c.DatPhong.TrangThaiDat == 2))
+                    && c.TrangThaiSegment == segmentStatus)
                 .OrderByDescending(c => c.MaChiTietDatPhong)
                 .FirstOrDefault();
         }

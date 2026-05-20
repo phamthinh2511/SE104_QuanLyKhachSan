@@ -18,6 +18,8 @@ namespace QuanLyKhachSan_SE104.Model
         public DateTime NgayCheckIn { get; set; }
         public DateTime NgayCheckOut { get; set; }
         public decimal GiaDat { get; set; }
+        public int SoDem { get; set; }
+        public decimal ThanhTien { get; set; }
         public int SoNguoi { get; set; }
         public TrangThaiSegment TrangThaiSegment { get; set; }
 

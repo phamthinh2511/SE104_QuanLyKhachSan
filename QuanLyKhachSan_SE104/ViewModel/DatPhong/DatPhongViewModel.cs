@@ -28,7 +28,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
     public bool IsRoomGridVisible => Mode != DatPhongMode.WalkIn && Mode != DatPhongMode.GiaHan;
     public bool IsCustomerReadOnly => Mode == DatPhongMode.DoiPhong || Mode == DatPhongMode.GiaHan;
     public bool IsCheckInReadOnly => Mode == DatPhongMode.GiaHan;
-    public bool IsFilterVisible => Mode != DatPhongMode.GiaHan;
+    public bool IsFilterVisible => Mode != DatPhongMode.WalkIn && Mode != DatPhongMode.GiaHan;
 
     // Deposit field is read-only in DoiPhong (inherits existing deposit) and GiaHan
     public bool IsTienCocReadOnly => Mode == DatPhongMode.DoiPhong || Mode == DatPhongMode.GiaHan;

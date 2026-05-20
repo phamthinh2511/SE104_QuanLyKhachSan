@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.DTO;
-using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Services;
 using QuanLyKhachSan_SE104.Utilities;
 using QuanLyKhachSan_SE104.View.HoaDon;
 using System;
@@ -22,8 +21,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         private readonly int _maDatPhong;
         private readonly int _maNhanVien;
         private readonly int _maChiTietDatPhong;
+        private readonly IHoaDonService _hoaDonService;
 
-        private HoaDon _hoaDon;
+        private string _maHoaDonText = "Chưa lập";
         private int _maChiTietDatPhongActive;
 
         private bool _overdueInitialized = false;
@@ -35,7 +35,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         //  Booking header info (read-only display)
         // ══════════════════════════════════════════════
         public int MaDatPhong { get; private set; }
-        public string MaHoaDonText => _hoaDon != null ? $"#HD-{_hoaDon.MaHoaDon:D6}" : "Chưa lập";
+        public string MaHoaDonText => _maHoaDonText;
         public string TenKhachHang { get; private set; }
         public string SdtKhachHang { get; private set; }
         public string TenNhanVien { get; private set; }
@@ -68,7 +68,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 : "";
         public bool HasOverdue => SoGioQuaHan > 0;
 
-        public decimal PhuPhi => SoGioQuaHan * PhuPhiMoiGio;
+        public decimal PhuPhi => _phuPhi;
 
         // ══════════════════════════════════════════════
         //  Summary text kept for legacy XAML bindings
@@ -94,16 +94,18 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         // ══════════════════════════════════════════════
         //  Charge totals
         // ══════════════════════════════════════════════
-        public decimal TongTienPhong => _danhSachSegment?.Sum(s => s.ThanhTien) ?? 0;
-        public decimal TongTienDichVu => DanhSachDichVu?.Sum(x => x.ThanhTien) ?? 0;
+        private decimal _tongTienPhong;
+        private decimal _tongTienDichVu;
+        private decimal _phuPhi;
+        private decimal _tongThanhToan;
 
-        public decimal TongThanhToan =>
-            TongTienPhong + TongTienDichVu + PhuPhi
-            - (_depositAlreadyApplied ? 0 : TienCoc);
+        public decimal TongTienPhong => _tongTienPhong;
+        public decimal TongTienDichVu => _tongTienDichVu;
+        public decimal TongThanhToan => _tongThanhToan;
 
         public string TongTienPhongText => $"{TongTienPhong:#,0}₫";
         public string TongTienDichVuText => $"{TongTienDichVu:#,0}₫";
-        public string PhuPhiText => $"{PhuPhi:#,0}₫";
+        public string PhuPhiText => $"{_phuPhi:#,0}₫";
         public string TienCocText =>
             _depositAlreadyApplied
                 ? $"- {TienCoc:#,0}₫  (đã trừ trước)"
@@ -170,11 +172,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         // ══════════════════════════════════════════════
         //  Constructor
         // ══════════════════════════════════════════════
-        public HoaDonViewModel(int maDatPhong, int maChiTietDatPhong)
+        public HoaDonViewModel(int maDatPhong, int maChiTietDatPhong, IHoaDonService? hoaDonService = null)
         {
             _maDatPhong = maDatPhong;
             _maChiTietDatPhong = maChiTietDatPhong;
             _maNhanVien = LoginSession.CurrentNhanVienId;
+            _hoaDonService = hoaDonService ?? new HoaDonService();
 
             CheckOutCommand = new RelayCommand(ExecuteCheckOut, () => IsNotPaid);
             InHoaDonCommand = new RelayCommand(ExecuteInHoaDon);
@@ -189,132 +192,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         {
             try
             {
-                using var ctx = new QuanLyKhachSanContext();
-
-                var datPhong = ctx.DatPhongs
-                    .Include(d => d.KhachHang)
-                    .Include(d => d.NhanVien)
-                    .Include(d => d.ChiTietDatPhongs)
-                        .ThenInclude(ct => ct.Phong)
-                            .ThenInclude(p => p.LoaiPhong)
-                    .Include(d => d.ChiTietDatPhongs)
-                        .ThenInclude(ct => ct.ChiTietDichVus)
-                            .ThenInclude(dv => dv.DichVu)
-                    .FirstOrDefault(d => d.MaDatPhong == _maDatPhong);
-
-                if (datPhong == null)
-                {
-                    MessageBox.Show("Không tìm thấy thông tin đặt phòng.", "Lỗi");
-                    return;
-                }
-
-                MaDatPhong = datPhong.MaDatPhong;
-                TenKhachHang = datPhong.KhachHang?.HoTen ?? "—";
-                SdtKhachHang = datPhong.KhachHang?.SDT ?? "—";
-                TenNhanVien = datPhong.NhanVien?.HoTen ?? "—";
-                TienCoc = datPhong.TienCoc;
-                _depositAlreadyApplied = datPhong.TrangThaiCoc == 2;
-
-                DateTime now = DateTime.Now;
-
-                // ── Phân giải phân đoạn hoạt động ───────────────────────────
-                var allSegments = datPhong.ChiTietDatPhongs
-                    .OrderBy(ct => ct.NgayCheckIn)
-                    .ThenBy(ct => ct.MaChiTietDatPhong)
-                    .ToList();
-
-                if (!allSegments.Any())
-                {
-                    MessageBox.Show("Không tìm thấy chi tiết đặt phòng.", "Lỗi");
-                    return;
-                }
-
-                var activeSegment = (_maChiTietDatPhong > 0
-                    ? allSegments.FirstOrDefault(ct => ct.MaChiTietDatPhong == _maChiTietDatPhong)
-                    : null)
-                    ?? allSegments.OrderByDescending(ct => ct.MaChiTietDatPhong).First();
-
-                _maChiTietDatPhongActive = activeSegment.MaChiTietDatPhong;
-
-                // Kiểm tra trạng thái hóa đơn trước
-                _hoaDon = ctx.HoaDons.FirstOrDefault(h => h.MaDatPhong == _maDatPhong);
-                _isPaid = _hoaDon != null && _hoaDon.TrangThaiThanhToan == "Đã thanh toán";
-
-                NgayCheckIn = allSegments.First().NgayCheckIn;
-                NgayCheckOut = _isPaid ? _hoaDon.NgayThanhToan : now;
-                NgayCheckOutHopDong = activeSegment.NgayCheckOut;
-
-                // ── Vòng lặp phân đoạn (Đã sửa lỗi khai báo & gộp vòng lặp) ──
-                var segments = new List<PhongSegmentDTO>();
-                foreach (var ct in allSegments)
-                {
-                    bool isActive = ct.MaChiTietDatPhong == _maChiTietDatPhongActive;
-                    DateTime segCheckOut = isActive ? NgayCheckOut : ct.NgayCheckOut;
-                    DateTime segCheckIn = ct.NgayCheckIn;
-
-                    // Sử dụng Ceiling để tính tròn đêm lẻ, tối thiểu là 1 đêm
-                    int soDem = (int)Math.Max(1, Math.Ceiling((segCheckOut.Date - segCheckIn.Date).TotalDays));
-
-                    segments.Add(new PhongSegmentDTO
-                    {
-                        TenPhong = ct.Phong?.TenPhong ?? "—",
-                        NgayCheckIn = segCheckIn,
-                        NgayCheckOut = segCheckOut,
-                        SoDem = soDem,
-                        GiaMoiDem = ct.GiaDat,
-                        //ThanhTien = soDem * ct.GiaDat, // Cần gán giá trị này để tránh Tổng tiền phòng bằng 0
-                        IsCurrentRoom = isActive
-                    });
-                }
-                DanhSachSegment = new ObservableCollection<PhongSegmentDTO>(segments);
-
-                // ── Overdue check & Phụ phí ───────────────────────────────────
-                PhuPhiMoiGio = activeSegment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
-
-                if (_isPaid)
-                {
-                    GhiChu = _hoaDon.GhiChu ?? "";
-                    _phuongThucThanhToan = _hoaDon.PhuongThucThanhToan;
-                    PhuongThucThanhToanText = ToPaymentLabel(_hoaDon.PhuongThucThanhToan);
-                    _ngayThanhToanText = $"Ngày TT: {_hoaDon.NgayThanhToan:dd/MM/yyyy HH:mm}";
-
-                    if (_hoaDon.NgayThanhToan > NgayCheckOutHopDong && PhuPhiMoiGio > 0)
-                    {
-                        SoGioQuaHan = (int)Math.Floor((_hoaDon.NgayThanhToan - NgayCheckOutHopDong).TotalHours);
-                    }
-                    else SoGioQuaHan = 0;
-                }
-                else
-                {
-                    if (now > NgayCheckOutHopDong)
-                    {
-                        double lateHours = (now - NgayCheckOutHopDong).TotalHours;
-                        SoGioQuaHan = (int)Math.Floor(lateHours);
-                    }
-                    else
-                    {
-                        SoGioQuaHan = 0;
-                    }
-                    _hoaDon = null;
-                }
-
-                // ── Tên phòng hiển thị trên Header ─────────────────────────────
-                var roomNames = segments.Select(s => s.TenPhong).Distinct().ToList();
-                TenPhong = roomNames.Count > 1 ? string.Join(" → ", roomNames) : roomNames.First();
-
-                // ── Dịch vụ tổng hợp ──────────────────────────────────────────
-                var allDichVu = allSegments
-                    .SelectMany(ct => ct.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>())
-                    .Where(x => x.DichVu != null)
-                    .Select(x => new ChiTietDichVuDTO
-                    {
-                        TenDichVu = x.DichVu.TenDichVu,
-                        DonGia = x.DonGia,
-                        SoLuong = x.SoLuong
-                    });
-                DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>(allDichVu);
-
-                NotifyAll();
+                var invoice = _hoaDonService.GetInvoiceDetails(_maDatPhong, _maChiTietDatPhong, _maNhanVien);
+                ApplyInvoiceDetails(invoice);
             }
             catch (Exception ex)
             {
@@ -333,7 +212,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             if (dialog.ShowDialog() != true) return;
 
             int phuongThuc = dialog.SelectedMethod;
-            decimal tongCuoi = TongThanhToan;
 
             var confirm = MessageBox.Show(
                 $"Phương thức: {ToPaymentLabel(phuongThuc)}\n" +
@@ -346,75 +224,16 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
 
             try
             {
-                using var ctx = new QuanLyKhachSanContext();
-
-                // ── Lưu Hóa Đơn ─────────────────────────────────────────────
-                var hoaDon = new HoaDon
+                var invoice = _hoaDonService.ProcessCheckOut(new CheckOutRequestDTO
                 {
                     MaDatPhong = _maDatPhong,
+                    MaChiTietDatPhongActive = _maChiTietDatPhongActive,
                     MaNhanVien = _maNhanVien,
-                    TongTienPhong = TongTienPhong,
-                    TongTienDichVu = TongTienDichVu,
-                    PhuPhi = PhuPhi,
-                    TienCoc = TienCoc,
-                    TongThanhToan = tongCuoi,
-                    NgayThanhToan = DateTime.Now,
                     PhuongThucThanhToan = phuongThuc,
-                    GhiChu = GhiChu,
-                    TrangThaiThanhToan = "Đã thanh toán"
-                };
-                ctx.HoaDons.Add(hoaDon);
+                    GhiChu = GhiChu
+                });
+                ApplyInvoiceDetails(invoice);
 
-                // ── Cập nhật trạng thái đặt phòng ─────────────────────────────
-                var datPhong = ctx.DatPhongs.Find(_maDatPhong);
-                if (datPhong != null)
-                {
-                    datPhong.TrangThaiDat = 3; // Hoàn tất
-                    if (datPhong.TrangThaiCoc == 0)
-                        datPhong.TrangThaiCoc = 2; // Đã khấu trừ/hoàn thành cọc
-                }
-
-                // ── Log lịch sử cọc nếu có ────────────────────────────────────
-                if (TienCoc > 0 && !_depositAlreadyApplied)
-                {
-                    ctx.LichSuCocs.Add(new LichSuCoc
-                    {
-                        MaDatPhong = _maDatPhong,
-                        LoaiGiaoDich = 2,
-                        SoTien = TienCoc,
-                        ThoiGian = DateTime.Now,
-                        MaNhanVien = _maNhanVien,
-                        GhiChu = $"Khấu trừ cọc khi checkout {TenPhong}. " +
-                                 $"Tổng trước cọc: {TongTienPhong + TongTienDichVu + PhuPhi:#,0}₫. " +
-                                 $"Thực thu: {tongCuoi:#,0}₫."
-                    });
-                }
-
-                // ── Trả phòng đang hoạt động (Active segment) ──────────────────
-                var activeChiTiet = ctx.ChiTietDatPhongs.Find(_maChiTietDatPhongActive);
-                if (activeChiTiet != null)
-                {
-                    activeChiTiet.NgayCheckOut = NgayCheckOut;
-
-                    var activePhong = ctx.Phongs.Find(activeChiTiet.MaPhong);
-                    if (activePhong != null)
-                    {
-                        activePhong.TrangThai = 0;       // Trống
-                        activePhong.TrangThaiDonDep = 1; // Cần dọn dẹp
-                    }
-                }
-
-                ctx.SaveChanges();
-
-                // ── Cập nhật Local UI State ─────────────────────────────────────
-                _hoaDon = hoaDon;
-                _depositAlreadyApplied = true;
-                _phuongThucThanhToan = phuongThuc;
-                PhuongThucThanhToanText = ToPaymentLabel(phuongThuc);
-                _ngayThanhToanText = $"Ngày TT: {hoaDon.NgayThanhToan:dd/MM/yyyy HH:mm}";
-                IsPaid = true;
-
-                NotifyAll();
                 MessageBox.Show("Thanh toán thành công!", "Thông báo",
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -429,6 +248,37 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         private void ExecuteInHoaDon()
         {
             MessageBox.Show("Tính năng in hóa đơn đang phát triển.", "Thông báo");
+        }
+
+        private void ApplyInvoiceDetails(InvoiceDetailDTO invoice)
+        {
+            MaDatPhong = invoice.MaDatPhong;
+            _maChiTietDatPhongActive = invoice.MaChiTietDatPhongActive;
+            _maHoaDonText = invoice.MaHoaDonText;
+            TenKhachHang = invoice.TenKhachHang;
+            SdtKhachHang = invoice.SdtKhachHang;
+            TenNhanVien = invoice.TenNhanVien;
+            TenPhong = invoice.TenPhong;
+            NgayCheckIn = invoice.NgayCheckIn;
+            NgayCheckOut = invoice.NgayCheckOut;
+            NgayCheckOutHopDong = invoice.NgayCheckOutHopDong;
+            DanhSachSegment = new ObservableCollection<PhongSegmentDTO>(invoice.DanhSachSegment);
+            SoGioQuaHan = invoice.SoGioQuaHan;
+            PhuPhiMoiGio = invoice.PhuPhiMoiGio;
+            TienCoc = invoice.TienCoc;
+            _depositAlreadyApplied = invoice.DepositAlreadyApplied;
+            _tongTienPhong = invoice.TongTienPhong;
+            _tongTienDichVu = invoice.TongTienDichVu;
+            _phuPhi = invoice.PhuPhi;
+            _tongThanhToan = invoice.TongThanhToan;
+            _phuongThucThanhToan = invoice.PhuongThucThanhToan;
+            PhuongThucThanhToanText = invoice.PhuongThucThanhToanText;
+            _ngayThanhToanText = invoice.NgayThanhToanText;
+            DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>(invoice.DanhSachDichVu);
+            GhiChu = invoice.GhiChu;
+            IsPaid = invoice.IsPaid;
+
+            NotifyAll();
         }
 
         // ══════════════════════════════════════════════
@@ -463,7 +313,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             OnPropertyChanged(nameof(TienCocText));
             OnPropertyChanged(nameof(TongTienPhong));
             OnPropertyChanged(nameof(TongTienPhongText));
+            OnPropertyChanged(nameof(TongTienDichVu));
             OnPropertyChanged(nameof(TongTienDichVuText));
+            OnPropertyChanged(nameof(PhuPhi));
             OnPropertyChanged(nameof(PhuPhiText));
             OnPropertyChanged(nameof(TongThanhToan));
             OnPropertyChanged(nameof(TongThanhToanText));
