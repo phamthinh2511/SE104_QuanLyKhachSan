@@ -6,10 +6,12 @@ namespace QuanLyKhachSan_SE104.Services
 {
     public class BookingQueryService : IBookingQueryService
     {
+        private static readonly TimeSpan CheckoutDeadline = TimeSpan.FromHours(12); // 12:00 PM
         public IReadOnlyList<PhongDisplayDTO> GetAllRoomsForDisplay()
         {
             using var ctx = new QuanLyKhachSanContext();
             var today = DateTime.Today;
+            var now = DateTime.Now;
 
             var rooms = ctx.Phongs
                 .AsNoTracking()
@@ -34,7 +36,10 @@ namespace QuanLyKhachSan_SE104.Services
                         ct.NgayCheckIn.Date == today &&
                         ct.DatPhong.TrangThaiDat == 1) ?? false);
 
+                var checkoutDeadlineToday = today + CheckoutDeadline; // so sanh gio check out voi hnay + 12 tieng
+
                 var isCheckOutToday = (room.TrangThai == 2 || room.TrangThai == 3)
+                    && now < checkoutDeadlineToday
                     && (activeBookings?.Any(ct => ct.NgayCheckOut.Date == today) ?? false);
 
                 return new PhongDisplayDTO

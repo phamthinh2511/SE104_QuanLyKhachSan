@@ -6,6 +6,7 @@ namespace QuanLyKhachSan_SE104.Services
 {
     public class StatusTransitionService : IStatusTransitionService
     {
+        private static readonly TimeSpan CheckoutDeadline = TimeSpan.FromHours(12); // 12:00 PM
         public void RunDailyTransitions()
         {
             using var ctx = new QuanLyKhachSanContext();
@@ -13,22 +14,21 @@ namespace QuanLyKhachSan_SE104.Services
             var now = DateTime.Now;
             var dirty = false;
 
-            dirty |= MarkOverdueRooms(ctx, today);
+            dirty |= MarkOverdueRooms(ctx, now);
             dirty |= MarkNoShows(ctx, today, now);
 
             if (dirty)
                 ctx.SaveChanges();
         }
 
-        private static bool MarkOverdueRooms(QuanLyKhachSanContext ctx, DateTime today)
+        private static bool MarkOverdueRooms(QuanLyKhachSanContext ctx, DateTime now)
         {
             var dirty = false;
 
-            var overdueChiTiets = ctx.ChiTietDatPhongs
+            var activeChiTiets = ctx.ChiTietDatPhongs
                 .Include(ct => ct.DatPhong)
                 .Include(ct => ct.Phong)
                 .Where(ct =>
-                    ct.NgayCheckOut < today &&
                     (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
                     (ct.Phong.TrangThai == 1 || ct.Phong.TrangThai == 2) &&
                     !ctx.ChiTietDatPhongs.Any(next =>
@@ -36,6 +36,14 @@ namespace QuanLyKhachSan_SE104.Services
                         next.MaChiTietDatPhong != ct.MaChiTietDatPhong &&
                         next.NgayCheckIn == ct.NgayCheckOut) &&
                     ct.Phong.TrangThai != 3)
+                .ToList();
+
+            var overdueChiTiets = activeChiTiets
+                .Where(ct =>
+                {
+                    var deadline = ct.NgayCheckOut.Date + CheckoutDeadline;
+                    return now >= deadline;
+                })
                 .ToList();
 
             foreach (var ct in overdueChiTiets)

@@ -24,7 +24,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         private readonly int _maChiTietDatPhong;
 
         private HoaDon _hoaDon;
-        private int _maChiTietDatPhongActive;      // resolved MaChiTietDatPhong of the open segment
+        private int _maChiTietDatPhongActive;
+
+        private bool _overdueInitialized = false;
+        private int _soGioQuaHanLocked = 0;
 
         public Action CloseAction { get; set; }
 
@@ -65,6 +68,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 : "";
         public bool HasOverdue => SoGioQuaHan > 0;
 
+        public decimal PhuPhi => SoGioQuaHan * PhuPhiMoiGio;
+
         // ══════════════════════════════════════════════
         //  Summary text kept for legacy XAML bindings
         // ══════════════════════════════════════════════
@@ -81,33 +86,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         }
 
         // ══════════════════════════════════════════════
-        //  Editable surcharge (PhuPhi)
-        // ══════════════════════════════════════════════
-        private string _phuPhiInput = "0";
-        public string PhuPhiInput
-        {
-            get => _phuPhiInput;
-            set
-            {
-                _phuPhiInput = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(PhuPhiText));
-                OnPropertyChanged(nameof(TongThanhToanText));
-                OnPropertyChanged(nameof(TongThanhToan));
-            }
-        }
-
-        private decimal ParsedPhuPhi
-        {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(_phuPhiInput)) return 0;
-                string clean = _phuPhiInput.Replace(",", "").Replace(".", "").Trim();
-                return decimal.TryParse(clean, out var v) ? v : 0;
-            }
-        }
-
-        // ══════════════════════════════════════════════
         //  Deposit
         // ══════════════════════════════════════════════
         public decimal TienCoc { get; private set; }
@@ -120,12 +98,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         public decimal TongTienDichVu => DanhSachDichVu?.Sum(x => x.ThanhTien) ?? 0;
 
         public decimal TongThanhToan =>
-            TongTienPhong + TongTienDichVu + ParsedPhuPhi
+            TongTienPhong + TongTienDichVu + PhuPhi
             - (_depositAlreadyApplied ? 0 : TienCoc);
 
         public string TongTienPhongText => $"{TongTienPhong:#,0}₫";
         public string TongTienDichVuText => $"{TongTienDichVu:#,0}₫";
-        public string PhuPhiText => $"{ParsedPhuPhi:#,0}₫";
+        public string PhuPhiText => $"{PhuPhi:#,0}₫";
         public string TienCocText =>
             _depositAlreadyApplied
                 ? $"- {TienCoc:#,0}₫  (đã trừ trước)"
@@ -295,7 +273,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
 
                 if (_isPaid)
                 {
-                    _phuPhiInput = _hoaDon.PhuPhi.ToString("N0");
                     GhiChu = _hoaDon.GhiChu ?? "";
                     _phuongThucThanhToan = _hoaDon.PhuongThucThanhToan;
                     PhuongThucThanhToanText = ToPaymentLabel(_hoaDon.PhuongThucThanhToan);
@@ -313,12 +290,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     {
                         double lateHours = (now - NgayCheckOutHopDong).TotalHours;
                         SoGioQuaHan = (int)Math.Floor(lateHours);
-                        _phuPhiInput = (SoGioQuaHan * PhuPhiMoiGio).ToString("N0");
                     }
                     else
                     {
                         SoGioQuaHan = 0;
-                        _phuPhiInput = "0";
                     }
                     _hoaDon = null;
                 }
@@ -380,7 +355,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                     MaNhanVien = _maNhanVien,
                     TongTienPhong = TongTienPhong,
                     TongTienDichVu = TongTienDichVu,
-                    PhuPhi = ParsedPhuPhi,
+                    PhuPhi = PhuPhi,
                     TienCoc = TienCoc,
                     TongThanhToan = tongCuoi,
                     NgayThanhToan = DateTime.Now,
@@ -410,7 +385,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                         ThoiGian = DateTime.Now,
                         MaNhanVien = _maNhanVien,
                         GhiChu = $"Khấu trừ cọc khi checkout {TenPhong}. " +
-                                 $"Tổng trước cọc: {TongTienPhong + TongTienDichVu + ParsedPhuPhi:#,0}₫. " +
+                                 $"Tổng trước cọc: {TongTienPhong + TongTienDichVu + PhuPhi:#,0}₫. " +
                                  $"Thực thu: {tongCuoi:#,0}₫."
                     });
                 }
