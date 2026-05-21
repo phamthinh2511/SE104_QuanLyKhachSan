@@ -370,7 +370,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 return;
             }
 
-            var rows = _dichVuDal.LayDichVuTheoChiTiet(ChiTietDatPhong.MaChiTietDatPhong);
+            var rows = _dichVuDal.LayDichVuTheoMaDatPhong(ChiTietDatPhong.MaDatPhong);
             DanhSachDichVu = new ObservableCollection<ChiTietDichVuDTO>(
                 rows.Where(x => x.DichVu != null)
                     .Select(x => new ChiTietDichVuDTO

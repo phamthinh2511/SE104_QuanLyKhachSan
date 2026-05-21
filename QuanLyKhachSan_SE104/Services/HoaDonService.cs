@@ -48,12 +48,14 @@ namespace QuanLyKhachSan_SE104.Services
             var now = DateTime.Now;
             var ngayCheckOut = isPaid ? hoaDon!.NgayThanhToan : now;
             var ngayCheckOutHopDong = activeSegment.NgayCheckOut;
+            var overdueBySegment = CalculateCumulativeOverdue(allSegments, activeSegment, hoaDon, isPaid, now);
 
             var segments = allSegments.Select(ct =>
             {
                 var isActive = ct.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong;
                 var segCheckOut = isActive ? ngayCheckOut : ct.NgayCheckOut;
                 var storedSoDem = NormalizeStoredNightCount(ct);
+                overdueBySegment.TryGetValue(ct.MaChiTietDatPhong, out var overdue);
 
                 return new PhongSegmentDTO
                 {
@@ -62,7 +64,9 @@ namespace QuanLyKhachSan_SE104.Services
                     NgayCheckOut = segCheckOut,
                     SoDem = storedSoDem,
                     GiaMoiDem = ct.GiaDat,
-                    IsCurrentRoom = isActive
+                    IsCurrentRoom = isActive,
+                    SoGioQuaHan = overdue.Hours,
+                    PhuPhiQuaHan = overdue.Surcharge
                 };
             }).ToList();
 
@@ -83,16 +87,18 @@ namespace QuanLyKhachSan_SE104.Services
                 .ToList();
 
             var phuPhiMoiGio = activeSegment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
-            var soGioQuaHan = CalculateCurrentOverdueHours(isPaid, hoaDon, now, ngayCheckOutHopDong, phuPhiMoiGio);
-            var currentOverdueSurcharge = soGioQuaHan * phuPhiMoiGio;
+            var soGioQuaHan = overdueBySegment.Values.Sum(x => x.Hours);
+            var currentOverdueSurcharge = overdueBySegment.Values.Sum(x => x.Surcharge);
 
             var roomNames = segments.Select(s => s.TenPhong).Distinct().ToList();
-            var depositAlreadyApplied = IsDepositAlreadyApplied(datPhong);
+            var depositAlreadyApplied = isPaid;
             var tongTienPhong = allSegments.Sum(GetStoredRoomTotal);
             var tongTienDichVu = danhSachDichVu.Sum(x => x.ThanhTien);
             var phuPhi = extensionSurcharge + currentOverdueSurcharge;
             var depositDeduction = depositAlreadyApplied ? 0 : datPhong.TienCoc;
-            var tongThanhToan = tongTienPhong + tongTienDichVu + phuPhi - depositDeduction;
+            var tongThanhToan = isPaid
+                ? hoaDon!.TongThanhToan
+                : tongTienPhong + tongTienDichVu + phuPhi - depositDeduction;
 
             return new InvoiceDetailDTO
             {
@@ -199,27 +205,110 @@ namespace QuanLyKhachSan_SE104.Services
             return GetInvoiceDetails(request.MaDatPhong, request.MaChiTietDatPhongActive, request.MaNhanVien);
         }
 
-        private static int CalculateCurrentOverdueHours(
-            bool isPaid,
+        private static Dictionary<int, OverdueCharge> CalculateCumulativeOverdue(
+            List<ChiTietDatPhong> allSegments,
+            ChiTietDatPhong activeSegment,
             HoaDon? hoaDon,
-            DateTime now,
-            DateTime ngayCheckOutHopDong,
-            decimal phuPhiMoiGio)
+            bool isPaid,
+            DateTime now)
         {
-            if (phuPhiMoiGio <= 0)
+            var result = new Dictionary<int, OverdueCharge>();
+
+            foreach (var segment in allSegments)
+            {
+                var hourlyRate = segment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
+                if (hourlyRate <= 0)
+                {
+                    result[segment.MaChiTietDatPhong] = new OverdueCharge(0, 0);
+                    continue;
+                }
+
+                var referenceTime = segment.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong
+                    ? (isPaid && hoaDon != null ? hoaDon.NgayThanhToan : now)
+                    : ResolveHistoricalSegmentEnd(allSegments, segment);
+
+                var hours = CalculateOverdueHours(referenceTime, segment.NgayCheckOut);
+                hours += CalculateExtensionOverdueHours(segment);
+
+                result[segment.MaChiTietDatPhong] = new OverdueCharge(hours, hours * hourlyRate);
+            }
+
+            return result;
+        }
+
+        private static DateTime ResolveHistoricalSegmentEnd(List<ChiTietDatPhong> allSegments, ChiTietDatPhong segment)
+        {
+            var nextSegment = allSegments
+                .Where(ct => ct.NgayCheckIn >= segment.NgayCheckIn
+                             && ct.MaChiTietDatPhong != segment.MaChiTietDatPhong)
+                .OrderBy(ct => ct.NgayCheckIn)
+                .ThenBy(ct => ct.MaChiTietDatPhong)
+                .FirstOrDefault();
+
+            return nextSegment?.NgayCheckIn ?? segment.NgayCheckOut;
+        }
+
+        private static int CalculateExtensionOverdueHours(ChiTietDatPhong segment)
+        {
+            var extensionEntries = (segment.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>())
+                .Where(IsExtensionSurcharge)
+                .OrderByDescending(x => x.ThoiGianSuDung)
+                .ThenByDescending(x => x.MaChiTietDV)
+                .ToList();
+
+            if (!extensionEntries.Any())
                 return 0;
 
-            var referenceTime = isPaid && hoaDon != null ? hoaDon.NgayThanhToan : now;
-            return referenceTime > ngayCheckOutHopDong
-                ? (int)Math.Floor((referenceTime - ngayCheckOutHopDong).TotalHours)
-                : 0;
+            var reconstructedCheckOut = segment.NgayCheckOut;
+            var hours = 0;
+
+            foreach (var extension in extensionEntries)
+            {
+                var duration = InferExtensionDuration(
+                    extension.ThanhTien,
+                    segment.GiaDat,
+                    segment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0);
+
+                if (duration <= TimeSpan.Zero)
+                    continue;
+
+                var previousCheckOut = reconstructedCheckOut - duration;
+                hours += CalculateOverdueHours(extension.ThoiGianSuDung, previousCheckOut);
+                reconstructedCheckOut = previousCheckOut;
+            }
+
+            return hours;
         }
+
+        private static TimeSpan InferExtensionDuration(decimal extensionFee, decimal roomDailyRate, decimal hourlySurchargeRate)
+        {
+            if (extensionFee <= 0)
+                return TimeSpan.Zero;
+
+            if (hourlySurchargeRate > 0 && extensionFee % hourlySurchargeRate == 0)
+            {
+                var hours = (double)(extensionFee / hourlySurchargeRate);
+                if (hours > 0 && hours < 24)
+                    return TimeSpan.FromHours(hours);
+            }
+
+            if (roomDailyRate > 0 && extensionFee % roomDailyRate == 0)
+            {
+                var days = (double)(extensionFee / roomDailyRate);
+                if (days > 0)
+                    return TimeSpan.FromDays(days);
+            }
+
+            return TimeSpan.Zero;
+        }
+
+        private static int CalculateOverdueHours(DateTime referenceTime, DateTime deadline)
+            => referenceTime > deadline
+                ? (int)Math.Floor((referenceTime - deadline).TotalHours)
+                : 0;
 
         private static bool IsExtensionSurcharge(ChiTietDichVu chiTietDichVu)
             => chiTietDichVu.DichVu?.TenDichVu == ExtensionSurchargeServiceName;
-
-        private static bool IsDepositAlreadyApplied(DatPhong datPhong)
-            => datPhong.TrangThaiCoc is 1 or 2 or 3;
 
         private static int NormalizeStoredNightCount(ChiTietDatPhong segment)
         {
@@ -255,5 +344,6 @@ namespace QuanLyKhachSan_SE104.Services
             2 => "Chuyển khoản",
             _ => "—"
         };
+        private readonly record struct OverdueCharge(int Hours, decimal Surcharge);
     }
 }

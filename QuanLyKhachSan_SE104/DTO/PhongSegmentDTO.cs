@@ -15,5 +15,7 @@ namespace QuanLyKhachSan_SE104.DTO
         public decimal GiaMoiDem { get; set; }
         public decimal ThanhTien => GiaMoiDem * SoDem;
         public bool IsCurrentRoom { get; set; }   // true for the room the guest is currently in
+        public int SoGioQuaHan { get; set; }
+        public decimal PhuPhiQuaHan { get; set; }
     }
 }

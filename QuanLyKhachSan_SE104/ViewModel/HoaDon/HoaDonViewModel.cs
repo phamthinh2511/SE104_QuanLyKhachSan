@@ -108,7 +108,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         public string PhuPhiText => $"{_phuPhi:#,0}₫";
         public string TienCocText =>
             _depositAlreadyApplied
-                ? $"- {TienCoc:#,0}₫  (đã trừ trước)"
+                ? $"- {TienCoc:#,0}₫  (đã trừ)"
                 : $"- {TienCoc:#,0}₫";
         public string TongThanhToanText => $"{TongThanhToan:#,0}₫";
 

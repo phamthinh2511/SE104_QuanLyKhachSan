@@ -50,6 +50,20 @@ namespace QuanLyKhachSan_SE104.DAL
                 .ToList();
         }
 
+        public List<ChiTietDichVu> LayDichVuTheoMaDatPhong(int maDatPhong)
+        {
+            using var ctx = new QuanLyKhachSanContext();
+
+            // Tìm tất cả các dịch vụ thuộc về bất kỳ segment nào có chung MaDatPhong
+            return ctx.ChiTietDichVus
+                .Include(x => x.DichVu)
+                .Where(x => ctx.ChiTietDatPhongs
+                               .Where(ct => ct.MaDatPhong == maDatPhong)
+                               .Select(ct => ct.MaChiTietDatPhong)
+                               .Contains(x.MaChiTietDatPhong))
+                .ToList();
+        }
+
         /// <summary>
         /// Loads all non-deleted services from the catalogue.
         /// </summary>
