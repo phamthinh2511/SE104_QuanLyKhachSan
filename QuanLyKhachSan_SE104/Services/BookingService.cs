@@ -52,7 +52,8 @@ namespace QuanLyKhachSan_SE104.Services
                 ctx.SaveChanges();
 
                 var trangThaiDat = req.IsWalkIn ? 2 : 1;
-                var depositAmount = req.IsWalkIn ? 0 : req.TienCoc;
+                //var depositAmount = req.IsWalkIn ? 0 : req.TienCoc;
+                var depositAmount = req.TienCoc;
 
                 var booking = new DatPhong
                 {
@@ -222,7 +223,7 @@ namespace QuanLyKhachSan_SE104.Services
                 tx.Commit();
 
                 var result = BookingResult.Success(dat.MaDatPhong);
-                result.Message = $"Doi sang phong {newPhong.TenPhong} thanh cong.";
+                result.Message = $"Đổi sang {newPhong.TenPhong} thành công.";
                 return result;
             }
             catch (Exception ex)
@@ -248,7 +249,7 @@ namespace QuanLyKhachSan_SE104.Services
                 if (ct == null)
                 {
                     tx.Rollback();
-                    return BookingResult.ValidationError("Khong tim thay thong tin dat phong.");
+                    return BookingResult.ValidationError("Không tìm thấy thông tin đặt phòng.");
                 }
 
                 if (ct.TrangThaiSegment != TrangThaiSegment.DangO)
@@ -305,7 +306,7 @@ namespace QuanLyKhachSan_SE104.Services
                 tx.Commit();
 
                 var result = BookingResult.Success(ct.MaDatPhong);
-                result.Message = $"Gia han phong den {req.NgayCheckOutMoi:dd/MM/yyyy HH:mm} thanh cong.";
+                result.Message = $"Gia hạn phòng đến {req.NgayCheckOutMoi:dd/MM/yyyy HH:mm} thành công.";
                 return result;
             }
             catch (Exception ex)

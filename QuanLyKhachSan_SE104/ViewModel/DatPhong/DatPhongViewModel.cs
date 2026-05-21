@@ -84,11 +84,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     // ── Deposit ───────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Minimum deposit = 1st-night rate of the cheapest selected room.
-    /// Recalculated whenever dates or selected rooms change.
-    /// Displayed as a hint below the TienCoc TextBox.
-    /// </summary>
     private decimal _minTienCoc = 0;
     public decimal MinTienCoc
     {
@@ -227,8 +222,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
         AddRoomToList(phong);
         NgayCheckIn = DateTime.Now;
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
-        // Deposit = 0 for walk-in (paid immediately at checkout)
-        TienCoc = 0;
     }
 
     // ── Constructor 3: DoiPhong ───────────────────────────────────────────
@@ -301,7 +294,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         MinTienCoc = _roomService.TinhTienCocToiThieu(SelectedRoomsList.Select(r => r.MaPhong));
 
         // Auto-fill only if the user hasn't entered anything yet
-        if (TienCoc < MinTienCoc && Mode == DatPhongMode.Normal)
+        if (TienCoc < MinTienCoc && (Mode == DatPhongMode.Normal || Mode == DatPhongMode.WalkIn))
             TienCoc = MinTienCoc;
     }
 
@@ -449,7 +442,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         if (NgayCheckOut <= NgayCheckIn)
             return "Ngày check-out phải sau thời điểm check-in.";
 
-        if (Mode == DatPhongMode.Normal && TienCoc < MinTienCoc)
+        if ((Mode == DatPhongMode.Normal || Mode == DatPhongMode.WalkIn) && TienCoc < MinTienCoc)
             return $"Tiền cọc tối thiểu là {MinTienCoc:#,0}₫ (bằng giá 1 đêm).";
 
         if (Mode != DatPhongMode.GiaHan)
