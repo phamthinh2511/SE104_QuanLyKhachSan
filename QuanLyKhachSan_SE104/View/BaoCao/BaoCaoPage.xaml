@@ -97,10 +97,10 @@
                 <Grid>
                     <StackPanel>
                         <TextBlock Text="Tổng doanh thu" Foreground="#64748B" FontSize="13"/>
-                        <TextBlock Text="{Binding TongDoanhThu, StringFormat=${0:N0}}" FontSize="24" FontWeight="Bold" Foreground="#0F172A" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding TongDoanhThu, StringFormat={}{0:N0} ₫}" FontSize="24" FontWeight="Bold" Foreground="#0F172A" Margin="0,8,0,0"/>
                     </StackPanel>
                     <Border Width="40" Height="40" Background="#DBEAFE" CornerRadius="8" HorizontalAlignment="Right" VerticalAlignment="Top">
-                        <TextBlock Text="$" Foreground="#2563EB" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="₫" Foreground="#2563EB" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </Grid>
             </Border>

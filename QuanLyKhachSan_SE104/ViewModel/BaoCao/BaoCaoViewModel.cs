@@ -327,7 +327,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 .Where(c => c.ThoiGianSuDung >= start && c.ThoiGianSuDung <= end && c.DichVu != null)
                 .AsEnumerable()
                 .GroupBy(c => c.DichVu.TenDichVu ?? "(Không tên)")
-                .Select(g => new { Name = g.Key, Count = g.Sum(c => c.SoLuong) })
+                .Select(g => new { 
+                    Name = g.Key, 
+                    Count = g.Sum(c => c.SoLuong),
+                    Revenue = g.Sum(c => c.SoLuong * c.DonGia)
+                })
                 .ToList();
 
             var pieSeries = new SeriesCollection();
@@ -344,16 +348,16 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             ServiceUsageSeries = pieSeries;
 
             // ServiceBarSeries: biểu đồ cột "Doanh thu theo dịch vụ" cho Tab 3 (phải)
-            var serviceBarValues = new ChartValues<int>();
+            var serviceBarValues = new ChartValues<decimal>();
             var serviceBarLabelsList = new ObservableCollection<string>();
             foreach (var item in serviceUsage.Take(8)) // giới hạn 8 mục
             {
-                serviceBarValues.Add(item.Count);
+                serviceBarValues.Add(item.Revenue);
                 serviceBarLabelsList.Add(item.Name ?? "?");
             }
             if (serviceBarValues.Count == 0)
             {
-                serviceBarValues.AddRange(new[] { 25, 35, 15 });
+                serviceBarValues.AddRange(new decimal[] { 250000m, 350000m, 150000m });
                 serviceBarLabelsList.AddRange(new[] { "Giặt ủi", "Ăn sáng", "Spa" });
             }
             ServiceBarLabels = serviceBarLabelsList;
@@ -362,7 +366,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             {
                 new ColumnSeries
                 {
-                    Title = "Số lượt sử dụng",
+                    Title = "Doanh thu (₫)",
                     Values = serviceBarValues,
                     Fill = System.Windows.Media.Brushes.MediumOrchid,
                     DataLabels = true
