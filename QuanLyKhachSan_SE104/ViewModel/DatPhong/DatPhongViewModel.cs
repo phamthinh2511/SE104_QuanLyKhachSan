@@ -524,6 +524,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private void ExecuteSave()
     {
+        var validationMessage = ValidateBeforeSave();
         // Validate check-in time of day (must be at least 09:00)
         if (NgayCheckIn.TimeOfDay < TimeSpan.FromHours(9))
         {

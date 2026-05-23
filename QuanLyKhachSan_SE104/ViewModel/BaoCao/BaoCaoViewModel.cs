@@ -358,7 +358,9 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             if (serviceBarValues.Count == 0)
             {
                 serviceBarValues.AddRange(new decimal[] { 250000m, 350000m, 150000m });
-                serviceBarLabelsList.AddRange(new[] { "Giặt ủi", "Ăn sáng", "Spa" });
+                serviceBarLabelsList.Add("Giặt ủi");
+                serviceBarLabelsList.Add("Ăn sáng");
+                serviceBarLabelsList.Add("Spa");
             }
             ServiceBarLabels = serviceBarLabelsList;
 
@@ -399,7 +401,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             if(prodValues.Count == 0)
             {
                 prodValues.AddRange(new int[] { 30, 25, 45, 10 });
-                prodLabels.AddRange(new string[] { "Standard", "Superior", "Deluxe", "Suite" });
+                prodLabels.Add("Standard");
+                prodLabels.Add("Superior");
+                prodLabels.Add("Deluxe");
+                prodLabels.Add("Suite");
             }
             RoomProductivityLabels = prodLabels;
 
