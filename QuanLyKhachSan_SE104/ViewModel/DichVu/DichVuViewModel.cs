@@ -267,6 +267,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
                     }).ToList();
 
                     MessageBox.Show($"Đã lưu {DanhSachDaChon.Count} dịch vụ. Tổng: {TongTienText}", "Thành công");
+                    HotelEventBus.PublishRoomStatusChanged();
                     CloseAction?.Invoke();
                 }
                 catch (Exception ex)

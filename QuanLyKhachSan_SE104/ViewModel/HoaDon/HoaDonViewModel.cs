@@ -237,6 +237,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
                 MessageBox.Show("Thanh toán thành công!", "Thông báo",
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
+                HotelEventBus.PublishRoomStatusChanged();
+
                 CloseAction?.Invoke();
             }
             catch (Exception ex)

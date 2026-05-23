@@ -190,6 +190,8 @@ namespace QuanLyKhachSan_SE104.ViewModel
                         transaction.Commit();
                         MessageBox.Show("Trả phòng thành công!");
 
+                        HotelEventBus.PublishRoomStatusChanged();
+
                         SelectedKhachHang = null;
                         ListDichVuSuDung.Clear();
                         TongTienThanhToan = 0;

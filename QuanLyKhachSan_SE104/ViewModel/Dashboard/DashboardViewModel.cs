@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Utilities;
 
 namespace QuanLyKhachSan_SE104.ViewModel.Dashboard
 {
@@ -29,7 +30,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.Dashboard
         public ObservableCollection<ScheduleEventVM> Events { get; set; } = new();
     }
 
-    public class DashboardViewModel : INotifyPropertyChanged
+    public class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -68,6 +69,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.Dashboard
         public DashboardViewModel()
         {
             SelectedDate = DateTime.Today; // triggers LoadSchedule()
+            HotelEventBus.RoomStatusChanged += OnRoomStatusChanged;
+        }
+
+        private void OnRoomStatusChanged()
+        {
+            if (System.Windows.Application.Current != null)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(LoadSchedule);
+            }
+            else
+            {
+                LoadSchedule();
+            }
+        }
+
+        public void Dispose()
+        {
+            HotelEventBus.RoomStatusChanged -= OnRoomStatusChanged;
         }
 
         public void LoadSchedule()

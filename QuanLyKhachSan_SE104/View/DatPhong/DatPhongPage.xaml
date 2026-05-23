@@ -198,10 +198,10 @@
                                 <DatePicker Grid.Column="0" SelectedDate="{Binding NgayCheckInDate, Mode=TwoWay}"
                                             IsEnabled="{Binding IsCheckInReadOnly, Converter={StaticResource InverseBooleanConverter}}"/>
                                 <ComboBox Grid.Column="2" ItemsSource="{Binding HoursList}" SelectedValue="{Binding NgayCheckInHour, Mode=TwoWay}"
-                                          IsEnabled="{Binding IsCheckInReadOnly, Converter={StaticResource InverseBooleanConverter}}" Height="30" VerticalContentAlignment="Center"/>
+                                          IsEnabled="False" Height="30" VerticalContentAlignment="Center"/>
                                 <TextBlock Grid.Column="3" Text=":" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource SecondaryBrush}"/>
                                 <ComboBox Grid.Column="4" ItemsSource="{Binding MinutesList}" SelectedValue="{Binding NgayCheckInMinute, Mode=TwoWay}"
-                                          IsEnabled="{Binding IsCheckInReadOnly, Converter={StaticResource InverseBooleanConverter}}" Height="30" VerticalContentAlignment="Center"/>
+                                          IsEnabled="False" Height="30" VerticalContentAlignment="Center"/>
                             </Grid>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
@@ -215,9 +215,9 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <DatePicker Grid.Column="0" SelectedDate="{Binding NgayCheckOutDate, Mode=TwoWay}"/>
-                                <ComboBox Grid.Column="2" ItemsSource="{Binding HoursList}" SelectedValue="{Binding NgayCheckOutHour, Mode=TwoWay}" Height="30" VerticalContentAlignment="Center"/>
+                                <ComboBox Grid.Column="2" ItemsSource="{Binding HoursList}" SelectedValue="{Binding NgayCheckOutHour, Mode=TwoWay}" IsEnabled="False" Height="30" VerticalContentAlignment="Center"/>
                                 <TextBlock Grid.Column="3" Text=":" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource SecondaryBrush}"/>
-                                <ComboBox Grid.Column="4" ItemsSource="{Binding MinutesList}" SelectedValue="{Binding NgayCheckOutMinute, Mode=TwoWay}" Height="30" VerticalContentAlignment="Center"/>
+                                <ComboBox Grid.Column="4" ItemsSource="{Binding MinutesList}" SelectedValue="{Binding NgayCheckOutMinute, Mode=TwoWay}" IsEnabled="False" Height="30" VerticalContentAlignment="Center"/>
                             </Grid>
                         </StackPanel>
                     </Grid>

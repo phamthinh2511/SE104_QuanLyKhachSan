@@ -149,6 +149,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                         _ => "SẠCH"
                     };
                     LoadData();
+                    HotelEventBus.PublishRoomStatusChanged();
                     MessageBox.Show($"Phòng {p.TenPhong} đã chuyển sang trạng thái: {label}", "Thông báo");
                 }
                 catch (Exception ex) { MessageBox.Show("Lỗi cập nhật: " + ex.Message); }
@@ -168,13 +169,21 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             {
                 if (p == null) return;
                 var editDialog = new PhongModal(p);
-                if (editDialog.ShowDialog() == true) LoadData();
+                if (editDialog.ShowDialog() == true)
+                {
+                    LoadData();
+                    HotelEventBus.PublishRoomStatusChanged();
+                }
             });
 
             AddRoomCommand = new RelayCommand<object>(_ =>
             {
                 var addDialog = new PhongModal(null);
-                if (addDialog.ShowDialog() == true) LoadData();
+                if (addDialog.ShowDialog() == true)
+                {
+                    LoadData();
+                    HotelEventBus.PublishRoomStatusChanged();
+                }
             });
 
             MoChiTietPhongCommand = new RelayCommand<PhongModel>(phong =>

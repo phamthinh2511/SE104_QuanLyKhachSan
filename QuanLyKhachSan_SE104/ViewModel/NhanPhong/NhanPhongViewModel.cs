@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.DAL;
+using QuanLyKhachSan_SE104.DAL;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -157,6 +157,8 @@ namespace QuanLyKhachSan_SE104.ViewModel
 
                 // Refresh lại danh sách (phòng đã nhận sẽ biến mất khỏi danh sách chờ)
                 LoadData();
+
+                HotelEventBus.PublishRoomStatusChanged();
 
                 // Đóng Popup
                 IsCheckInPopupVisible = false;

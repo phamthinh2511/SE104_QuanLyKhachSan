@@ -56,18 +56,18 @@ public class DatPhongViewModel : INotifyPropertyChanged
     public List<string> MinutesList { get; } = Enumerable.Range(0, 60).Select(m => m.ToString("D2")).ToList();
 
     // ── Dates ─────────────────────────────────────────────────────────────
-    private DateTime _ngayCheckIn = DateTime.Now;
+    private DateTime _ngayCheckIn = DateTime.Now.Date.AddHours(14);
     public DateTime NgayCheckIn
     {
         get => _ngayCheckIn;
         set
         {
-            _ngayCheckIn = value;
+            _ngayCheckIn = value.Date.AddHours(14);
             OnPropertyChanged();
 
-            _ngayCheckInDate = value.Date;
-            _ngayCheckInHour = value.Hour.ToString("D2");
-            _ngayCheckInMinute = value.Minute.ToString("D2");
+            _ngayCheckInDate = _ngayCheckIn.Date;
+            _ngayCheckInHour = "14";
+            _ngayCheckInMinute = "00";
 
             OnPropertyChanged(nameof(NgayCheckInDate));
             OnPropertyChanged(nameof(NgayCheckInHour));
@@ -83,12 +83,12 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckOut;
         set
         {
-            _ngayCheckOut = value;
+            _ngayCheckOut = value.Date.AddHours(12);
             OnPropertyChanged();
 
-            _ngayCheckOutDate = value.Date;
-            _ngayCheckOutHour = value.Hour.ToString("D2");
-            _ngayCheckOutMinute = value.Minute.ToString("D2");
+            _ngayCheckOutDate = _ngayCheckOut.Date;
+            _ngayCheckOutHour = "12";
+            _ngayCheckOutMinute = "00";
 
             OnPropertyChanged(nameof(NgayCheckOutDate));
             OnPropertyChanged(nameof(NgayCheckOutHour));
@@ -104,31 +104,31 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckInDate;
         set
         {
-            _ngayCheckInDate = value;
+            _ngayCheckInDate = value.Date;
             OnPropertyChanged();
             UpdateNgayCheckIn();
         }
     }
 
-    private string _ngayCheckInHour = DateTime.Now.Hour < 9 ? "09" : DateTime.Now.Hour.ToString("D2");
+    private string _ngayCheckInHour = "14";
     public string NgayCheckInHour
     {
         get => _ngayCheckInHour;
         set
         {
-            _ngayCheckInHour = value;
+            _ngayCheckInHour = "14";
             OnPropertyChanged();
             UpdateNgayCheckIn();
         }
     }
 
-    private string _ngayCheckInMinute = DateTime.Now.Minute.ToString("D2");
+    private string _ngayCheckInMinute = "00";
     public string NgayCheckInMinute
     {
         get => _ngayCheckInMinute;
         set
         {
-            _ngayCheckInMinute = value;
+            _ngayCheckInMinute = "00";
             OnPropertyChanged();
             UpdateNgayCheckIn();
         }
@@ -136,12 +136,9 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private void UpdateNgayCheckIn()
     {
-        if (int.TryParse(NgayCheckInHour, out int h) && int.TryParse(NgayCheckInMinute, out int m))
-        {
-            _ngayCheckIn = NgayCheckInDate.Date.AddHours(h).AddMinutes(m);
-            OnPropertyChanged(nameof(NgayCheckIn));
-            RecalculateDefaultDeposit();
-        }
+        _ngayCheckIn = NgayCheckInDate.Date.AddHours(14);
+        OnPropertyChanged(nameof(NgayCheckIn));
+        RecalculateDefaultDeposit();
     }
 
     private DateTime _ngayCheckOutDate = DateTime.Today.AddDays(1).Date;
@@ -150,7 +147,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckOutDate;
         set
         {
-            _ngayCheckOutDate = value;
+            _ngayCheckOutDate = value.Date;
             OnPropertyChanged();
             UpdateNgayCheckOut();
         }
@@ -162,7 +159,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckOutHour;
         set
         {
-            _ngayCheckOutHour = value;
+            _ngayCheckOutHour = "12";
             OnPropertyChanged();
             UpdateNgayCheckOut();
         }
@@ -174,7 +171,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckOutMinute;
         set
         {
-            _ngayCheckOutMinute = value;
+            _ngayCheckOutMinute = "00";
             OnPropertyChanged();
             UpdateNgayCheckOut();
         }
@@ -182,12 +179,9 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private void UpdateNgayCheckOut()
     {
-        if (int.TryParse(NgayCheckOutHour, out int h) && int.TryParse(NgayCheckOutMinute, out int m))
-        {
-            _ngayCheckOut = NgayCheckOutDate.Date.AddHours(h).AddMinutes(m);
-            OnPropertyChanged(nameof(NgayCheckOut));
-            RecalculateDefaultDeposit();
-        }
+        _ngayCheckOut = NgayCheckOutDate.Date.AddHours(12);
+        OnPropertyChanged(nameof(NgayCheckOut));
+        RecalculateDefaultDeposit();
     }
 
     // ── Deposit ───────────────────────────────────────────────────────────
@@ -320,13 +314,8 @@ public class DatPhongViewModel : INotifyPropertyChanged
         SaveCommand = new RelayCommand(ExecuteSave, CanExecuteSave);
         ToggleRoomCommand = new RelayCommand<Phong>(ExecuteToggleRoom);
 
-        // Ensure proper initial check-in time of day (must be at least 09:00)
-        var initCheckIn = DateTime.Now;
-        if (initCheckIn.Hour < 9)
-        {
-            initCheckIn = initCheckIn.Date.AddHours(9);
-        }
-        NgayCheckIn = initCheckIn;
+        // Ensure proper initial check-in time of day is 14:00, and checkout is 12:00
+        NgayCheckIn = DateTime.Now.Date.AddHours(14);
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     }
 
@@ -337,7 +326,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         NotifyModeProps();
 
         AddRoomToList(phong);
-        NgayCheckIn = DateTime.Now;
+        NgayCheckIn = DateTime.Now.Date.AddHours(14);
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     }
 
@@ -525,14 +514,6 @@ public class DatPhongViewModel : INotifyPropertyChanged
     private void ExecuteSave()
     {
         var validationMessage = ValidateBeforeSave();
-        // Validate check-in time of day (must be at least 09:00)
-        if (NgayCheckIn.TimeOfDay < TimeSpan.FromHours(9))
-        {
-            MessageBox.Show(
-                "Thời gian nhận phòng sớm nhất là 09:00 sáng hằng ngày.",
-                "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
 
         // Validate checkout is after check-in
         if (NgayCheckOut <= NgayCheckIn)

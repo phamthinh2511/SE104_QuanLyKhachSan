@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.DAL;
 using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Model;
@@ -300,6 +300,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                     _ => "Không xác định"
                 };
                 MessageBox.Show($"Đã chuyển trạng thái phòng {phong.TenPhong} sang: {label}", "Thông báo");
+                HotelEventBus.PublishRoomStatusChanged();
                 _window.Close();
             }
             catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
