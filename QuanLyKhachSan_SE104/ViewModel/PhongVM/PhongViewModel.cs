@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using QuanLyKhachSan_SE104.DTOs;
 using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Services;
 using QuanLyKhachSan_SE104.Utilities;
 using QuanLyKhachSan_SE104.View.PhongView;
 using System;
@@ -17,12 +18,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 {
     public class PhongViewModel : INotifyPropertyChanged, IDisposable
     {
-        // ── TODO: replace with LoginSession.CurrentUserId ─────────────────────
-        private const int STAFF_ID = 1;
-
         // ── Data ──────────────────────────────────────────────────────────────
         private ObservableCollection<PhongModel> _allPhongs;
         private ObservableCollection<PhongModel> _listPhong;
+        private IReadOnlyList<PhongDisplayDTO> _displayRooms = Array.Empty<PhongDisplayDTO>();
+        private readonly IBookingQueryService _bookingQueryService = new BookingQueryService();
+        private readonly RoomService _roomService = new();
+        private readonly IStatusTransitionService _statusTransitionService = new StatusTransitionService();
 
         public ObservableCollection<PhongModel> ListPhong
         {
@@ -95,6 +97,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         public PhongViewModel()
         {
             HotelEventBus.RoomStatusChanged += OnRoomStatusChanged;
+            _statusTransitionService.RunDailyTransitions();
             LoadData();
 
             FilterCommand = new RelayCommand<string>(filter =>
@@ -135,21 +138,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (p == null) return;
                 try
                 {
-                    using var ctx = new QuanLyKhachSanContext();
-                    var phongDb = ctx.Phongs.Find(p.MaPhong);
-                    if (phongDb == null) return;
+                    var trangThaiMoi = _roomService.ToggleCleaningStatus(p.MaPhong);
+                    if (!trangThaiMoi.HasValue) return;
 
-                    int trangThaiMoi = phongDb.TrangThaiDonDep switch
-                    {
-                        0 => 1,
-                        1 => 0,
-                        2 => 0,
-                        _ => 0
-                    };
-                    phongDb.TrangThaiDonDep = trangThaiMoi;
-                    ctx.SaveChanges();
-
-                    string label = trangThaiMoi switch
+                    string label = trangThaiMoi.Value switch
                     {
                         0 => "SẠCH",
                         1 => "ĐANG DỌN",
@@ -190,16 +182,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 if (phong == null) return;
                 ChiTietDatPhongModel chiTiet = null;
 
-                if (phong.TrangThai == 1 || phong.TrangThai == 2 || phong.TrangThai == 3)
-                {
-                    using var ctx = new QuanLyKhachSanContext();
-                    chiTiet = ctx.ChiTietDatPhongs
-                        .Include(c => c.DatPhong).ThenInclude(d => d.KhachHang)
-                        .Include(c => c.ChiTietDichVus).ThenInclude(dv => dv.DichVu)
-                        .FirstOrDefault(c => c.MaPhong == phong.MaPhong
-                            && (c.DatPhong.TrangThaiDat == 1
-                            || c.DatPhong.TrangThaiDat == 2));
-                }
+                if (phong.TrangThai == 1)
+                    chiTiet = _bookingQueryService.GetRoomDetailBySegment(phong.MaPhong, TrangThaiSegment.ChoNhanPhong);
+                else if (phong.TrangThai == 2 || phong.TrangThai == 3)
+                    chiTiet = _bookingQueryService.GetActiveRoomDetail(phong.MaPhong);
 
                 var win = new QuanLyKhachSan_SE104.View.Phong.ChiTietPhong(phong, chiTiet);
                 win.Owner = Application.Current.MainWindow;
@@ -223,124 +209,55 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
         }
 
         // ════════════════════════════════════════════════════════════════
-        //  LoadData — runs every time the room grid is refreshed.
-        //  Three auto-transitions happen here in order:
-        //    1. Overdue: TrangThaiDat 1/2 + NgayCheckOut < today  → Phong.TrangThai = 3
-        //    2. No-show: TrangThaiDat = 1 + NgayCheckIn midnight passed → TrangThaiDat = 5
-        //    3. Alert flags: IsCheckInToday / IsCheckOutToday set on each Phong
+        //  LoadData — read-only room grid refresh.
+        //  Daily state mutations are handled by IStatusTransitionService.
         // ════════════════════════════════════════════════════════════════
         public void LoadData()
         {
-            using var ctx = new QuanLyKhachSanContext();
-            var today = DateTime.Today;
-            var now = DateTime.Now;
-            bool dirty = false;
+            _displayRooms = _bookingQueryService.GetAllRoomsForDisplay();
+            _allPhongs = new ObservableCollection<PhongModel>(_displayRooms.Select(ToPhongModel));
 
-            // ── 1. Mark overdue rooms (TrangThai → 3) ────────────────────────
-            // NgayCheckOut strictly before today AND booking still active (1 or 2)
-            var overdueChiTiets = ctx.ChiTietDatPhongs
-                .Include(ct => ct.DatPhong)
-                .Include(ct => ct.Phong)
-                .Where(ct =>
-                    ct.NgayCheckOut < today &&
-                    (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
-                    ct.Phong.TrangThai != 3)
-                .ToList();
+            ListPhong = new ObservableCollection<PhongModel>(_allPhongs);
+            RebuildFilterCombos();
+            ApplyFilter();
+            NotifyStatBadges();
+        }
 
-            foreach (var ct in overdueChiTiets)
-            {
-                ct.Phong.TrangThai = 3;
-                dirty = true;
-            }
+        private void RebuildFilterCombos()
+        {
+            var currentTang = SelectedTang;
+            var currentLoaiPhongId = SelectedLoaiPhong?.MaLoaiPhong;
 
-            // ── 2. Auto no-show: passes 00:00 of the day AFTER NgayCheckIn ──
-            // Business rule: if a confirmed booking (TrangThaiDat = 1) has
-            // NgayCheckIn.Date < today (i.e. 00:00 of next day has passed)
-            // AND the guest never checked in → mark as No-show (TrangThaiDat = 5),
-            // forfeit the deposit (TrangThaiCoc = 2), free the room (TrangThai = 0).
-            var noShowChiTiets = ctx.ChiTietDatPhongs
-                .Include(ct => ct.DatPhong)
-                .Include(ct => ct.Phong)
-                .Where(ct =>
-                    ct.DatPhong.TrangThaiDat == 1 &&        // still only "confirmed", never checked in
-                    ct.NgayCheckIn.Date < today &&           // 00:00 next day has passed
-                    ct.Phong.TrangThai == 1)                 // room still in "Đã đặt" state
-                .ToList();
-
-            foreach (var ct in noShowChiTiets)
-            {
-                var dat = ct.DatPhong;
-                var phong = ct.Phong;
-
-                // Transition booking → No-show
-                dat.TrangThaiDat = 5;
-
-                // Forfeit deposit → revenue
-                if (dat.TienCoc > 0 && dat.TrangThaiCoc == 0)
-                {
-                    dat.TrangThaiCoc = 2;   // Đã thu vào doanh thu
-
-                    ctx.LichSuCocs.Add(new LichSuCoc
-                    {
-                        MaDatPhong = dat.MaDatPhong,
-                        LoaiGiaoDich = 2,                   // Thu doanh thu
-                        SoTien = dat.TienCoc,
-                        ThoiGian = now,
-                        MaNhanVien = STAFF_ID,
-                        GhiChu = $"Auto no-show: phòng {phong.TenPhong}, " +
-                                       $"ngày nhận dự kiến {ct.NgayCheckIn:dd/MM/yyyy}. " +
-                                       $"Cọc {dat.TienCoc:#,0}₫ chuyển doanh thu."
-                    });
-                }
-
-                // Free the room
-                phong.TrangThai = 0;
-
-                dirty = true;
-            }
-
-            if (dirty) ctx.SaveChanges();
-
-            // ── 3. Load all rooms with navigation properties ──────────────────
-            var allPhongsFromDb = ctx.Phongs
-                .Include(p => p.LoaiPhong)
-                .Include(p => p.ChiTietDatPhongs)
-                    .ThenInclude(ct => ct.DatPhong)
-                .OrderBy(p => p.TenPhong)
-                .ToList();
-
-            // ── 4. Set alert flags (IsCheckInToday / IsCheckOutToday) ─────────
-            foreach (var phong in allPhongsFromDb)
-            {
-                var activeBookings = phong.ChiTietDatPhongs?
-                    .Where(ct => ct.DatPhong != null
-                              && ct.DatPhong.TrangThaiDat != 3   // not checked-out
-                              && ct.DatPhong.TrangThaiDat != 4   // not cancelled
-                              && ct.DatPhong.TrangThaiDat != 5)  // not no-show
-                    .ToList();
-
-                phong.IsCheckInToday = activeBookings?.Any(ct => ct.NgayCheckIn.Date == today) ?? false;
-                phong.IsCheckOutToday = activeBookings?.Any(ct => ct.NgayCheckOut.Date == today) ?? false;
-            }
-
-            _allPhongs = new ObservableCollection<PhongModel>(allPhongsFromDb);
-
-            // ── 5. Rebuild filter combos ──────────────────────────────────────
-            var tangs = _allPhongs.Select(p => p.SoTang).Distinct().OrderBy(t => t).ToList();
             ListTang = new ObservableCollection<int> { -1 };
-            foreach (var t in tangs) ListTang.Add(t);
+            foreach (var tang in _displayRooms.Select(p => p.SoTang).Distinct().OrderBy(t => t))
+                ListTang.Add(tang);
 
-            var loaiPhongs = ctx.LoaiPhongs.Where(lp => !lp.IsDeleted).ToList();
             ListLoaiPhong = new ObservableCollection<LoaiPhong>
             {
                 new LoaiPhong { MaLoaiPhong = -1, TenLoaiPhong = "Tất cả" }
             };
-            foreach (var lp in loaiPhongs) ListLoaiPhong.Add(lp);
 
-            ListPhong = new ObservableCollection<PhongModel>(_allPhongs);
-            ApplyFilter();
+            foreach (var loaiPhong in _displayRooms
+                .GroupBy(p => new { p.MaLoaiPhong, p.TenLoaiPhong })
+                .OrderBy(g => g.Key.TenLoaiPhong)
+                .Select(g => new LoaiPhong
+                {
+                    MaLoaiPhong = g.Key.MaLoaiPhong,
+                    TenLoaiPhong = g.Key.TenLoaiPhong
+                }))
+            {
+                ListLoaiPhong.Add(loaiPhong);
+            }
 
-            // ── 6. Notify stat badges ─────────────────────────────────────────
+            SelectedTang = currentTang.HasValue && ListTang.Contains(currentTang.Value)
+                ? currentTang
+                : -1;
+            SelectedLoaiPhong = ListLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == currentLoaiPhongId)
+                ?? ListLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == -1);
+        }
+
+        private void NotifyStatBadges()
+        {
             OnPropertyChanged(nameof(CountTatCa));
             OnPropertyChanged(nameof(CountTrong));
             OnPropertyChanged(nameof(CountDaDat));
@@ -348,9 +265,27 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
             OnPropertyChanged(nameof(CountQuaHan));
             OnPropertyChanged(nameof(CountCanDonDep));
             OnPropertyChanged(nameof(CountBaoTri));
+        }
 
-            SelectedTang = -1;
-            SelectedLoaiPhong = ListLoaiPhong.FirstOrDefault(x => x.MaLoaiPhong == -1);
+        private static PhongModel ToPhongModel(PhongDisplayDTO dto)
+        {
+            return new PhongModel
+            {
+                MaPhong = dto.MaPhong,
+                TenPhong = dto.TenPhong,
+                MaLoaiPhong = dto.MaLoaiPhong,
+                SoTang = dto.SoTang,
+                TrangThai = dto.TrangThai,
+                TrangThaiDonDep = dto.TrangThaiDonDep,
+                IsCheckInToday = dto.IsCheckInToday,
+                IsCheckOutToday = dto.IsCheckOutToday,
+                LoaiPhong = new LoaiPhong
+                {
+                    MaLoaiPhong = dto.MaLoaiPhong,
+                    TenLoaiPhong = dto.TenLoaiPhong,
+                    GiaMacDinh = dto.GiaMacDinh
+                }
+            };
         }
 
         public void Refresh() => LoadData();
