@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.ViewModel;
 using System;
 using System.Collections.Generic;
@@ -23,7 +23,7 @@ namespace QuanLyKhachSan_SE104.View.Dashboard
         public DashboardPage()
         {
             InitializeComponent();
-            
+            DataContext = new ViewModel.Dashboard.DashboardViewModel();
         }
 
     }

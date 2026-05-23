@@ -1,11 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.DTOs;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Services;
 using QuanLyKhachSan_SE104.Utilities;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -49,6 +51,10 @@ public class DatPhongViewModel : INotifyPropertyChanged
         set { _newCustomer = value; OnPropertyChanged(); }
     }
 
+    // ── Lists for time picker ──
+    public List<string> HoursList { get; } = Enumerable.Range(0, 24).Select(h => h.ToString("D2")).ToList();
+    public List<string> MinutesList { get; } = Enumerable.Range(0, 60).Select(m => m.ToString("D2")).ToList();
+
     // ── Dates ─────────────────────────────────────────────────────────────
     private DateTime _ngayCheckIn = DateTime.Now;
     public DateTime NgayCheckIn
@@ -58,6 +64,15 @@ public class DatPhongViewModel : INotifyPropertyChanged
         {
             _ngayCheckIn = value;
             OnPropertyChanged();
+
+            _ngayCheckInDate = value.Date;
+            _ngayCheckInHour = value.Hour.ToString("D2");
+            _ngayCheckInMinute = value.Minute.ToString("D2");
+
+            OnPropertyChanged(nameof(NgayCheckInDate));
+            OnPropertyChanged(nameof(NgayCheckInHour));
+            OnPropertyChanged(nameof(NgayCheckInMinute));
+
             RecalculateDefaultDeposit();   // default deposit changes when dates change
         }
     }
@@ -68,17 +83,110 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckOut;
         set
         {
-            DateTime dateWithNoon = value.Date.AddHours(12);
-            if (dateWithNoon <= NgayCheckIn)
-            {
-                MessageBox.Show("Ngày check-out phải sau thời điểm check-in.", "Lỗi nhập liệu",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                OnPropertyChanged();
-                return;
-            }
-            _ngayCheckOut = dateWithNoon;
+            _ngayCheckOut = value;
             OnPropertyChanged();
+
+            _ngayCheckOutDate = value.Date;
+            _ngayCheckOutHour = value.Hour.ToString("D2");
+            _ngayCheckOutMinute = value.Minute.ToString("D2");
+
+            OnPropertyChanged(nameof(NgayCheckOutDate));
+            OnPropertyChanged(nameof(NgayCheckOutHour));
+            OnPropertyChanged(nameof(NgayCheckOutMinute));
+
             RecalculateDefaultDeposit();   // default deposit changes when dates change
+        }
+    }
+
+    private DateTime _ngayCheckInDate = DateTime.Now.Date;
+    public DateTime NgayCheckInDate
+    {
+        get => _ngayCheckInDate;
+        set
+        {
+            _ngayCheckInDate = value;
+            OnPropertyChanged();
+            UpdateNgayCheckIn();
+        }
+    }
+
+    private string _ngayCheckInHour = DateTime.Now.Hour < 9 ? "09" : DateTime.Now.Hour.ToString("D2");
+    public string NgayCheckInHour
+    {
+        get => _ngayCheckInHour;
+        set
+        {
+            _ngayCheckInHour = value;
+            OnPropertyChanged();
+            UpdateNgayCheckIn();
+        }
+    }
+
+    private string _ngayCheckInMinute = DateTime.Now.Minute.ToString("D2");
+    public string NgayCheckInMinute
+    {
+        get => _ngayCheckInMinute;
+        set
+        {
+            _ngayCheckInMinute = value;
+            OnPropertyChanged();
+            UpdateNgayCheckIn();
+        }
+    }
+
+    private void UpdateNgayCheckIn()
+    {
+        if (int.TryParse(NgayCheckInHour, out int h) && int.TryParse(NgayCheckInMinute, out int m))
+        {
+            _ngayCheckIn = NgayCheckInDate.Date.AddHours(h).AddMinutes(m);
+            OnPropertyChanged(nameof(NgayCheckIn));
+            RecalculateDefaultDeposit();
+        }
+    }
+
+    private DateTime _ngayCheckOutDate = DateTime.Today.AddDays(1).Date;
+    public DateTime NgayCheckOutDate
+    {
+        get => _ngayCheckOutDate;
+        set
+        {
+            _ngayCheckOutDate = value;
+            OnPropertyChanged();
+            UpdateNgayCheckOut();
+        }
+    }
+
+    private string _ngayCheckOutHour = "12";
+    public string NgayCheckOutHour
+    {
+        get => _ngayCheckOutHour;
+        set
+        {
+            _ngayCheckOutHour = value;
+            OnPropertyChanged();
+            UpdateNgayCheckOut();
+        }
+    }
+
+    private string _ngayCheckOutMinute = "00";
+    public string NgayCheckOutMinute
+    {
+        get => _ngayCheckOutMinute;
+        set
+        {
+            _ngayCheckOutMinute = value;
+            OnPropertyChanged();
+            UpdateNgayCheckOut();
+        }
+    }
+
+    private void UpdateNgayCheckOut()
+    {
+        if (int.TryParse(NgayCheckOutHour, out int h) && int.TryParse(NgayCheckOutMinute, out int m))
+        {
+            _ngayCheckOut = NgayCheckOutDate.Date.AddHours(h).AddMinutes(m);
+            OnPropertyChanged(nameof(NgayCheckOut));
+            RecalculateDefaultDeposit();
         }
     }
 
@@ -211,6 +319,15 @@ public class DatPhongViewModel : INotifyPropertyChanged
         SearchRoomsCommand = new RelayCommand(ExecuteSearchRooms);
         SaveCommand = new RelayCommand(ExecuteSave, CanExecuteSave);
         ToggleRoomCommand = new RelayCommand<Phong>(ExecuteToggleRoom);
+
+        // Ensure proper initial check-in time of day (must be at least 09:00)
+        var initCheckIn = DateTime.Now;
+        if (initCheckIn.Hour < 9)
+        {
+            initCheckIn = initCheckIn.Date.AddHours(9);
+        }
+        NgayCheckIn = initCheckIn;
+        NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     }
 
     // ── Constructor 2: WalkIn ─────────────────────────────────────────────
@@ -407,8 +524,26 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private void ExecuteSave()
     {
-        var validationMessage = ValidateBeforeSave();
-        if (!string.IsNullOrWhiteSpace(validationMessage))
+        // Validate check-in time of day (must be at least 09:00)
+        if (NgayCheckIn.TimeOfDay < TimeSpan.FromHours(9))
+        {
+            MessageBox.Show(
+                "Thời gian nhận phòng sớm nhất là 09:00 sáng hằng ngày.",
+                "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Validate checkout is after check-in
+        if (NgayCheckOut <= NgayCheckIn)
+        {
+            MessageBox.Show(
+                "Thời điểm check-out phải sau thời điểm check-in.",
+                "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Validate deposit minimum (skip for GiaHan and DoiPhong)
+        if (Mode == DatPhongMode.Normal && TienCoc < MinTienCoc)
         {
             MessageBox.Show(validationMessage, "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;

@@ -52,9 +52,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
         // ── Command ───────────────────────────────────────
         public ICommand SelectPageCommand { get; }
 
-        public MainViewModel()
+        public MainViewModel() : this(null)
+        {
+        }
+
+        public MainViewModel(TaiKhoan account)
         {
             SelectPageCommand = new RelayCommand<NavigationItem>(p => CurrentPage = p);
+
+            bool isManager = true; // default value
+            if (account != null)
+            {
+                CurrentUsername = account.Username;
+                if (account.NhanVien != null)
+                {
+                    isManager = account.NhanVien.ChucVu;
+                    CurrentUserRole = isManager ? "Quản lý" : "Lễ tân";
+                }
+            }
 
             // ════════════════════════════════════════════════
             // Trang được tạo LAZY (chỉ khi người dùng click vào lần đầu)
@@ -120,20 +135,24 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 PageFactory = () => new HoaDonPage()
             });
 
-            Pages.Add(new NavigationItem
+            if (isManager)
             {
-                Icon = "👔",
-                Title = "Nhân Viên",
-                BadgeCount = 1,
-                PageFactory = () => new NhanVienPage()
-            });
-            Pages.Add(new NavigationItem
-            {
-                Icon = "📊",
-                Title = "Báo Cáo",
-                BadgeCount = 0,
-                PageFactory = () => new BaoCaoPage()
-            });
+                Pages.Add(new NavigationItem
+                {
+                    Icon = "👔",
+                    Title = "Nhân Viên",
+                    BadgeCount = 1,
+                    PageFactory = () => new NhanVienPage()
+                });
+                Pages.Add(new NavigationItem
+                {
+                    Icon = "📊",
+                    Title = "Báo Cáo",
+                    BadgeCount = 0,
+                    PageFactory = () => new BaoCaoPage()
+                });
+            }
+
             Pages.Add(new NavigationItem
             {
                 Icon = "📋",
@@ -144,17 +163,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
 
             // Chọn trang đầu tiên mặc định
             CurrentPage = Pages[0];
-
-            //try
-            //{
-            //    var db = new QuanLyKhachSanContext();
-            //    var count = db.TaiKhoans.Count();
-            //    System.Windows.MessageBox.Show(count.ToString());
-            //}
-            //catch (Exception ex)
-            //{
-            //    System.Windows.MessageBox.Show("Lỗi kết nối: " + ex.Message);
-            //}
         }
 
         // ── Cập nhật badge từ code (gọi khi có data mới) ──
@@ -175,6 +183,20 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                 OnPropertyChanged(nameof(CurrentUsername));
             }
         }
+
+        private string _currentUserRole = "Quản lý";
+        public string CurrentUserRole
+        {
+            get => _currentUserRole;
+            set
+            {
+                _currentUserRole = value;
+                OnPropertyChanged(nameof(CurrentUserRole));
+                OnPropertyChanged(nameof(WelcomeText));
+            }
+        }
+
+        public string WelcomeText => $"Chào mừng, {CurrentUserRole}";
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string n = null)

@@ -66,6 +66,15 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
         private SeriesCollection _roomStatusPieSeries;
         public SeriesCollection RoomStatusPieSeries { get => _roomStatusPieSeries; set { _roomStatusPieSeries = value; OnPropertyChanged(); } }
 
+        private SeriesCollection _guestSeries;
+        public SeriesCollection GuestSeries { get => _guestSeries; set { _guestSeries = value; OnPropertyChanged(); } }
+
+        private ObservableCollection<string> _roomProductivityLabels;
+        public ObservableCollection<string> RoomProductivityLabels { get => _roomProductivityLabels; set { _roomProductivityLabels = value; OnPropertyChanged(); } }
+
+        private ObservableCollection<string> _serviceBarLabels;
+        public ObservableCollection<string> ServiceBarLabels { get => _serviceBarLabels; set { _serviceBarLabels = value; OnPropertyChanged(); } }
+
         public ObservableCollection<string> RevenueLabels { get; set; }
         public Func<double, string> Formatter { get; set; }
 
@@ -76,8 +85,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
         }
 
         /// <summary>
-        /// Safely sums TongThanhToan values, skipping rows that would cause overflow.
-        /// Returns 0 (not a large placeholder) if all values are invalid.
+        /// Safely sums correct invoice revenue values, skipping rows that would cause overflow.
+        /// Returns 0 if all values are invalid.
         /// </summary>
         private decimal SafeSum(IEnumerable<HoaDon> list)
         {
@@ -86,7 +95,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             {
                 try
                 {
-                    checked { sum += item.TongThanhToan; }
+                    decimal revenue = item.TongTienPhong + item.TongTienDichVu + item.PhuPhi;
+                    if (revenue == 0 && item.TongThanhToan > 0)
+                    {
+                        revenue = item.TongThanhToan + item.TienCoc;
+                    }
+                    checked { sum += revenue; }
                 }
                 catch (OverflowException)
                 {
@@ -104,6 +118,34 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
         {
             try { checked { return value; } }
             catch (OverflowException) { return 0; }
+        }
+
+        private int GetOverlapDays(DateTime checkIn, DateTime checkOut, DateTime rangeStart, DateTime rangeEnd)
+        {
+            DateTime start = checkIn.Date;
+            DateTime end = checkOut.Date;
+            DateTime rStart = rangeStart.Date;
+            DateTime rEnd = rangeEnd.Date;
+
+            if (start > rEnd || end < rStart)
+                return 0;
+
+            if (start == end)
+            {
+                // Same day check-in/check-out
+                return (start >= rStart && start <= rEnd) ? 1 : 0;
+            }
+
+            // Normal case: check-out > check-in
+            // The nights occupied are [start, end - 1]
+            DateTime overlapStart = start > rStart ? start : rStart;
+            DateTime overlapEnd = (end.AddDays(-1) < rEnd) ? end.AddDays(-1) : rEnd;
+
+            if (overlapStart <= overlapEnd)
+            {
+                return (overlapEnd - overlapStart).Days + 1;
+            }
+            return 0;
         }
 
         public void LoadData()
@@ -125,12 +167,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                     else // "Năm nay"
                         startDate = new DateTime(now.Year, 1, 1);
 
-                    // Load basic KPI — filter out invalid dates (year < 2000) và data test bất thường
+                    // Load basic KPI — filter out invalid dates (year < 2000), data test bất thường, và chỉ lấy hóa đơn đã thanh toán
                     var minDate = new DateTime(2000, 1, 1);
                     var hoaDons = context.HoaDons
                         .Where(h => h.NgayThanhToan >= minDate
                                  && h.NgayThanhToan >= startDate
                                  && h.NgayThanhToan <= now
+                                 && h.TrangThaiThanhToan == "Đã thanh toán"
                                  && h.TongThanhToan >= 0
                                  && h.TongThanhToan <= MAX_VALID_HOA_DON) // loại bỏ data test / giá trị bất thường
                         .ToList();
@@ -147,15 +190,19 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                     TongDoanhThu = SafeSum(hoaDons);
                     TongLoiNhuan = TongDoanhThu * 0.52m; // Lợi nhuận = 52% doanh thu
 
+                    // Load bookings that overlap with [startDate, now]
                     var bookings = context.ChiTietDatPhongs
-                        .Where(c => c.NgayCheckIn >= startDate && c.NgayCheckIn <= now)
+                        .Include(c => c.DatPhong)
+                        .Where(c => c.NgayCheckIn <= now 
+                                 && c.NgayCheckOut >= startDate
+                                 && (c.DatPhong.TrangThaiDat == 2 || c.DatPhong.TrangThaiDat == 3))
                         .ToList();
                     TongKhach = bookings.Sum(b => b.SoNguoi);
 
-                    var totalRooms = context.Phongs.Count();
-                    int days = (now - startDate).Days;
+                    var totalRooms = context.Phongs.Count(p => !p.IsDeleted);
+                    int days = (now.Date - startDate.Date).Days + 1;
                     if (days <= 0) days = 1;
-                    int occupiedDays = bookings.Sum(b => (b.NgayCheckOut - b.NgayCheckIn).Days);
+                    int occupiedDays = bookings.Sum(b => GetOverlapDays(b.NgayCheckIn, b.NgayCheckOut, startDate, now));
 
                     if (totalRooms * days > 0)
                         TyLeLapDay = Math.Min(100.0, Math.Round((double)occupiedDays / (totalRooms * days) * 100, 1));
@@ -180,6 +227,13 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             var profitValues = new ChartValues<decimal>();
             var labels = new ObservableCollection<string>();
 
+            // For occupancy chart
+            var occValues = new ChartValues<double>();
+            int totalRooms = context.Phongs.Count(p => !p.IsDeleted);
+
+            // For guest chart
+            var guestValues = new ChartValues<int>();
+
             // Group by month if it's "Năm nay", otherwise by day/week
             if (SelectedTimeFilter == "Năm nay")
             {
@@ -189,6 +243,23 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                     revValues.Add(rev);
                     profitValues.Add(rev * 0.52m);
                     labels.Add($"Tháng {m}");
+
+                    // Compute real occupancy for month m
+                    var monthStart = new DateTime(start.Year, m, 1);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                    var bookingsInMonth = bookings
+                        .Where(b => b.NgayCheckIn.Date <= monthEnd.Date && b.NgayCheckOut.Date >= monthStart.Date)
+                        .ToList();
+                    int occDays = bookingsInMonth.Sum(b => GetOverlapDays(b.NgayCheckIn, b.NgayCheckOut, monthStart, monthEnd));
+                    int daysInMonth = (monthEnd.Date - monthStart.Date).Days + 1;
+                    double monthOcc = 0;
+                    if (totalRooms * daysInMonth > 0)
+                        monthOcc = Math.Min(100.0, Math.Round((double)occDays / (totalRooms * daysInMonth) * 100, 1));
+                    occValues.Add(monthOcc);
+
+                    // Compute real guest count for month m
+                    int guestsInMonth = bookingsInMonth.Sum(b => b.SoNguoi);
+                    guestValues.Add(guestsInMonth);
                 }
             }
             else
@@ -197,10 +268,29 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 int step = SelectedTimeFilter == "Quý này" ? 7 : 2;
                 for (var d = start; d <= end; d = d.AddDays(step))
                 {
-                    var rev = SafeSum(hoaDons.Where(h => h.NgayThanhToan >= d && h.NgayThanhToan < d.AddDays(step)));
+                    var stepStart = d;
+                    var stepEnd = d.AddDays(step - 1);
+                    if (stepEnd > end) stepEnd = end;
+
+                    var rev = SafeSum(hoaDons.Where(h => h.NgayThanhToan >= stepStart && h.NgayThanhToan < d.AddDays(step)));
                     revValues.Add(rev);
                     profitValues.Add(rev * 0.52m);
                     labels.Add(d.ToString("dd/MM"));
+
+                    // Compute real occupancy for this step
+                    var bookingsInStep = bookings
+                        .Where(b => b.NgayCheckIn.Date <= stepEnd.Date && b.NgayCheckOut.Date >= stepStart.Date)
+                        .ToList();
+                    int occDays = bookingsInStep.Sum(b => GetOverlapDays(b.NgayCheckIn, b.NgayCheckOut, stepStart, stepEnd));
+                    int daysInStep = (stepEnd.Date - stepStart.Date).Days + 1;
+                    double stepOcc = 0;
+                    if (totalRooms * daysInStep > 0)
+                        stepOcc = Math.Min(100.0, Math.Round((double)occDays / (totalRooms * daysInStep) * 100, 1));
+                    occValues.Add(stepOcc);
+
+                    // Compute real guest count for this step
+                    int guestsInStep = bookingsInStep.Sum(b => b.SoNguoi);
+                    guestValues.Add(guestsInStep);
                 }
             }
 
@@ -220,23 +310,22 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             };
 
             // Occupancy
-            var occValues = new ChartValues<double>();
-            foreach (var rev in revValues) occValues.Add(Math.Min(100, Math.Max(0, (double)rev / 10000.0 + 30)));   
-
             OccupancySeries = new SeriesCollection
             {
                 new LineSeries { Title = "Lấp đầy (%)", Values = occValues, Stroke = System.Windows.Media.Brushes.MediumPurple, Fill = System.Windows.Media.Brushes.Transparent }
             };
 
+            // Guest Series
+            GuestSeries = new SeriesCollection
+            {
+                new ColumnSeries { Title = "Lượng khách", Values = guestValues, Fill = System.Windows.Media.Brushes.Orange }
+            };
+
             // Service Usage Pie Chart — filter null navigation props AFTER AsEnumerable
             var serviceUsage = context.ChiTietDichVus
-                .Include(c => c.ChiTietDatPhong)
                 .Include(c => c.DichVu)
-                .Where(c => c.ChiTietDatPhong != null && c.DichVu != null
-                         && c.ChiTietDatPhong.NgayCheckIn >= start)
+                .Where(c => c.ThoiGianSuDung >= start && c.ThoiGianSuDung <= end && c.DichVu != null)
                 .AsEnumerable()
-                // Cần kiểm tra lại sau AsEnumerable() vì EF có thể không load được nav prop
-                .Where(c => c.DichVu != null && c.ChiTietDatPhong != null)
                 .GroupBy(c => c.DichVu.TenDichVu ?? "(Không tên)")
                 .Select(g => new { Name = g.Key, Count = g.Sum(c => c.SoLuong) })
                 .ToList();
@@ -255,19 +344,20 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             ServiceUsageSeries = pieSeries;
 
             // ServiceBarSeries: biểu đồ cột "Doanh thu theo dịch vụ" cho Tab 3 (phải)
-            // Dùng ColumnSeries riêng — không dùng lại PieSeries (sẽ crash CartesianChart)
             var serviceBarValues = new ChartValues<int>();
-            var serviceBarLabels = new List<string>();
+            var serviceBarLabelsList = new ObservableCollection<string>();
             foreach (var item in serviceUsage.Take(8)) // giới hạn 8 mục
             {
                 serviceBarValues.Add(item.Count);
-                serviceBarLabels.Add(item.Name ?? "?");
+                serviceBarLabelsList.Add(item.Name ?? "?");
             }
             if (serviceBarValues.Count == 0)
             {
                 serviceBarValues.AddRange(new[] { 25, 35, 15 });
-                serviceBarLabels.AddRange(new[] { "Giặt ủi", "Ăn sáng", "Spa" });
+                serviceBarLabelsList.AddRange(new[] { "Giặt ủi", "Ăn sáng", "Spa" });
             }
+            ServiceBarLabels = serviceBarLabelsList;
+
             ServiceBarSeries = new SeriesCollection
             {
                 new ColumnSeries
@@ -279,21 +369,35 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 }
             };
 
-            // Room Productivity — filter null nav props AGAIN after AsEnumerable
+            // Room Productivity
             var roomProd = context.ChiTietDatPhongs
+                .Include(c => c.DatPhong)
                 .Include(c => c.Phong).ThenInclude(p => p.LoaiPhong)
-                .Where(c => c.NgayCheckIn >= start && c.Phong != null && c.Phong.LoaiPhong != null)
+                .Where(c => c.NgayCheckIn >= start 
+                         && c.NgayCheckIn <= end 
+                         && c.Phong != null 
+                         && c.Phong.LoaiPhong != null
+                         && (c.DatPhong.TrangThaiDat == 2 || c.DatPhong.TrangThaiDat == 3))
                 .AsEnumerable()
-                // Kiểm tra lại sau AsEnumerable() vì EF có thể không load được nav prop
                 .Where(c => c.Phong?.LoaiPhong?.TenLoaiPhong != null)
                 .GroupBy(c => c.Phong.LoaiPhong.TenLoaiPhong)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
                 .ToList();
 
             var prodValues = new ChartValues<int>();
-            foreach(var rp in roomProd) prodValues.Add(rp.Count);
+            var prodLabels = new ObservableCollection<string>();
+            foreach(var rp in roomProd)
+            {
+                prodValues.Add(rp.Count);
+                prodLabels.Add(rp.Name);
+            }
 
-            if(prodValues.Count == 0) prodValues.AddRange(new int[] { 30, 25, 45, 10 });
+            if(prodValues.Count == 0)
+            {
+                prodValues.AddRange(new int[] { 30, 25, 45, 10 });
+                prodLabels.AddRange(new string[] { "Standard", "Superior", "Deluxe", "Suite" });
+            }
+            RoomProductivityLabels = prodLabels;
 
             RoomProductivitySeries = new SeriesCollection
             {
@@ -301,7 +405,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
             };
 
             // RoomStatusPieSeries: biểu đồ tròn "Trạng thái phòng" cho Tab 4 (phải)
-            // Không dùng ServiceUsageSeries — sẽ crash PieChart với dữ liệu sai loại
             var phongs = context.Phongs.ToList();
             int soTrong  = phongs.Count(p => p.TrangThai == 0);
             int soDaDat  = phongs.Count(p => p.TrangThai == 1);

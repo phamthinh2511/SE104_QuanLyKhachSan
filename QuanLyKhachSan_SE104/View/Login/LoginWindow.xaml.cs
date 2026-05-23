@@ -2,6 +2,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
 using Microsoft.EntityFrameworkCore;
 
@@ -168,18 +169,7 @@ namespace QuanLyKhachSan_SE104.View.Login
 
                 if (account != null)
                 {
-                    if (account.NhanVien != null && !account.NhanVien.TrangThaiLamViec)
-                    {
-                        ShowError("Tài khoản này thuộc về nhân viên đã nghỉ việc.");
-                        return;
-                    }
-
-                    // GÁN DỮ LIỆU VÀO LOGIN SESSION ĐỂ CÁC VIEWMODEL KHÁC SỬ DỤNG
-                    QuanLyKhachSan_SE104.Utilities.LoginSession.CurrentNhanVienId = account.MaNhanVien;
-                    QuanLyKhachSan_SE104.Utilities.LoginSession.CurrentNhanVienName = account.NhanVien?.HoTen ?? "N/A";
-                    QuanLyKhachSan_SE104.Utilities.LoginSession.IsAdmin = account.NhanVien?.ChucVu ?? false;
-
-                    var mainWindow = new MainWindow();
+                    var mainWindow = new MainWindow(account);
                     mainWindow.Show();
                     this.Close();
                 }
