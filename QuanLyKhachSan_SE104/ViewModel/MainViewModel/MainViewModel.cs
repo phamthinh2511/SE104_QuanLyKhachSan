@@ -69,6 +69,11 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                     isManager = account.NhanVien.ChucVu;
                     CurrentUserRole = isManager ? "Quản lý" : "Lễ tân";
                 }
+
+                // Ensure LoginSession is populated in case of direct window initialization or testing
+                LoginSession.CurrentNhanVienId = account.MaNhanVien;
+                LoginSession.CurrentNhanVienName = account.NhanVien?.HoTen;
+                LoginSession.IsAdmin = account.NhanVien?.ChucVu ?? false;
             }
 
             // ════════════════════════════════════════════════

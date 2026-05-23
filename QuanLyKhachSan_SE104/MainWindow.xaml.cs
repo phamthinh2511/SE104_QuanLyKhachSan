@@ -33,6 +33,12 @@ namespace QuanLyKhachSan_SE104
         private void BtnLogout_Click(object sender, RoutedEventArgs e)
         {
             UserMenuPopup.IsOpen = false;
+
+            // Clear LoginSession
+            QuanLyKhachSan_SE104.Utilities.LoginSession.CurrentNhanVienId = 0;
+            QuanLyKhachSan_SE104.Utilities.LoginSession.CurrentNhanVienName = null;
+            QuanLyKhachSan_SE104.Utilities.LoginSession.IsAdmin = false;
+
             var loginWindow = new LoginWindow();
             loginWindow.Show();
             this.Close();

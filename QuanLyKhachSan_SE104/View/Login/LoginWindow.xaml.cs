@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
-using Microsoft.EntityFrameworkCore;
+using QuanLyKhachSan_SE104.Utilities;
 
 namespace QuanLyKhachSan_SE104.View.Login
 {
@@ -169,6 +169,10 @@ namespace QuanLyKhachSan_SE104.View.Login
 
                 if (account != null)
                 {
+                    LoginSession.CurrentNhanVienId = account.MaNhanVien;
+                    LoginSession.CurrentNhanVienName = account.NhanVien?.HoTen;
+                    LoginSession.IsAdmin = account.NhanVien?.ChucVu ?? false;
+
                     var mainWindow = new MainWindow(account);
                     mainWindow.Show();
                     this.Close();
