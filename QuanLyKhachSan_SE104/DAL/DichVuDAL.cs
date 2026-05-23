@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace QuanLyKhachSan_SE104.DAL
         /// Each call APPENDS new ChiTietDichVu rows — it does NOT delete existing ones,
         /// so staff can call "Thêm dịch vụ" multiple times during a stay.
         /// </summary>
-        public void LuuChiTietDichVu(int maChiTietDatPhong, IEnumerable<(int MaDichVu, int SoLuong, decimal DonGia)> items)
+        public void LuuChiTietDichVu(int maChiTietDatPhong, IEnumerable<(int MaDichVu, int SoLuong, decimal DonGia)> items, DateTime thoiGianSuDung)
         {
             if (maChiTietDatPhong <= 0)
                 throw new ArgumentException("MaChiTietDatPhong không hợp lệ.");
@@ -26,7 +26,7 @@ namespace QuanLyKhachSan_SE104.DAL
                     MaDichVu = x.MaDichVu,
                     SoLuong = x.SoLuong,
                     DonGia = x.DonGia,
-                    ThoiGianSuDung = DateTime.Now
+                    ThoiGianSuDung = thoiGianSuDung
                 })
                 .ToList();
 

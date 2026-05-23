@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.DAL;
+using QuanLyKhachSan_SE104.DAL;
 using QuanLyKhachSan_SE104.DTO;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
@@ -77,6 +77,74 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
     {
         private readonly DichVuDAL _dal = new();
 
+        // ── Custom timestamp properties for service recording ──
+        public List<string> HoursList { get; } = Enumerable.Range(0, 24).Select(h => h.ToString("D2")).ToList();
+        public List<string> MinutesList { get; } = Enumerable.Range(0, 60).Select(m => m.ToString("D2")).ToList();
+
+        private DateTime _thoiGianGhiNhan = DateTime.Now;
+        public DateTime ThoiGianGhiNhan
+        {
+            get => _thoiGianGhiNhan;
+            set
+            {
+                _thoiGianGhiNhan = value;
+                OnPropertyChanged();
+
+                _thoiGianGhiNhanDate = value.Date;
+                _thoiGianGhiNhanHour = value.Hour.ToString("D2");
+                _thoiGianGhiNhanMinute = value.Minute.ToString("D2");
+
+                OnPropertyChanged(nameof(ThoiGianGhiNhanDate));
+                OnPropertyChanged(nameof(ThoiGianGhiNhanHour));
+                OnPropertyChanged(nameof(ThoiGianGhiNhanMinute));
+            }
+        }
+
+        private DateTime _thoiGianGhiNhanDate = DateTime.Now.Date;
+        public DateTime ThoiGianGhiNhanDate
+        {
+            get => _thoiGianGhiNhanDate;
+            set
+            {
+                _thoiGianGhiNhanDate = value;
+                OnPropertyChanged();
+                UpdateThoiGianGhiNhan();
+            }
+        }
+
+        private string _thoiGianGhiNhanHour = DateTime.Now.Hour.ToString("D2");
+        public string ThoiGianGhiNhanHour
+        {
+            get => _thoiGianGhiNhanHour;
+            set
+            {
+                _thoiGianGhiNhanHour = value;
+                OnPropertyChanged();
+                UpdateThoiGianGhiNhan();
+            }
+        }
+
+        private string _thoiGianGhiNhanMinute = DateTime.Now.Minute.ToString("D2");
+        public string ThoiGianGhiNhanMinute
+        {
+            get => _thoiGianGhiNhanMinute;
+            set
+            {
+                _thoiGianGhiNhanMinute = value;
+                OnPropertyChanged();
+                UpdateThoiGianGhiNhan();
+            }
+        }
+
+        private void UpdateThoiGianGhiNhan()
+        {
+            if (int.TryParse(ThoiGianGhiNhanHour, out int h) && int.TryParse(ThoiGianGhiNhanMinute, out int m))
+            {
+                _thoiGianGhiNhan = ThoiGianGhiNhanDate.Date.AddHours(h).AddMinutes(m);
+                OnPropertyChanged(nameof(ThoiGianGhiNhan));
+            }
+        }
+
         // Danh sách gốc tất cả dịch vụ (wrapped)
         private List<DichVuItem> _allItems;
 
@@ -142,6 +210,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
 
         public DichVuViewModel()
         {
+            ThoiGianGhiNhan = DateTime.Now;
             LoadData();
 
             TangSoLuongCommand = new RelayCommand<DichVuItem>(item =>
@@ -187,7 +256,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DichVuVM
                     var items = DanhSachDaChon
                         .Select(x => (x.DichVu.MaDichVu, x.SoLuong, x.DichVu.DonGia));
 
-                    _dal.LuuChiTietDichVu(MaChiTietDatPhong, items);
+                    _dal.LuuChiTietDichVu(MaChiTietDatPhong, items, ThoiGianGhiNhan);
 
                     // Build SavedItems so the caller can refresh without an extra query
                     SavedItems = DanhSachDaChon.Select(x => new ChiTietDichVuDTO

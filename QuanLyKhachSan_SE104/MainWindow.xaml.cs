@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.View.Login;
+using QuanLyKhachSan_SE104.View.Login;
 using QuanLyKhachSan_SE104.ViewModel.MainViewModel;
 using System.Windows;
 
@@ -6,10 +6,14 @@ namespace QuanLyKhachSan_SE104
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow() : this(null)
+        {
+        }
+
+        public MainWindow(QuanLyKhachSan_SE104.Model.TaiKhoan account)
         {
             InitializeComponent();
-            this.DataContext = new MainViewModel();
+            this.DataContext = new MainViewModel(account);
         }
 
         private void BtnUserMenu_Click(object sender, RoutedEventArgs e)

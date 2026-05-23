@@ -1,4 +1,4 @@
-﻿using QuanLyKhachSan_SE104.Model;
+using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
 using System;
 using System.Collections.Generic;
@@ -102,7 +102,8 @@ namespace QuanLyKhachSan_SE104.ViewModel
 
                     foreach (var ctdp in datPhong.ChiTietDatPhongs)
                     {
-                        tongTienPhong += ctdp.GiaDat;
+                        int soDem = Math.Max(1, (int)Math.Ceiling((DateTime.Now - ctdp.NgayCheckIn).TotalDays));
+                        tongTienPhong += soDem * ctdp.GiaDat;
 
                         foreach (var dv in ctdp.ChiTietDichVus)
                         {
@@ -133,6 +134,7 @@ namespace QuanLyKhachSan_SE104.ViewModel
                     {
                         var datPhong = db.DatPhongs
                                          .Include(d => d.ChiTietDatPhongs)
+                                            .ThenInclude(c => c.ChiTietDichVus)
                                          .FirstOrDefault(d => d.MaKhachHang == SelectedKhachHang.MaKhachHang && d.TrangThaiDat == 2);
 
                         if (datPhong == null)
@@ -141,12 +143,25 @@ namespace QuanLyKhachSan_SE104.ViewModel
                             return;
                         }
 
+                        decimal tongTienPhong = 0;
+                        decimal tongTienDichVu = 0;
+                        foreach (var ctdp in datPhong.ChiTietDatPhongs)
+                        {
+                            int soDem = Math.Max(1, (int)Math.Ceiling((DateTime.Now - ctdp.NgayCheckIn).TotalDays));
+                            tongTienPhong += soDem * ctdp.GiaDat;
+
+                            foreach (var dv in ctdp.ChiTietDichVus)
+                            {
+                                tongTienDichVu += (dv.SoLuong * dv.DonGia);
+                            }
+                        }
+
                         var hoaDon = new HoaDon
                         {
                             MaDatPhong = datPhong.MaDatPhong,
                             MaNhanVien = 1,
-                            TongTienPhong = 0,
-                            TongTienDichVu = 0,
+                            TongTienPhong = tongTienPhong,
+                            TongTienDichVu = tongTienDichVu,
                             PhuPhi = 0,
                             TienCoc = datPhong.TienCoc,
                             TongThanhToan = TongTienThanhToan,

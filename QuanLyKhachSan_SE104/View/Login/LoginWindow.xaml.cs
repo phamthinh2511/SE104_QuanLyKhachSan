@@ -2,6 +2,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
 
 namespace QuanLyKhachSan_SE104.View.Login
@@ -161,11 +162,12 @@ namespace QuanLyKhachSan_SE104.View.Login
             try
             {
                 var account = _context.TaiKhoans
+                    .Include(t => t.NhanVien)
                     .FirstOrDefault(t => t.Username == username && t.PasswordHash == password);
 
                 if (account != null)
                 {
-                    var mainWindow = new MainWindow();
+                    var mainWindow = new MainWindow(account);
                     mainWindow.Show();
                     this.Close();
                 }
