@@ -106,42 +106,20 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
             Pages.Add(new NavigationItem
             {
                 Icon = "📅",
-                Title = "Chi Tiết Đặt phòng",
+                Title = "Lịch sử Đặt phòng",
                 BadgeCount = 12,
                 PageFactory = () => new ChiTietDatPhongPage()
-            });
-            Pages.Add(new NavigationItem
-            {
-                Icon = "🔑",
-                Title = "Nhận phòng",
-                BadgeCount = 1,
-                PageFactory = () => new NhanPhongPage()
-            });
-            Pages.Add(new NavigationItem
-            {
-                Icon = "📋",
-                Title = "Trả Phòng",
-                BadgeCount = 1,
-                PageFactory = () => new TraPhongPage()
-            });
-            Pages.Add(new NavigationItem
-            {
-                Icon = "👥",
-                Title = "Khách hàng",
-                BadgeCount = 0,
-                PageFactory = () => new KhachHangPage()
-            });
-
-            Pages.Add(new NavigationItem
-            {
-                Icon = "💰",
-                Title = "Hóa Đơn",
-                BadgeCount = 0,
-                PageFactory = () => new HoaDonPage()
             });
 
             if (isManager)
             {
+                Pages.Add(new NavigationItem
+                {
+                    Icon = "👥",
+                    Title = "Khách hàng",
+                    BadgeCount = 0,
+                    PageFactory = () => new KhachHangPage()
+                });
                 Pages.Add(new NavigationItem
                 {
                     Icon = "👔",
@@ -156,15 +134,15 @@ namespace QuanLyKhachSan_SE104.ViewModel.MainViewModel
                     BadgeCount = 0,
                     PageFactory = () => new BaoCaoPage()
                 });
+                Pages.Add(new NavigationItem
+                {
+                    Icon = "📋",
+                    Title = "Danh Mục",
+                    BadgeCount = 0,
+                    PageFactory = () => new QuanLyKhachSan_SE104.View.DanhMuc.DanhMuc()
+                });
             }
 
-            Pages.Add(new NavigationItem
-            {
-                Icon = "📋",
-                Title = "Danh Mục",
-                BadgeCount = 0,
-                PageFactory = () => new QuanLyKhachSan_SE104.View.DanhMuc.DanhMuc()
-            });
 
             // Chọn trang đầu tiên mặc định
             CurrentPage = Pages[0];

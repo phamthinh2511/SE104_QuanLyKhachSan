@@ -1,4 +1,5 @@
 ﻿using QuanLyKhachSan_SE104.ViewModel.ChiTietDatPhongVM;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace QuanLyKhachSan_SE104.View.ChiTietDatPhongView
@@ -10,6 +11,14 @@ namespace QuanLyKhachSan_SE104.View.ChiTietDatPhongView
             InitializeComponent();
             this.DataContext = new DatPhongListViewModel();
 
+        }
+
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (this.DataContext is DatPhongListViewModel vm)
+            {
+                vm.LoadData();
+            }
         }
     }
 }
