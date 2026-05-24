@@ -11,6 +11,9 @@ namespace QuanLyKhachSan_SE104.Services
 
         public BookingResult TaoDatPhong(BookingRequestDTO req)
         {
+            if (req.IsWalkIn)
+                req.NgayCheckIn = DateTime.Now;
+
             var validation = ValidateBookingRequest(req);
             if (validation != null) return validation;
 

@@ -8,6 +8,8 @@ namespace QuanLyKhachSan_SE104.Services
     {
         private const string PaidStatus = "Đã thanh toán";
         private const string ExtensionSurchargeServiceName = "Phụ phí gia hạn phòng";
+        private const string EarlyCheckInSurchargeServiceName = "Phụ phí check-in sớm";
+        private static readonly TimeSpan StandardCheckInTime = TimeSpan.FromHours(14);
 
         public InvoiceDetailDTO GetInvoiceDetails(int maDatPhong, int maChiTietDatPhong, int maNhanVienCheckout)
         {
@@ -45,6 +47,9 @@ namespace QuanLyKhachSan_SE104.Services
                 .FirstOrDefault(h => h.MaDatPhong == maDatPhong);
 
             var isPaid = hoaDon != null && hoaDon.TrangThaiThanhToan == PaidStatus;
+            if (!isPaid)
+                EnsureEarlyCheckInSurcharges(ctx, allSegments);
+
             var now = DateTime.Now;
             var ngayCheckOut = isPaid ? hoaDon!.NgayThanhToan : now;
             var ngayCheckOutHopDong = activeSegment.NgayCheckOut;
@@ -228,7 +233,6 @@ namespace QuanLyKhachSan_SE104.Services
                     : ResolveHistoricalSegmentEnd(allSegments, segment);
 
                 var hours = CalculateOverdueHours(referenceTime, segment.NgayCheckOut);
-                hours += CalculateExtensionOverdueHours(segment);
 
                 result[segment.MaChiTietDatPhong] = new OverdueCharge(hours, hours * hourlyRate);
             }
@@ -248,60 +252,6 @@ namespace QuanLyKhachSan_SE104.Services
             return nextSegment?.NgayCheckIn ?? segment.NgayCheckOut;
         }
 
-        private static int CalculateExtensionOverdueHours(ChiTietDatPhong segment)
-        {
-            var extensionEntries = (segment.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>())
-                .Where(IsExtensionSurcharge)
-                .OrderByDescending(x => x.ThoiGianSuDung)
-                .ThenByDescending(x => x.MaChiTietDV)
-                .ToList();
-
-            if (!extensionEntries.Any())
-                return 0;
-
-            var reconstructedCheckOut = segment.NgayCheckOut;
-            var hours = 0;
-
-            foreach (var extension in extensionEntries)
-            {
-                var duration = InferExtensionDuration(
-                    extension.ThanhTien,
-                    segment.GiaDat,
-                    segment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0);
-
-                if (duration <= TimeSpan.Zero)
-                    continue;
-
-                var previousCheckOut = reconstructedCheckOut - duration;
-                hours += CalculateOverdueHours(extension.ThoiGianSuDung, previousCheckOut);
-                reconstructedCheckOut = previousCheckOut;
-            }
-
-            return hours;
-        }
-
-        private static TimeSpan InferExtensionDuration(decimal extensionFee, decimal roomDailyRate, decimal hourlySurchargeRate)
-        {
-            if (extensionFee <= 0)
-                return TimeSpan.Zero;
-
-            if (hourlySurchargeRate > 0 && extensionFee % hourlySurchargeRate == 0)
-            {
-                var hours = (double)(extensionFee / hourlySurchargeRate);
-                if (hours > 0 && hours < 24)
-                    return TimeSpan.FromHours(hours);
-            }
-
-            if (roomDailyRate > 0 && extensionFee % roomDailyRate == 0)
-            {
-                var days = (double)(extensionFee / roomDailyRate);
-                if (days > 0)
-                    return TimeSpan.FromDays(days);
-            }
-
-            return TimeSpan.Zero;
-        }
-
         private static int CalculateOverdueHours(DateTime referenceTime, DateTime deadline)
             => referenceTime > deadline
                 ? (int)Math.Floor((referenceTime - deadline).TotalHours)
@@ -309,6 +259,91 @@ namespace QuanLyKhachSan_SE104.Services
 
         private static bool IsExtensionSurcharge(ChiTietDichVu chiTietDichVu)
             => chiTietDichVu.DichVu?.TenDichVu == ExtensionSurchargeServiceName;
+
+        private static void EnsureEarlyCheckInSurcharges(
+            QuanLyKhachSanContext ctx,
+            List<ChiTietDatPhong> allSegments)
+        {
+            DichVu? surchargeService = null;
+            var hasChanges = false;
+
+            foreach (var segment in allSegments)
+            {
+                var hourlyRate = segment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
+                var earlyHours = CalculateEarlyCheckInHours(segment.NgayCheckIn);
+                if (hourlyRate <= 0 || earlyHours <= 0)
+                    continue;
+
+                var existingServices = segment.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>();
+                var existingEntry = existingServices
+                    .FirstOrDefault(x => x.DichVu?.TenDichVu == EarlyCheckInSurchargeServiceName);
+
+                if (existingEntry != null)
+                {
+                    if (existingEntry.SoLuong != earlyHours ||
+                        existingEntry.DonGia != hourlyRate ||
+                        existingEntry.ThoiGianSuDung != segment.NgayCheckIn)
+                    {
+                        existingEntry.SoLuong = earlyHours;
+                        existingEntry.DonGia = hourlyRate;
+                        existingEntry.ThoiGianSuDung = segment.NgayCheckIn;
+                        hasChanges = true;
+                    }
+
+                    continue;
+                }
+
+                surchargeService ??= GetOrCreateEarlyCheckInSurchargeService(ctx);
+
+                var surchargeEntry = new ChiTietDichVu
+                {
+                    MaChiTietDatPhong = segment.MaChiTietDatPhong,
+                    MaDichVu = surchargeService.MaDichVu,
+                    SoLuong = earlyHours,
+                    DonGia = hourlyRate,
+                    ThoiGianSuDung = segment.NgayCheckIn,
+                    DichVu = surchargeService,
+                    ChiTietDatPhong = segment
+                };
+
+                ctx.ChiTietDichVus.Add(surchargeEntry);
+                segment.ChiTietDichVus ??= new List<ChiTietDichVu>();
+                segment.ChiTietDichVus.Add(surchargeEntry);
+                hasChanges = true;
+            }
+
+            if (hasChanges)
+                ctx.SaveChanges();
+        }
+
+        private static int CalculateEarlyCheckInHours(DateTime checkIn)
+        {
+            var standardCheckIn = checkIn.Date + StandardCheckInTime;
+            return checkIn < standardCheckIn
+                ? (int)Math.Ceiling((standardCheckIn - checkIn).TotalHours)
+                : 0;
+        }
+
+        private static DichVu GetOrCreateEarlyCheckInSurchargeService(QuanLyKhachSanContext ctx)
+        {
+            var service = ctx.DichVus
+                .FirstOrDefault(d => d.TenDichVu == EarlyCheckInSurchargeServiceName && !d.IsDeleted);
+
+            if (service != null)
+                return service;
+
+            service = new DichVu
+            {
+                TenDichVu = EarlyCheckInSurchargeServiceName,
+                LoaiDichVu = 4,
+                DonGia = 0,
+                MoTa = "Dịch vụ hệ thống dùng để ghi nhận phụ phí phát sinh khi khách check-in trước 14:00."
+            };
+
+            ctx.DichVus.Add(service);
+            ctx.SaveChanges();
+            return service;
+        }
 
         private static int NormalizeStoredNightCount(ChiTietDatPhong segment)
         {

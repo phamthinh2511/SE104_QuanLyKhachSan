@@ -62,12 +62,12 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckIn;
         set
         {
-            _ngayCheckIn = value.Date.AddHours(14);
+            _ngayCheckIn = value;
             OnPropertyChanged();
 
             _ngayCheckInDate = _ngayCheckIn.Date;
-            _ngayCheckInHour = "14";
-            _ngayCheckInMinute = "00";
+            _ngayCheckInHour = _ngayCheckIn.Hour.ToString("D2");
+            _ngayCheckInMinute = _ngayCheckIn.Minute.ToString("D2");
 
             OnPropertyChanged(nameof(NgayCheckInDate));
             OnPropertyChanged(nameof(NgayCheckInHour));
@@ -116,7 +116,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckInHour;
         set
         {
-            _ngayCheckInHour = "14";
+            _ngayCheckInHour = value;
             OnPropertyChanged();
             UpdateNgayCheckIn();
         }
@@ -128,7 +128,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         get => _ngayCheckInMinute;
         set
         {
-            _ngayCheckInMinute = "00";
+            _ngayCheckInMinute = value;
             OnPropertyChanged();
             UpdateNgayCheckIn();
         }
@@ -136,7 +136,9 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private void UpdateNgayCheckIn()
     {
-        _ngayCheckIn = NgayCheckInDate.Date.AddHours(14);
+        var hour = int.TryParse(NgayCheckInHour, out var parsedHour) ? parsedHour : 14;
+        var minute = int.TryParse(NgayCheckInMinute, out var parsedMinute) ? parsedMinute : 0;
+        _ngayCheckIn = NgayCheckInDate.Date.AddHours(hour).AddMinutes(minute);
         OnPropertyChanged(nameof(NgayCheckIn));
         RecalculateDefaultDeposit();
     }
@@ -326,7 +328,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         NotifyModeProps();
 
         AddRoomToList(phong);
-        NgayCheckIn = DateTime.Now.Date.AddHours(14);
+        NgayCheckIn = DateTime.Now;
         NgayCheckOut = DateTime.Today.AddDays(1).Date.AddHours(12);
     }
 
@@ -611,10 +613,12 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private BookingRequestDTO CreateBookingRequest()
     {
+        var effectiveCheckIn = Mode == DatPhongMode.WalkIn ? DateTime.Now : NgayCheckIn;
+
         return new BookingRequestDTO
         {
             MaPhongList = SelectedRoomsList.Select(r => r.MaPhong).ToList(),
-            NgayCheckIn = NgayCheckIn,
+            NgayCheckIn = effectiveCheckIn,
             NgayCheckOut = NgayCheckOut,
             HoTen = NewCustomer?.HoTen ?? string.Empty,
             SDT = NewCustomer?.SDT ?? string.Empty,
