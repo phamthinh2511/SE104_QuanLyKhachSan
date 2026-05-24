@@ -7,7 +7,8 @@ namespace QuanLyKhachSan_SE104.Model
         ChoNhanPhong = 0, // Booked - Khách chưa tới
         DangO = 1,        // Active - Khách đang ở phòng này
         DaDoiPhong = 2,   // Terminated/Archived - Segment cũ đã đóng do đổi phòng
-        DaCheckOut = 3    // CheckedOut - Đã checkout bình thường
+        DaCheckOut = 3,   // CheckedOut - Đã checkout bình thường
+        DaGiaHan = 4      // Archived - Segment cũ đã đóng do gia hạn
     }
     public class ChiTietDatPhong
     {

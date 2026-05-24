@@ -29,14 +29,25 @@ namespace QuanLyKhachSan_SE104.Services
                               || ct.TrangThaiSegment == TrangThaiSegment.DangO)
                     .ToList();
 
-                var isCheckInToday = room.TrangThai == 1
+                var activeStay = activeSegments?
+                    .Where(ct => ct.TrangThaiSegment == TrangThaiSegment.DangO
+                              && ct.DatPhong.TrangThaiDat == 2)
+                    .OrderByDescending(ct => ct.NgayCheckIn)
+                    .ThenByDescending(ct => ct.MaChiTietDatPhong)
+                    .FirstOrDefault();
+
+                var effectiveStatus = activeStay != null
+                    ? (now >= activeStay.NgayCheckOut ? 3 : 2)
+                    : room.TrangThai;
+
+                var isCheckInToday = effectiveStatus == 1
                     && (activeSegments?.Any(ct =>
                         ct.TrangThaiSegment == TrangThaiSegment.ChoNhanPhong &&
                         ct.NgayCheckIn.Date == today) ?? false);
 
                 var checkoutDeadlineToday = today + CheckoutDeadline; // so sanh gio check out voi hnay + 12 tieng
 
-                var isCheckOutToday = (room.TrangThai == 2 || room.TrangThai == 3)
+                var isCheckOutToday = (effectiveStatus == 2 || effectiveStatus == 3)
                     && now < checkoutDeadlineToday
                     && (activeSegments?.Any(ct =>
                         ct.TrangThaiSegment == TrangThaiSegment.DangO &&
@@ -50,7 +61,7 @@ namespace QuanLyKhachSan_SE104.Services
                     TenLoaiPhong = room.LoaiPhong?.TenLoaiPhong ?? string.Empty,
                     GiaMacDinh = room.LoaiPhong?.GiaMacDinh ?? 0,
                     SoTang = room.SoTang,
-                    TrangThai = room.TrangThai,
+                    TrangThai = effectiveStatus,
                     TrangThaiDonDep = room.TrangThaiDonDep,
                     IsCheckInToday = isCheckInToday,
                     IsCheckOutToday = isCheckOutToday

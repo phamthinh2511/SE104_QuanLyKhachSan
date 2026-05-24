@@ -14,14 +14,14 @@ namespace QuanLyKhachSan_SE104.Services
             var now = DateTime.Now;
             var dirty = false;
 
-            dirty |= MarkOverdueRooms(ctx, now);
+            dirty |= ReconcileOccupiedRoomStatuses(ctx, now);
             dirty |= MarkNoShows(ctx, today, now);
 
             if (dirty)
                 ctx.SaveChanges();
         }
 
-        private static bool MarkOverdueRooms(QuanLyKhachSanContext ctx, DateTime now)
+        private static bool ReconcileOccupiedRoomStatuses(QuanLyKhachSanContext ctx, DateTime now)
         {
             var dirty = false;
 
@@ -29,27 +29,24 @@ namespace QuanLyKhachSan_SE104.Services
                 .Include(ct => ct.DatPhong)
                 .Include(ct => ct.Phong)
                 .Where(ct =>
-                    (ct.DatPhong.TrangThaiDat == 1 || ct.DatPhong.TrangThaiDat == 2) &&
-                    (ct.Phong.TrangThai == 1 || ct.Phong.TrangThai == 2) &&
-                    !ctx.ChiTietDatPhongs.Any(next =>
-                        next.MaDatPhong == ct.MaDatPhong &&
-                        next.MaChiTietDatPhong != ct.MaChiTietDatPhong &&
-                        next.NgayCheckIn == ct.NgayCheckOut) &&
-                    ct.Phong.TrangThai != 3)
+                    ct.DatPhong.TrangThaiDat == 2 &&
+                    ct.TrangThaiSegment == TrangThaiSegment.DangO)
+                .AsEnumerable()
+                .GroupBy(ct => ct.MaPhong)
+                .Select(g => g
+                    .OrderByDescending(ct => ct.NgayCheckIn)
+                    .ThenByDescending(ct => ct.MaChiTietDatPhong)
+                    .First())
                 .ToList();
 
-            var overdueChiTiets = activeChiTiets
-                .Where(ct =>
-                {
-                    var deadline = ct.NgayCheckOut.Date + CheckoutDeadline;
-                    return now >= deadline;
-                })
-                .ToList();
-
-            foreach (var ct in overdueChiTiets)
+            foreach (var ct in activeChiTiets)
             {
-                ct.Phong.TrangThai = 3;
-                dirty = true;
+                var expectedStatus = now >= ct.NgayCheckOut ? 3 : 2;
+                if (ct.Phong.TrangThai != expectedStatus)
+                {
+                    ct.Phong.TrangThai = expectedStatus;
+                    dirty = true;
+                }
             }
 
             return dirty;

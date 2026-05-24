@@ -78,9 +78,15 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             get
             {
                 int totalNights = _danhSachSegment?.Sum(s => s.SoDem) ?? 0;
-                int segCount = _danhSachSegment?.Count ?? 0;
-                return segCount > 1
-                    ? $"({totalNights} đêm tổng cho {segCount} phòng)"
+                int realRoomCount = _danhSachSegment?
+            .Select(s => s.TenPhong)
+            .Where(name => !string.IsNullOrEmpty(name) && name != "—")
+            .Distinct()
+            .Count() ?? 0;
+
+                // 3. Biện luận hiển thị theo số phòng thực tế
+                return realRoomCount > 1
+                    ? $"({totalNights} đêm tổng cho {realRoomCount} phòng)"
                     : $"({totalNights} đêm × {_danhSachSegment?.FirstOrDefault()?.GiaMoiDem:#,0}₫)";
             }
         }
