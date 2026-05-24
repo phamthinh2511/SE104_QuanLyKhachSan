@@ -16,7 +16,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
         LoaiPhong,
         Phong,
         DichVu,
-        KhachHang
+        //KhachHang
     }
 
     public class DanhMucViewModel : INotifyPropertyChanged
@@ -69,12 +69,12 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
             set { _danhSachDichVu = value; OnPropertyChanged(); }
         }
 
-        private ObservableCollection<KhachHang> _danhSachKhachHang;
-        public ObservableCollection<KhachHang> DanhSachKhachHang
-        {
-            get => _danhSachKhachHang;
-            set { _danhSachKhachHang = value; OnPropertyChanged(); }
-        }
+        //private ObservableCollection<KhachHang> _danhSachKhachHang;
+        //public ObservableCollection<KhachHang> DanhSachKhachHang
+        //{
+        //    get => _danhSachKhachHang;
+        //    set { _danhSachKhachHang = value; OnPropertyChanged(); }
+        //}
 
         private bool _isHienThiDaXoa;
         public bool IsHienThiDaXoa
@@ -127,7 +127,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
                 LoaiDanhMuc.LoaiPhong,
                 LoaiDanhMuc.Phong,
                 LoaiDanhMuc.DichVu,
-                LoaiDanhMuc.KhachHang
+                //LoaiDanhMuc.KhachHang
             };
 
             DanhMucDuocChon = LoaiDanhMuc.LoaiPhong;
@@ -195,7 +195,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
                 LoaiPhong lp => new DanhMucCRUDViewModel(lp),
                 Phong p => new DanhMucCRUDViewModel(p, DanhSachLoaiPhong),
                 DichVu dv => new DanhMucCRUDViewModel(dv),
-                KhachHang kh => new DanhMucCRUDViewModel(kh),
+                //KhachHang kh => new DanhMucCRUDViewModel(kh),
                 _ => null
             };
 

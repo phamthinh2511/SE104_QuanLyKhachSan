@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyKhachSan_SE104.Model;
 using QuanLyKhachSan_SE104.Utilities;
@@ -15,57 +15,32 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
     public class NhanVienViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        void OnPropertyChanged([CallerMemberName] string name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        void OnPropertyChanged([CallerMemberName] string name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        // ===== MODE =====
-        public ObservableCollection<ModeNhanSu> DanhSachMode { get; set; }
-            = new ObservableCollection<ModeNhanSu>
-        {
-            ModeNhanSu.NhanVien,
-            ModeNhanSu.TaiKhoan
-        };
+        public ObservableCollection<ModeNhanSu> DanhSachMode { get; set; } = new ObservableCollection<ModeNhanSu> { ModeNhanSu.NhanVien, ModeNhanSu.TaiKhoan };
 
         private ModeNhanSu _modeDuocChon;
-        public ModeNhanSu ModeDuocChon
+        public ModeNhanSu ModeDuocChon { get => _modeDuocChon; set { _modeDuocChon = value; OnPropertyChanged(); } }
+
+        private bool _isHienThiDaXoa;
+        public bool IsHienThiDaXoa
         {
-            get => _modeDuocChon;
-            set { _modeDuocChon = value; OnPropertyChanged(); }
+            get => _isHienThiDaXoa;
+            set { _isHienThiDaXoa = value; OnPropertyChanged(); LoadData(); }
         }
 
-        // ===== DATA =====
         private ObservableCollection<NhanVienModel> _danhSachNhanVien;
-        public ObservableCollection<NhanVienModel> DanhSachNhanVien
-        {
-            get => _danhSachNhanVien;
-            set { _danhSachNhanVien = value; OnPropertyChanged(); }
-        }
+        public ObservableCollection<NhanVienModel> DanhSachNhanVien { get => _danhSachNhanVien; set { _danhSachNhanVien = value; OnPropertyChanged(); } }
 
         private ObservableCollection<TaiKhoan> _danhSachTaiKhoan;
-        public ObservableCollection<TaiKhoan> DanhSachTaiKhoan
-        {
-            get => _danhSachTaiKhoan;
-            set { _danhSachTaiKhoan = value; OnPropertyChanged(); }
-        }
+        public ObservableCollection<TaiKhoan> DanhSachTaiKhoan { get => _danhSachTaiKhoan; set { _danhSachTaiKhoan = value; OnPropertyChanged(); } }
 
-        // ===== UNDO =====
         private object _lastDeletedItem;
-
         private bool _isUndoVisible;
-        public bool IsUndoVisible
-        {
-            get => _isUndoVisible;
-            set { _isUndoVisible = value; OnPropertyChanged(); }
-        }
-
+        public bool IsUndoVisible { get => _isUndoVisible; set { _isUndoVisible = value; OnPropertyChanged(); } }
         private string _undoMessage;
-        public string UndoMessage
-        {
-            get => _undoMessage;
-            set { _undoMessage = value; OnPropertyChanged(); }
-        }
+        public string UndoMessage { get => _undoMessage; set { _undoMessage = value; OnPropertyChanged(); } }
 
-        // ===== COMMAND =====
         public ICommand AddCommand { get; }
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
@@ -86,16 +61,16 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
         {
             using (var context = new QuanLyKhachSanContext())
             {
-                DanhSachNhanVien = new ObservableCollection<NhanVienModel>(context.NhanViens.ToList());
+                // Soft delete: false = đang làm (TrangThaiLamViec = true), true = đã nghỉ (TrangThaiLamViec = false)
+                bool statusFilter = !IsHienThiDaXoa;
+                DanhSachNhanVien = new ObservableCollection<NhanVienModel>(context.NhanViens.Where(nv => nv.TrangThaiLamViec == statusFilter).ToList());
                 DanhSachTaiKhoan = new ObservableCollection<TaiKhoan>(context.TaiKhoans.Include(t => t.NhanVien).ToList());
             }
         }
 
-        // ===== ADD =====
         private void ExecuteAdd(object obj)
         {
             var vm = new NhanVienCRUDViewModel(ModeDuocChon);
-
             vm.OnSaved = (saved) =>
             {
                 try
@@ -106,35 +81,27 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
                         {
                             context.NhanViens.Add(nv);
                             context.SaveChanges();
-                            MessageBox.Show("Thêm nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else if (saved is TaiKhoan tk)
                         {
                             tk.CreatedAt = System.DateTime.Now;
                             context.TaiKhoans.Add(tk);
                             context.SaveChanges();
-                            MessageBox.Show("Thêm tài khoản thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                     }
                     LoadData();
                 }
-                catch (System.Exception ex)
-                {
-                    MessageBox.Show("Thêm thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                catch (System.Exception ex) { MessageBox.Show("Thêm thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error); }
             };
 
             var win = new NhanVienCRUD { DataContext = vm };
             win.ShowDialog();
         }
 
-        // ===== EDIT =====
         private void ExecuteEdit(object item)
         {
             if (item == null) return;
-
             var vm = new NhanVienCRUDViewModel(item);
-
             vm.OnSaved = (saved) =>
             {
                 try
@@ -153,7 +120,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
                                 dbNv.ChucVu = newNv.ChucVu;
                                 dbNv.TrangThaiLamViec = newNv.TrangThaiLamViec;
                                 context.SaveChanges();
-                                MessageBox.Show("Cập nhật nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                         }
                         else if (item is TaiKhoan oldTk && saved is TaiKhoan newTk)
@@ -165,98 +131,84 @@ namespace QuanLyKhachSan_SE104.ViewModel.NhanVien
                                 dbTk.PasswordHash = newTk.PasswordHash;
                                 dbTk.MaNhanVien = newTk.MaNhanVien;
                                 context.SaveChanges();
-                                MessageBox.Show("Cập nhật tài khoản thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                         }
                     }
                     LoadData();
                 }
-                catch (System.Exception ex)
-                {
-                    MessageBox.Show("Cập nhật thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                catch (System.Exception ex) { MessageBox.Show("Cập nhật thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error); }
             };
 
             var win = new NhanVienCRUD { DataContext = vm };
             win.ShowDialog();
         }
 
-        // ===== DELETE + UNDO =====
-        private async void ExecuteDelete(object item)
+        private void ExecuteDelete(object item)
         {
             if (item == null) return;
 
-            _lastDeletedItem = item;
-
-            if (item is NhanVienModel nv)
+            using (var context = new QuanLyKhachSanContext())
             {
-                DanhSachNhanVien.Remove(nv);
-                UndoMessage = $"Đã xóa nhân viên: {nv.HoTen}";
-            }
-            else if (item is TaiKhoan tk)
-            {
-                DanhSachTaiKhoan.Remove(tk);
-                UndoMessage = $"Đã xóa tài khoản: {tk.Username}";
-            }
-
-            IsUndoVisible = true;
-
-            // Wait 5 seconds for potential undo
-            await Task.Delay(5000);
-
-            if (_lastDeletedItem == item)
-            {
-                // Action was not undone, commit delete to database
-                try
+                if (item is NhanVienModel nv)
                 {
-                    using (var context = new QuanLyKhachSanContext())
+                    var dbNv = context.NhanViens.Find(nv.MaNhanVien);
+                    if (dbNv != null)
                     {
-                        if (item is NhanVienModel nvToDelete)
+                        if (IsHienThiDaXoa) // Đang ở danh sách nghỉ -> Nhấn nút là Khôi phục
                         {
-                            var dbNv = context.NhanViens.Find(nvToDelete.MaNhanVien);
-                            if (dbNv != null)
-                            {
-                                context.NhanViens.Remove(dbNv);
-                                context.SaveChanges();
-                                MessageBox.Show("Xóa nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                            }
+                            dbNv.TrangThaiLamViec = true;
+                            context.SaveChanges();
+                            MessageBox.Show("Khôi phục nhân viên thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
-                        else if (item is TaiKhoan tkToDelete)
+                        else // Đang ở danh sách hoạt động -> Nhấn nút là Xóa 
                         {
-                            var dbTk = context.TaiKhoans.Find(tkToDelete.MaTaiKhoan);
-                            if (dbTk != null)
+                            var result = MessageBox.Show($"Bạn muốn xóa nhân viên {nv.HoTen}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                            if (result == MessageBoxResult.Yes)
                             {
-                                context.TaiKhoans.Remove(dbTk);
+                                dbNv.TrangThaiLamViec = false;
                                 context.SaveChanges();
-                                MessageBox.Show("Xóa tài khoản thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                                _lastDeletedItem = nv;
+                                UndoMessage = $"Đã xóa nhân viên: {nv.HoTen}";
+                                IsUndoVisible = true;
                             }
                         }
                     }
                 }
-                catch (System.Exception ex)
+                else if (item is TaiKhoan tk)
                 {
-                    MessageBox.Show("Xóa thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                finally
-                {
-                    IsUndoVisible = false;
-                    _lastDeletedItem = null;
-                    LoadData();
+                    var result = MessageBox.Show($"Xóa tài khoản {tk.Username}?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        var dbTk = context.TaiKhoans.Find(tk.MaTaiKhoan);
+                        if (dbTk != null)
+                        {
+                            context.TaiKhoans.Remove(dbTk);
+                            context.SaveChanges();
+                        }
+                    }
                 }
             }
+            LoadData();
         }
 
         private void ExecuteUndo(object obj)
         {
-            if (_lastDeletedItem == null) return;
-
             if (_lastDeletedItem is NhanVienModel nv)
-                DanhSachNhanVien.Add(nv);
-            else if (_lastDeletedItem is TaiKhoan tk)
-                DanhSachTaiKhoan.Add(tk);
-
+            {
+                using (var context = new QuanLyKhachSanContext())
+                {
+                    var dbNv = context.NhanViens.Find(nv.MaNhanVien);
+                    if (dbNv != null)
+                    {
+                        dbNv.TrangThaiLamViec = true; // Undo xóa mềm
+                        context.SaveChanges();
+                    }
+                }
+            }
             IsUndoVisible = false;
             _lastDeletedItem = null;
+            LoadData();
         }
     }
 }

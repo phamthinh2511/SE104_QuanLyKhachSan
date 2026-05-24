@@ -131,53 +131,28 @@
                             <Style.Triggers>
 
                                 <!-- NHÂN VIÊN -->
-                                <DataTrigger Binding="{Binding Mode}"
-                                 Value="{x:Static vmns:ModeNhanSu.NhanVien}">
+                                <DataTrigger Binding="{Binding Mode}" Value="{x:Static vmns:ModeNhanSu.NhanVien}">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
                                                 <StackPanel>
-
                                                     <TextBlock Style="{StaticResource FormLabel}" Text="Họ tên *"/>
-                                                    <TextBox Style="{StaticResource FormField}"
-                                                 Text="{Binding NhanVien.HoTen, UpdateSourceTrigger=PropertyChanged}"
-                                                 Margin="0,0,0,16"/>
+                                                    <TextBox Style="{StaticResource FormField}" Text="{Binding NhanVien.HoTen, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
 
                                                     <TextBlock Style="{StaticResource FormLabel}" Text="Email"/>
-                                                    <TextBox Style="{StaticResource FormField}"
-                                                 Text="{Binding NhanVien.Email, UpdateSourceTrigger=PropertyChanged}"
-                                                 Margin="0,0,0,16"/>
+                                                    <TextBox Style="{StaticResource FormField}" Text="{Binding NhanVien.Email, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
 
                                                     <TextBlock Style="{StaticResource FormLabel}" Text="Số điện thoại"/>
-                                                    <TextBox Style="{StaticResource FormField}"
-                                                 Text="{Binding NhanVien.SoDienThoai, UpdateSourceTrigger=PropertyChanged}"
-                                                 Margin="0,0,0,16"/>
+                                                    <TextBox Style="{StaticResource FormField}" Text="{Binding NhanVien.SoDienThoai, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
 
                                                     <TextBlock Style="{StaticResource FormLabel}" Text="CCCD"/>
-                                                    <TextBox Style="{StaticResource FormField}"
-                                                 Text="{Binding NhanVien.CCCD, UpdateSourceTrigger=PropertyChanged}"
-                                                 Margin="0,0,0,16"/>
+                                                    <TextBox Style="{StaticResource FormField}" Text="{Binding NhanVien.CCCD, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
 
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="12"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <StackPanel Grid.Column="0">
-                                                            <TextBlock Style="{StaticResource FormLabel}" Text="Chức vụ (Quản lý?)"/>
-                                                            <!-- nên đổi sang CheckBox -->
-                                                            <CheckBox IsChecked="{Binding NhanVien.ChucVu}" />
-                                                        </StackPanel>
-
-                                                        <StackPanel Grid.Column="2">
-                                                            <TextBlock Style="{StaticResource FormLabel}" Text="Trạng thái làm việc"/>
-                                                            <CheckBox IsChecked="{Binding NhanVien.TrangThaiLamViec}" />
-                                                        </StackPanel>
-
-                                                    </Grid>
-
+                                                    <TextBlock Style="{StaticResource FormLabel}" Text="Chức vụ *"/>
+                                                    <ComboBox Style="{StaticResource ModernComboBox}" SelectedIndex="{Binding ChucVuIndex, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16">
+                                                        <ComboBoxItem Content="Lễ tân"/>
+                                                        <ComboBoxItem Content="Quản lý"/>
+                                                    </ComboBox>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </Setter.Value>

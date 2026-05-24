@@ -28,7 +28,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
         public bool IsLoaiPhong => _loai == LoaiDanhMuc.LoaiPhong;
         public bool IsPhong => _loai == LoaiDanhMuc.Phong;
         public bool IsDichVu => _loai == LoaiDanhMuc.DichVu;
-        public bool IsKhachHang => _loai == LoaiDanhMuc.KhachHang;
+        //public bool IsKhachHang => _loai == LoaiDanhMuc.KhachHang;
 
         // ── Data gốc (để lưu) ───────────────────────────
         private readonly LoaiPhong _loaiPhongGoc;
@@ -255,25 +255,25 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
             ThoatCommand = new RelayCommand(() => CloseAction?.Invoke());
         }
 
-        public DanhMucCRUDViewModel(KhachHang item)
-        {
-            _loai = LoaiDanhMuc.KhachHang;
-            _isEdit = true;
-            _khachHangGoc = item;
+        //public DanhMucCRUDViewModel(KhachHang item)
+        //{
+        //    _loai = LoaiDanhMuc.KhachHang;
+        //    _isEdit = true;
+        //    _khachHangGoc = item;
 
-            TieuDe = "Sửa Khách Hàng";
-            NhanLuu = "💾  Lưu thay đổi";
+        //    TieuDe = "Sửa Khách Hàng";
+        //    NhanLuu = "💾  Lưu thay đổi";
 
-            HoTen = item.HoTen;
-            GioiTinh = item.GioiTinh;
-            QuocTich = item.QuocTich;
-            CCCD_Passport = item.CCCD_Passport;
-            SDT = item.SDT;
-            DiaChi = item.DiaChi;
+        //    HoTen = item.HoTen;
+        //    GioiTinh = item.GioiTinh;
+        //    QuocTich = item.QuocTich;
+        //    CCCD_Passport = item.CCCD_Passport;
+        //    SDT = item.SDT;
+        //    DiaChi = item.DiaChi;
 
-            LuuCommand = new RelayCommand(ExecuteLuu);
-            ThoatCommand = new RelayCommand(() => CloseAction?.Invoke());
-        }
+        //    LuuCommand = new RelayCommand(ExecuteLuu);
+        //    ThoatCommand = new RelayCommand(() => CloseAction?.Invoke());
+        //}
 
         // ── Thực hiện lưu ───────────────────────────────
         private void ExecuteLuu()
@@ -424,9 +424,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
                     }
                     break;
 
-                case LoaiDanhMuc.KhachHang:
-
-                    break;
             }               
 
             CloseAction?.Invoke();
@@ -437,7 +434,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.DanhMuc
             LoaiDanhMuc.LoaiPhong => "Loại Phòng",
             LoaiDanhMuc.Phong => "Phòng",
             LoaiDanhMuc.DichVu => "Dịch Vụ",
-            LoaiDanhMuc.KhachHang => "Khách Hàng",
+            //LoaiDanhMuc.KhachHang => "Khách Hàng",
             _ => ""
         };
     }

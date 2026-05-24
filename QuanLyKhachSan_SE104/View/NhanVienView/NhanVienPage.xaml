@@ -18,21 +18,13 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Text="Quản Lý Nhân Sự"
-                       FontSize="26"
-                       FontWeight="Bold"
-                       Foreground="#1E293B"
-                       VerticalAlignment="Center"/>
+            <TextBlock Text="Quản Lý Nhân Sự" FontSize="26" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
 
-            <ComboBox Grid.Column="1"
-                      Width="200"
-                      Margin="20,0"
-                      Style="{StaticResource ModernComboBox}"
-                      ItemsSource="{Binding DanhSachMode}"
-                      SelectedItem="{Binding ModeDuocChon}">
-
+            <ComboBox Grid.Column="1" Width="200" Margin="20,0" Style="{StaticResource ModernComboBox}"
+                      ItemsSource="{Binding DanhSachMode}" SelectedItem="{Binding ModeDuocChon}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock>
@@ -54,32 +46,50 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
 
-            <Button Grid.Column="2"
-                    Content="+ Thêm Mới"
-                    Command="{Binding AddCommand}"
-                    Style="{StaticResource PrimaryButton}"/>
+            <ToggleButton Grid.Column="2" Margin="0,0,20,0" Width="140" Height="40"
+                          IsChecked="{Binding IsHienThiDaXoa}" Cursor="Hand">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Content" Value="✓ Đang làm việc"/>
+                        <Setter Property="Background" Value="#F1F5F9"/>
+                        <Setter Property="Foreground" Value="#16A34A"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Content" Value="✗ Đã nghỉ việc"/>
+                                <Setter Property="Background" Value="#FEE2E2"/>
+                                <Setter Property="Foreground" Value="#EF4444"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding ModeDuocChon}" Value="{x:Static vmns:ModeNhanSu.TaiKhoan}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+
+            <Button Grid.Column="3" Content="+ Thêm Mới" Command="{Binding AddCommand}" Style="{StaticResource PrimaryButton}"/>
         </Grid>
 
-        <Border Grid.Row="1"
-                Background="White"
-                CornerRadius="12"
-                Padding="15"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1">
-
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1">
             <ContentControl Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}">
                 <ContentControl.Style>
                     <Style TargetType="ContentControl">
                         <Style.Triggers>
-
-                            <DataTrigger Binding="{Binding ModeDuocChon}"
-                             Value="{x:Static vmns:ModeNhanSu.NhanVien}">
+                            <DataTrigger Binding="{Binding ModeDuocChon}" Value="{x:Static vmns:ModeNhanSu.NhanVien}">
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <DataGrid ItemsSource="{Binding DanhSachNhanVien}"
-                                          AutoGenerateColumns="False"
-                                          IsReadOnly="True">
+                                            <DataGrid ItemsSource="{Binding DanhSachNhanVien}" AutoGenerateColumns="False" IsReadOnly="True">
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="ID" Binding="{Binding MaNhanVien}" Width="80"/>
                                                     <DataGridTextColumn Header="Họ tên" Binding="{Binding HoTen}" Width="*"/>
@@ -92,7 +102,7 @@
                                                                 <TextBlock VerticalAlignment="Center">
                                                                     <TextBlock.Style>
                                                                         <Style TargetType="TextBlock">
-                                                                            <Setter Property="Text" Value="Nhân viên"/>
+                                                                            <Setter Property="Text" Value="Lễ tân"/>
                                                                             <Style.Triggers>
                                                                                 <DataTrigger Binding="{Binding ChucVu}" Value="True">
                                                                                     <Setter Property="Text" Value="Quản lý"/>
@@ -104,37 +114,39 @@
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
-                                                    <DataGridTemplateColumn Header="Trạng thái" Width="120">
-                                                        <DataGridTemplateColumn.CellTemplate>
-                                                            <DataTemplate>
-                                                                <TextBlock VerticalAlignment="Center">
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock">
-                                                                            <Setter Property="Text" Value="Đã nghỉ"/>
-                                                                            <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding TrangThaiLamViec}" Value="True">
-                                                                                    <Setter Property="Text" Value="Đang làm việc"/>
-                                                                                </DataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                            </DataTemplate>
-                                                        </DataGridTemplateColumn.CellTemplate>
-                                                    </DataGridTemplateColumn>
-                                                    <DataGridTemplateColumn Header="Thao tác" Width="150">
+
+                                                    <DataGridTemplateColumn Header="Thao tác" Width="180">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                    <Button Content="Sửa"
-                                                                Margin="0,0,6,0"
-                                                                Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                CommandParameter="{Binding}"
-                                                                Style="{StaticResource EditButtonStyle}"/>
-                                                                    <Button Content="Xóa"
-                                                                Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                CommandParameter="{Binding}"
-                                                                Style="{StaticResource DeleteButtonStyle}"/>
+                                                                    <Button Content="Sửa" Margin="0,0,6,0"
+                                                                            Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource EditButtonStyle}">
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding DataContext.IsHienThiDaXoa, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
+                                                                    <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}">
+                                                                        <Button.Style>
+                                                                            <Style TargetType="Button" BasedOn="{StaticResource DeleteButtonStyle}">
+                                                                                <Setter Property="Content" Value="Xóa"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding DataContext.IsHienThiDaXoa, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                                                        <Setter Property="Content" Value="Khôi phục"/>
+                                                                                        <Setter Property="Background" Value="#10B981"/>
+                                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Button.Style>
+                                                                    </Button>
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
@@ -146,14 +158,11 @@
                                 </Setter>
                             </DataTrigger>
 
-                            <DataTrigger Binding="{Binding ModeDuocChon}"
-                             Value="{x:Static vmns:ModeNhanSu.TaiKhoan}">
+                            <DataTrigger Binding="{Binding ModeDuocChon}" Value="{x:Static vmns:ModeNhanSu.TaiKhoan}">
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <DataGrid ItemsSource="{Binding DanhSachTaiKhoan}"
-                                          AutoGenerateColumns="False"
-                                          IsReadOnly="True">
+                                            <DataGrid ItemsSource="{Binding DanhSachTaiKhoan}" AutoGenerateColumns="False" IsReadOnly="True">
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="*"/>
                                                     <DataGridTextColumn Header="Password" Binding="{Binding PasswordHash}" Width="150"/>
@@ -162,15 +171,12 @@
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                    <Button Content="Sửa"
-                                                                Margin="0,0,6,0"
-                                                                Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                CommandParameter="{Binding}"
-                                                                Style="{StaticResource EditButtonStyle}"/>
+                                                                    <Button Content="Sửa" Margin="0,0,6,0"
+                                                                            Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}" Style="{StaticResource EditButtonStyle}"/>
                                                                     <Button Content="Xóa"
-                                                                Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                CommandParameter="{Binding}"
-                                                                Style="{StaticResource DeleteButtonStyle}"/>
+                                                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}" Style="{StaticResource DeleteButtonStyle}"/>
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
@@ -186,7 +192,6 @@
                     </Style>
                 </ContentControl.Style>
             </ContentControl>
-
         </Border>
     </Grid>
 </UserControl>
