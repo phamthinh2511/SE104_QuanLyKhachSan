@@ -267,13 +267,25 @@ namespace QuanLyKhachSan_SE104.Services
                     return BookingResult.ValidationError("Ngày check-out mới phải sau ngày check-out hiện tại.");
                 }
 
+                var oldNgayCheckOut = ct.NgayCheckOut;
+                var thoiDiemGiaHan = DateTime.Now;
+                var extensionStart = thoiDiemGiaHan > oldNgayCheckOut
+                    ? thoiDiemGiaHan
+                    : oldNgayCheckOut;
+
+                if (req.NgayCheckOutMoi <= extensionStart)
+                {
+                    tx.Rollback();
+                    return BookingResult.ValidationError("Ngày check-out mới phải sau thời điểm bắt đầu gia hạn.");
+                }
+
                 var isOverbooked = ctx.ChiTietDatPhongs.Any(other =>
                     other.MaPhong == ct.MaPhong &&
                     other.MaChiTietDatPhong != ct.MaChiTietDatPhong &&
                     (other.TrangThaiSegment == TrangThaiSegment.ChoNhanPhong ||
                      other.TrangThaiSegment == TrangThaiSegment.DangO) &&
                     other.NgayCheckIn < req.NgayCheckOutMoi &&
-                    other.NgayCheckOut > ct.NgayCheckOut);
+                    other.NgayCheckOut > oldNgayCheckOut);
 
                 if (isOverbooked)
                 {
@@ -281,27 +293,43 @@ namespace QuanLyKhachSan_SE104.Services
                     return BookingResult.ValidationError("Phong da co lich dat trong khoang thoi gian gia han.");
                 }
 
-                var oldNgayCheckOut = ct.NgayCheckOut;
+                var baseDailyRate = ct.Phong?.LoaiPhong?.GiaMacDinh ?? 0;
+                var hourlySurchargeRate = ct.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
                 var surcharge = CalculateExtensionSurcharge(
-                    req.NgayCheckOutMoi - oldNgayCheckOut,
-                    ct.GiaDat,
-                    ct.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0);
+                    req.NgayCheckOutMoi - extensionStart,
+                    baseDailyRate,
+                    hourlySurchargeRate);
 
-                ct.NgayCheckOut = req.NgayCheckOutMoi;
+                ct.TrangThaiSegment = TrangThaiSegment.DaGiaHan;
 
                 var phong = ctx.Phongs.Find(ct.MaPhong);
                 if (phong != null) phong.TrangThai = 2;
+
+                var extensionSegment = new ChiTietDatPhong
+                {
+                    MaDatPhong = ct.MaDatPhong,
+                    MaPhong = ct.MaPhong,
+                    NgayCheckIn = extensionStart,
+                    NgayCheckOut = req.NgayCheckOutMoi,
+                    GiaDat = baseDailyRate,
+                    SoDem = 0,
+                    ThanhTien = 0,
+                    SoNguoi = ct.SoNguoi,
+                    TrangThaiSegment = TrangThaiSegment.DangO
+                };
+                ctx.ChiTietDatPhongs.Add(extensionSegment);
+                ctx.SaveChanges();
 
                 if (surcharge > 0)
                 {
                     var surchargeService = GetOrCreateExtensionSurchargeService(ctx);
                     ctx.ChiTietDichVus.Add(new ChiTietDichVu
                     {
-                        MaChiTietDatPhong = ct.MaChiTietDatPhong,
+                        MaChiTietDatPhong = extensionSegment.MaChiTietDatPhong,
                         MaDichVu = surchargeService.MaDichVu,
                         SoLuong = 1,
                         DonGia = surcharge,
-                        ThoiGianSuDung = DateTime.Now
+                        ThoiGianSuDung = thoiDiemGiaHan
                     });
                 }
 
@@ -352,25 +380,15 @@ namespace QuanLyKhachSan_SE104.Services
         }
 
         private static decimal CalculateExtensionSurcharge(
-            TimeSpan extendedDuration, //khoang tg gia han
-            decimal roomDailyRate, // gia thue phong hien tai
-            decimal hourlySurchargeRate) // phu phi theo gio
+            TimeSpan extendedDuration, // Khoảng thời gian gia hạn
+            decimal roomDailyRate,     // Giá thuê phòng mặc định của ngày
+            decimal hourlySurchargeRate)
         {
             if (extendedDuration <= TimeSpan.Zero)
                 return 0;
+            var days = (decimal)Math.Ceiling(extendedDuration.TotalDays);
 
-            if (extendedDuration.TotalHours >= 24)
-            {
-                var days = (decimal)Math.Ceiling(extendedDuration.TotalDays);
-                return days * roomDailyRate;
-            }
-
-            var hours = (decimal)Math.Ceiling(extendedDuration.TotalHours);
-            var effectiveHourlyRate = hourlySurchargeRate > 0
-                ? hourlySurchargeRate
-                : Math.Ceiling(roomDailyRate / 24);
-
-            return hours * effectiveHourlyRate;
+            return days * roomDailyRate;
         }
 
         private static int CalculateChargeableNights(DateTime checkIn, DateTime checkOut, bool minimumOneNight)

@@ -59,7 +59,7 @@ namespace QuanLyKhachSan_SE104.Services
             {
                 var isActive = ct.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong;
                 var segCheckOut = isActive ? ngayCheckOut : ct.NgayCheckOut;
-                var storedSoDem = NormalizeStoredNightCount(ct);
+                var soDem = ResolveNightCount(ct, isActive, segCheckOut, allSegments);
                 overdueBySegment.TryGetValue(ct.MaChiTietDatPhong, out var overdue);
 
                 return new PhongSegmentDTO
@@ -67,7 +67,7 @@ namespace QuanLyKhachSan_SE104.Services
                     TenPhong = ct.Phong?.TenPhong ?? "—",
                     NgayCheckIn = ct.NgayCheckIn,
                     NgayCheckOut = segCheckOut,
-                    SoDem = storedSoDem,
+                    SoDem = soDem,
                     GiaMoiDem = ct.GiaDat,
                     IsCurrentRoom = isActive,
                     SoGioQuaHan = overdue.Hours,
@@ -97,7 +97,12 @@ namespace QuanLyKhachSan_SE104.Services
 
             var roomNames = segments.Select(s => s.TenPhong).Distinct().ToList();
             var depositAlreadyApplied = isPaid;
-            var tongTienPhong = allSegments.Sum(GetStoredRoomTotal);
+            var tongTienPhong = allSegments.Sum(ct =>
+            {
+                var isActive = ct.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong;
+                var segmentCheckOut = isActive ? ngayCheckOut : ct.NgayCheckOut;
+                return GetRoomTotal(ct, isActive, segmentCheckOut, allSegments);
+            });
             var tongTienDichVu = danhSachDichVu.Sum(x => x.ThanhTien);
             var phuPhi = extensionSurcharge + currentOverdueSurcharge;
             var depositDeduction = depositAlreadyApplied ? 0 : datPhong.TienCoc;
@@ -264,22 +269,60 @@ namespace QuanLyKhachSan_SE104.Services
             QuanLyKhachSanContext ctx,
             List<ChiTietDatPhong> allSegments)
         {
+            var firstSegment = allSegments
+                .OrderBy(ct => ct.NgayCheckIn)
+                .ThenBy(ct => ct.MaChiTietDatPhong)
+                .FirstOrDefault();
+
+            if (firstSegment == null)
+                return;
+
             DichVu? surchargeService = null;
             var hasChanges = false;
 
             foreach (var segment in allSegments)
             {
+                var existingEntries = (segment.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>())
+                    .Where(x => x.DichVu?.TenDichVu == EarlyCheckInSurchargeServiceName)
+                    .ToList();
+
+                if (segment.MaChiTietDatPhong != firstSegment.MaChiTietDatPhong)
+                {
+                    foreach (var entry in existingEntries)
+                    {
+                        ctx.ChiTietDichVus.Remove(entry);
+                        segment.ChiTietDichVus?.Remove(entry);
+                        hasChanges = true;
+                    }
+
+                    continue;
+                }
+
                 var hourlyRate = segment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
                 var earlyHours = CalculateEarlyCheckInHours(segment.NgayCheckIn);
                 if (hourlyRate <= 0 || earlyHours <= 0)
-                    continue;
+                {
+                    foreach (var entry in existingEntries)
+                    {
+                        ctx.ChiTietDichVus.Remove(entry);
+                        segment.ChiTietDichVus?.Remove(entry);
+                        hasChanges = true;
+                    }
 
-                var existingServices = segment.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>();
-                var existingEntry = existingServices
-                    .FirstOrDefault(x => x.DichVu?.TenDichVu == EarlyCheckInSurchargeServiceName);
+                    continue;
+                }
+
+                var existingEntry = existingEntries.FirstOrDefault();
 
                 if (existingEntry != null)
                 {
+                    foreach (var duplicateEntry in existingEntries.Skip(1))
+                    {
+                        ctx.ChiTietDichVus.Remove(duplicateEntry);
+                        segment.ChiTietDichVus?.Remove(duplicateEntry);
+                        hasChanges = true;
+                    }
+
                     if (existingEntry.SoLuong != earlyHours ||
                         existingEntry.DonGia != hourlyRate ||
                         existingEntry.ThoiGianSuDung != segment.NgayCheckIn)
@@ -353,8 +396,47 @@ namespace QuanLyKhachSan_SE104.Services
             return Math.Max(0, segment.SoDem);
         }
 
-        private static decimal GetStoredRoomTotal(ChiTietDatPhong segment)
-            => segment.ThanhTien > 0 ? segment.ThanhTien : Math.Max(0, segment.SoDem) * segment.GiaDat;
+        private static int ResolveNightCount(
+            ChiTietDatPhong segment,
+            bool isActive,
+            DateTime actualCheckOut,
+            List<ChiTietDatPhong> allSegments)
+        {
+            if (!isActive || IsExtensionOnlySegment(segment, allSegments))
+                return NormalizeStoredNightCount(segment);
+
+            return CalculateActualNightCount(segment.NgayCheckIn, actualCheckOut);
+        }
+
+        private static decimal GetRoomTotal(
+            ChiTietDatPhong segment,
+            bool isActive,
+            DateTime actualCheckOut,
+            List<ChiTietDatPhong> allSegments)
+        {
+            if (!isActive || IsExtensionOnlySegment(segment, allSegments))
+                return segment.ThanhTien > 0 ? segment.ThanhTien : Math.Max(0, segment.SoDem) * segment.GiaDat;
+
+            return ResolveNightCount(segment, isActive, actualCheckOut, allSegments) * segment.GiaDat;
+        }
+
+        private static int CalculateActualNightCount(DateTime checkIn, DateTime actualCheckOut)
+        {
+            if (actualCheckOut <= checkIn)
+                return 0;
+
+            var nights = (int)Math.Ceiling((actualCheckOut.Date - checkIn.Date).TotalDays);
+            return Math.Max(1, nights);
+        }
+
+        private static bool IsExtensionOnlySegment(ChiTietDatPhong segment, List<ChiTietDatPhong> allSegments)
+            => segment.SoDem == 0
+               && segment.ThanhTien <= 0
+               && allSegments.Any(ct =>
+                   ct.MaChiTietDatPhong != segment.MaChiTietDatPhong &&
+                   ct.MaPhong == segment.MaPhong &&
+                   ct.MaDatPhong == segment.MaDatPhong &&
+                   ct.NgayCheckOut <= segment.NgayCheckIn);
 
         private static string ResolveInvoiceEmployeeName(
             QuanLyKhachSanContext ctx,
