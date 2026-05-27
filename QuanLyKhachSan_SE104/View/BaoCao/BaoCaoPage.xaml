@@ -159,7 +159,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Doanh thu &amp; Lợi nhuận" FontWeight="Bold" FontSize="16" Foreground="#1E293B" Margin="0,0,0,16"/>
+                        <TextBlock Text="Doanh thu" FontWeight="Bold" FontSize="16" Foreground="#1E293B" Margin="0,0,0,16"/>
                         <lvc:CartesianChart Grid.Row="1" Series="{Binding RevenueSeries}" LegendLocation="Bottom">
                             <lvc:CartesianChart.AxisX>
                                 <lvc:Axis Labels="{Binding RevenueLabels}"/>

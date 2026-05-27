@@ -224,7 +224,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
         {
             // Update Revenue Column Chart
             var revValues = new ChartValues<decimal>();
-            var profitValues = new ChartValues<decimal>();
             var labels = new ObservableCollection<string>();
 
             // For occupancy chart
@@ -241,7 +240,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                 {
                     var rev = SafeSum(hoaDons.Where(h => h.NgayThanhToan.Month == m));
                     revValues.Add(rev);
-                    profitValues.Add(rev * 0.52m);
                     labels.Add($"Tháng {m}");
 
                     // Compute real occupancy for month m
@@ -274,7 +272,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 
                     var rev = SafeSum(hoaDons.Where(h => h.NgayThanhToan >= stepStart && h.NgayThanhToan < d.AddDays(step)));
                     revValues.Add(rev);
-                    profitValues.Add(rev * 0.52m);
                     labels.Add(d.ToString("dd/MM"));
 
                     // Compute real occupancy for this step
@@ -299,8 +296,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
 
             RevenueSeries = new SeriesCollection
             {
-                new ColumnSeries { Title = "Doanh thu", Values = revValues, Fill = System.Windows.Media.Brushes.CornflowerBlue },
-                new ColumnSeries { Title = "Lợi nhuận", Values = profitValues, Fill = System.Windows.Media.Brushes.MediumSeaGreen }
+                new ColumnSeries { Title = "Doanh thu", Values = revValues, Fill = System.Windows.Media.Brushes.CornflowerBlue }
             };
 
             // Trend line chart
