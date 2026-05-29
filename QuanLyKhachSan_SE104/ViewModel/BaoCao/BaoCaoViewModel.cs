@@ -33,9 +33,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
         private decimal _tongDoanhThu;
         public decimal TongDoanhThu { get => _tongDoanhThu; set { _tongDoanhThu = value; OnPropertyChanged(); } }
 
-        private decimal _tongLoiNhuan;
-        public decimal TongLoiNhuan { get => _tongLoiNhuan; set { _tongLoiNhuan = value; OnPropertyChanged(); } }
-
         private double _tyLeLapDay;
         public double TyLeLapDay { get => _tyLeLapDay; set { _tyLeLapDay = value; OnPropertyChanged(); } }
 
@@ -188,7 +185,6 @@ namespace QuanLyKhachSan_SE104.ViewModel.BaoCao
                         }
                     }
                     TongDoanhThu = SafeSum(hoaDons);
-                    TongLoiNhuan = TongDoanhThu * 0.52m; // Lợi nhuận = 52% doanh thu
 
                     // Load bookings that overlap with [startDate, now]
                     var bookings = context.ChiTietDatPhongs
