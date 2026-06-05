@@ -272,12 +272,12 @@
                                        Foreground="{StaticResource WarnBrush}"/>
                         </Grid>
 
-                        <!-- Dòng chi tiết quá hạn — chỉ hiện khi SoGioQuaHan > 0 -->
+                        <!-- Dòng chi tiết quá hạn — chỉ hiện khi SoNgayQuaHan > 0 -->
                         <Border Visibility="{Binding HasOverdue, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 CornerRadius="8" Background="#FFF7ED"
                                 BorderBrush="#FED7AA" BorderThickness="1"
                                 Padding="10,6" Margin="0,0,0,8">
-                            <TextBlock Text="{Binding SoGioQuaHanText}"
+                            <TextBlock Text="{Binding SoNgayQuaHanText}"
                                        FontSize="12" FontWeight="SemiBold"
                                        Foreground="{StaticResource WarnBrush}"
                                        TextWrapping="Wrap"/>
@@ -298,6 +298,61 @@
                                    FontSize="12" FontWeight="Bold" Foreground="{StaticResource MutedBrush}"/>
                         <TextBlock Text="{Binding TongThanhToanText}" HorizontalAlignment="Center"
                                    FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Row="4" Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="300"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="💰  TỔNG HỢP CHI PHÍ"/>
+
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Tiền phòng" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding TongTienPhongText}"
+                           Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="Tiền dịch vụ" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding TongTienDichVuText}"
+                           Style="{StaticResource FieldValue}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <TextBlock Text="Phụ phí" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding PhuPhiText}"
+                           Style="{StaticResource FieldValue}"
+                           Foreground="{StaticResource WarnBrush}"/>
+                        </Grid>
+
+                        <Border Visibility="{Binding HasOverdue, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    CornerRadius="8" Background="#FFF7ED"
+                    BorderBrush="#FED7AA" BorderThickness="1"
+                    Padding="10,6" Margin="0,0,0,8">
+                            <TextBlock Text="{Binding SoNgayQuaHanText}"
+                           FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource WarnBrush}"
+                           TextWrapping="Wrap"/>
+                        </Border>
+
+                        <Grid>
+                            <TextBlock Text="Tiền cọc" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding TienCocText}"
+                           Style="{StaticResource FieldValue}"
+                           Foreground="{StaticResource SuccessBrush}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="40,0,0,0">
+                        <TextBlock Text="TỔNG THANH TOÁN" HorizontalAlignment="Center"
+                       FontSize="12" FontWeight="Bold" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="{Binding TongThanhToanText}" HorizontalAlignment="Center"
+                       FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
                     </StackPanel>
                 </Grid>
             </Border>

@@ -70,7 +70,7 @@ namespace QuanLyKhachSan_SE104.Services
                     SoDem = soDem,
                     GiaMoiDem = ct.GiaDat,
                     IsCurrentRoom = isActive,
-                    SoGioQuaHan = overdue.Hours,
+                    SoGioQuaHan = overdue.Days,
                     PhuPhiQuaHan = overdue.Surcharge
                 };
             }).ToList();
@@ -91,19 +91,25 @@ namespace QuanLyKhachSan_SE104.Services
                 })
                 .ToList();
 
-            var phuPhiMoiGio = activeSegment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
-            var soGioQuaHan = overdueBySegment.Values.Sum(x => x.Hours);
+            // 1. Đổi đơn giá phạt từ "Phụ phí thêm giờ" sang "Giá phòng theo ngày" của segment hiện tại
+            var phuPhiMoiNgay = activeSegment.GiaDat;
+            var soNgayQuaHan = overdueBySegment.Values.Sum(x => x.Days);
             var currentOverdueSurcharge = overdueBySegment.Values.Sum(x => x.Surcharge);
 
             var roomNames = segments.Select(s => s.TenPhong).Distinct().ToList();
             var depositAlreadyApplied = isPaid;
+
+            // 2. SỬA TẠI ĐÂY: Tiền phòng gốc phải tính theo hạn hợp đồng (NgayCheckOut gốc) để không bị cộng lố ngày
             var tongTienPhong = allSegments.Sum(ct =>
             {
                 var isActive = ct.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong;
-                var segmentCheckOut = isActive ? ngayCheckOut : ct.NgayCheckOut;
-                return GetRoomTotal(ct, isActive, segmentCheckOut, allSegments);
+                // Cố định bằng ct.NgayCheckOut của hợp đồng, không thả nổi theo thời gian checkout thực tế nữa
+                return GetRoomTotal(ct, isActive, ct.NgayCheckOut, allSegments);
             });
+
             var tongTienDichVu = danhSachDichVu.Sum(x => x.ThanhTien);
+
+            // 3. Phụ phí tổng bây giờ sẽ bằng: Phụ phí dịch vụ phát sinh + Phụ phí quá hạn theo ngày (75,000đ)
             var phuPhi = extensionSurcharge + currentOverdueSurcharge;
             var depositDeduction = depositAlreadyApplied ? 0 : datPhong.TienCoc;
             var tongThanhToan = isPaid
@@ -124,8 +130,8 @@ namespace QuanLyKhachSan_SE104.Services
                 NgayCheckOutHopDong = ngayCheckOutHopDong,
                 DanhSachSegment = segments,
                 DanhSachDichVu = danhSachDichVu,
-                SoGioQuaHan = soGioQuaHan,
-                PhuPhiMoiGio = phuPhiMoiGio,
+                SoGioQuaHan = soNgayQuaHan,
+                PhuPhiMoiGio = phuPhiMoiNgay,
                 TongTienPhong = tongTienPhong,
                 TongTienDichVu = tongTienDichVu,
                 PhuPhi = phuPhi,
@@ -200,7 +206,7 @@ namespace QuanLyKhachSan_SE104.Services
             var activeChiTiet = ctx.ChiTietDatPhongs.Find(request.MaChiTietDatPhongActive);
             if (activeChiTiet != null)
             {
-                activeChiTiet.NgayCheckOut = thanhToanAt;
+                //activeChiTiet.NgayCheckOut = thanhToanAt;
                 activeChiTiet.TrangThaiSegment = TrangThaiSegment.DaCheckOut;
 
                 var activePhong = ctx.Phongs.Find(activeChiTiet.MaPhong);
@@ -216,30 +222,52 @@ namespace QuanLyKhachSan_SE104.Services
         }
 
         private static Dictionary<int, OverdueCharge> CalculateCumulativeOverdue(
-            List<ChiTietDatPhong> allSegments,
-            ChiTietDatPhong activeSegment,
-            HoaDon? hoaDon,
-            bool isPaid,
-            DateTime now)
+                        List<ChiTietDatPhong> allSegments,
+                        ChiTietDatPhong activeSegment,
+                        HoaDon? hoaDon,
+                        bool isPaid,
+                        DateTime now)
         {
             var result = new Dictionary<int, OverdueCharge>();
 
             foreach (var segment in allSegments)
             {
-                var hourlyRate = segment.Phong?.LoaiPhong?.PhuPhiThemGio ?? 0;
-                if (hourlyRate <= 0)
+                // Sử dụng GIÁ PHÒNG THEO NGÀY để tính phụ phí quá hạn ngày
+                var dailyRate = segment.GiaDat;
+                if (dailyRate <= 0)
                 {
                     result[segment.MaChiTietDatPhong] = new OverdueCharge(0, 0);
                     continue;
                 }
 
-                var referenceTime = segment.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong
-                    ? (isPaid && hoaDon != null ? hoaDon.NgayThanhToan : now)
-                    : ResolveHistoricalSegmentEnd(allSegments, segment);
+                // Đối với phân đoạn hiện tại
+                if (segment.MaChiTietDatPhong == activeSegment.MaChiTietDatPhong)
+                {
+                    if (isPaid && hoaDon != null)
+                    {
+                        // Khi đã thanh toán: Số ngày quá hạn phải dựa trên khoảng cách giữa 
+                        // Ngày thanh toán thực tế VÀ Ngày check-out hợp đồng ban đầu.
+                        // Nếu ở Vị trí 1 bạn lỡ ghi đè NgayCheckOut trong DB, bạn cần trừ đi số đêm gốc tại đây.
 
-                var hours = CalculateOverdueHours(referenceTime, segment.NgayCheckOut);
+                        var ngayCheckInGoc = segment.NgayCheckIn;
+                        // Giả sử hạn gốc là ngày CheckIn + 1 đêm (hoặc lấy từ một trường hạn gốc nếu có)
+                        // Nếu bạn đã sửa Vị trí 1 (không ghi đè nữa) thì dòng dưới này chạy chuẩn 100%:
+                        var days = CalculateOverdueDays(hoaDon.NgayThanhToan, segment.NgayCheckOut);
 
-                result[segment.MaChiTietDatPhong] = new OverdueCharge(hours, hours * hourlyRate);
+                        result[segment.MaChiTietDatPhong] = new OverdueCharge(days, days * dailyRate);
+                    }
+                    else
+                    {
+                        var days = CalculateOverdueDays(now, segment.NgayCheckOut);
+                        result[segment.MaChiTietDatPhong] = new OverdueCharge(days, days * dailyRate);
+                    }
+                }
+                else
+                {
+                    var referenceTime = ResolveHistoricalSegmentEnd(allSegments, segment);
+                    var days = CalculateOverdueDays(referenceTime, segment.NgayCheckOut);
+                    result[segment.MaChiTietDatPhong] = new OverdueCharge(days, days * dailyRate);
+                }
             }
 
             return result;
@@ -261,6 +289,14 @@ namespace QuanLyKhachSan_SE104.Services
             => referenceTime > deadline
                 ? (int)Math.Floor((referenceTime - deadline).TotalHours)
                 : 0;
+        private static int CalculateOverdueDays(DateTime referenceTime, DateTime deadline)
+        {
+            if (referenceTime <= deadline) return 0;
+
+            // Tính khoảng thời gian lố và làm tròn lên theo NGÀY
+            var overdueDuration = referenceTime - deadline;
+            return (int)Math.Ceiling(overdueDuration.TotalDays);
+        }
 
         private static bool IsExtensionSurcharge(ChiTietDichVu chiTietDichVu)
             => chiTietDichVu.DichVu?.TenDichVu == ExtensionSurchargeServiceName;
@@ -405,7 +441,7 @@ namespace QuanLyKhachSan_SE104.Services
             if (!isActive || IsExtensionOnlySegment(segment, allSegments))
                 return NormalizeStoredNightCount(segment);
 
-            return CalculateActualNightCount(segment.NgayCheckIn, actualCheckOut);
+            return CalculateActualNightCount(segment.NgayCheckIn, segment.NgayCheckOut);
         }
 
         private static decimal GetRoomTotal(
@@ -420,12 +456,13 @@ namespace QuanLyKhachSan_SE104.Services
             return ResolveNightCount(segment, isActive, actualCheckOut, allSegments) * segment.GiaDat;
         }
 
-        private static int CalculateActualNightCount(DateTime checkIn, DateTime actualCheckOut)
+        private static int CalculateActualNightCount(DateTime checkIn, DateTime contractCheckOut)
         {
-            if (actualCheckOut <= checkIn)
+            if (contractCheckOut <= checkIn)
                 return 0;
 
-            var nights = (int)Math.Ceiling((actualCheckOut.Date - checkIn.Date).TotalDays);
+            // Chốt cứng số đêm theo đúng lịch đã đăng ký ban đầu
+            var nights = (int)Math.Ceiling((contractCheckOut.Date - checkIn.Date).TotalDays);
             return Math.Max(1, nights);
         }
 
@@ -461,6 +498,6 @@ namespace QuanLyKhachSan_SE104.Services
             2 => "Chuyển khoản",
             _ => "—"
         };
-        private readonly record struct OverdueCharge(int Hours, decimal Surcharge);
+        private readonly record struct OverdueCharge(int Days, decimal Surcharge);
     }
 }
