@@ -86,12 +86,6 @@
                     Command="{Binding FilterCommand}" CommandParameter="don:1">
                 <TextBlock Text="{Binding CountCanDonDep, StringFormat='Đang Dọn ({0})'}" FontWeight="SemiBold"/>
             </Button>
-
-            <!-- FIX: Đổi CountCanDonDep → CountBaoTri -->
-            <Button Style="{StaticResource StatsFilterButtonStyle}" Background="#90A4AE"
-                    Command="{Binding FilterCommand}" CommandParameter="don:2">
-                <TextBlock Text="{Binding CountBaoTri, StringFormat='Bảo Trì ({0})'}" FontWeight="SemiBold"/>
-            </Button>
         </UniformGrid>
 
         <!-- Danh sách phòng -->

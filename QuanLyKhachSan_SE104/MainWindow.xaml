@@ -60,22 +60,6 @@
                                            VerticalAlignment="Center"
                                            Margin="8,0,0,0"
                                            Foreground="#555555"/>
-
-                                <Border Grid.Column="2"
-                                        Visibility="{Binding HasBadge,
-                                            Converter={StaticResource BoolToVis}}"
-                                        Background="#E53935"
-                                        CornerRadius="10"
-                                        MinWidth="20" Height="20"
-                                        Padding="5,0"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding BadgeCount}"
-                                               FontSize="11"
-                                               FontWeight="SemiBold"
-                                               Foreground="White"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
-                                </Border>
                             </Grid>
                         </Grid>
 

@@ -365,16 +365,7 @@
                     <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="1" Content="🖨️  In hóa đơn" Padding="20,0" Width="150"
-                        Background="Transparent" BorderBrush="{StaticResource MutedBrush}"
-                        BorderThickness="1" Foreground="{StaticResource PrimaryBrush}" Height="46"
-                        Command="{Binding InHoaDonCommand}">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="10"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                
                 <Button Grid.Column="3" Style="{StaticResource ConfirmBtn}"
                         Command="{Binding CheckOutCommand}"
                         Content="✔ Xác nhận thanh toán" Width="220"/>
