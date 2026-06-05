@@ -310,58 +310,7 @@
                                  Padding="12,10"/>
                     </StackPanel>
 
-                    <!-- ══ KHÁCH HÀNG ══ -->
-                    <StackPanel Visibility="{Binding IsKhachHang,
-                                Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Style="{StaticResource FormLabel}" Text="Họ tên *"/>
-                        <TextBox Style="{StaticResource FormField}"
-                                 Text="{Binding HoTen, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,16"/>
-
-                        <Grid Margin="0,0,0,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Style="{StaticResource FormLabel}" Text="Giới tính"/>
-                                <ComboBox Style="{StaticResource FormComboBox}"
-                                          SelectedIndex="{Binding GioiTinh}">
-                                    <ComboBoxItem Content="Nam"/>
-                                    <ComboBoxItem Content="Nữ"/>
-                                </ComboBox>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Style="{StaticResource FormLabel}" Text="Quốc tịch"/>
-                                <TextBox Style="{StaticResource FormField}"
-                                         Text="{Binding QuocTich, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <Grid Margin="0,0,0,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Style="{StaticResource FormLabel}" Text="CCCD / Passport *"/>
-                                <TextBox Style="{StaticResource FormField}"
-                                         Text="{Binding CCCD_Passport, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Style="{StaticResource FormLabel}" Text="Số điện thoại"/>
-                                <TextBox Style="{StaticResource FormField}"
-                                         Text="{Binding SDT, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <TextBlock Style="{StaticResource FormLabel}" Text="Địa chỉ"/>
-                        <TextBox Style="{StaticResource FormField}"
-                                 Text="{Binding DiaChi, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
-
+                    
                 </StackPanel>
             </ScrollViewer>
 
