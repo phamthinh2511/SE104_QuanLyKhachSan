@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Input;
 using ChiTietDatPhongModel = QuanLyKhachSan_SE104.Model.ChiTietDatPhong;
 using PhongModel = QuanLyKhachSan_SE104.Model.Phong;
+using QuanLyKhachSan_SE104.Services;
 
 namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
 {
@@ -107,9 +108,20 @@ namespace QuanLyKhachSan_SE104.ViewModel.PhongVM
                 {
                     ct.NgayCheckIn = DateTime.Now;
                     ct.TrangThaiSegment = TrangThaiSegment.DangO;
+                    ChiTietDatPhong.NgayCheckIn = DateTime.Now;
+                    ChiTietDatPhong.TrangThaiSegment = TrangThaiSegment.DangO;
                 }
 
                 ctx.SaveChanges();
+                try
+                {
+                    var hdService = new HoaDonService();
+                    hdService.GetInvoiceDetails(ChiTietDatPhong.MaDatPhong, ChiTietDatPhong.MaChiTietDatPhong, LoginSession.CurrentNhanVienId);
+                }
+                catch (Exception){}
+
+                RefreshDichVu();
+                OnPropertyChanged(string.Empty);
                 MessageBox.Show($"Check-in thành công phòng {phong.TenPhong}!", "Thông báo");
                 HotelEventBus.PublishRoomStatusChanged();
                 _window.Close();

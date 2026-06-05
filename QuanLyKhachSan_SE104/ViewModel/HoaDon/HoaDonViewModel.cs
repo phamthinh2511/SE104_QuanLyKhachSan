@@ -27,7 +27,7 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         private int _maChiTietDatPhongActive;
 
         private bool _overdueInitialized = false;
-        private int _soGioQuaHanLocked = 0;
+        private int _SoNgayQuaHanLocked = 0;
 
         public Action CloseAction { get; set; }
 
@@ -59,14 +59,14 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
         // ══════════════════════════════════════════════
         //  Overdue — evaluated on the LAST (current) segment only
         // ══════════════════════════════════════════════
-        public int SoGioQuaHan { get; private set; }
-        public decimal PhuPhiMoiGio { get; private set; }
+        public int SoNgayQuaHan { get; private set; }
+        public decimal PhuPhiMoiNgay { get; private set; }
 
-        public string SoGioQuaHanText =>
-            SoGioQuaHan > 0
-                ? $"⚠️  Quá hạn {SoGioQuaHan} giờ  ×  {PhuPhiMoiGio:#,0}₫/giờ  =  {SoGioQuaHan * PhuPhiMoiGio:#,0}₫"
+        public string SoNgayQuaHanText =>
+            SoNgayQuaHan > 0
+                ? $"⚠️  Quá hạn {SoNgayQuaHan} ngày  ×  {PhuPhiMoiNgay:#,0}₫/ngày  =  {SoNgayQuaHan * PhuPhiMoiNgay:#,0}₫"
                 : "";
-        public bool HasOverdue => SoGioQuaHan > 0;
+        public bool HasOverdue => SoNgayQuaHan > 0;
 
         public decimal PhuPhi => _phuPhi;
 
@@ -271,8 +271,8 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             NgayCheckOut = invoice.NgayCheckOut;
             NgayCheckOutHopDong = invoice.NgayCheckOutHopDong;
             DanhSachSegment = new ObservableCollection<PhongSegmentDTO>(invoice.DanhSachSegment);
-            SoGioQuaHan = invoice.SoGioQuaHan;
-            PhuPhiMoiGio = invoice.PhuPhiMoiGio;
+            SoNgayQuaHan = invoice.SoGioQuaHan;
+            PhuPhiMoiNgay = invoice.PhuPhiMoiGio;
             TienCoc = invoice.TienCoc;
             _depositAlreadyApplied = invoice.DepositAlreadyApplied;
             _tongTienPhong = invoice.TongTienPhong;
@@ -313,10 +313,10 @@ namespace QuanLyKhachSan_SE104.ViewModel.HoaDonVM
             OnPropertyChanged(nameof(NgayCheckOutHopDong));
             OnPropertyChanged(nameof(SoDemText));
             OnPropertyChanged(nameof(DanhSachSegment));
-            OnPropertyChanged(nameof(SoGioQuaHan));
-            OnPropertyChanged(nameof(SoGioQuaHanText));
+            OnPropertyChanged(nameof(SoNgayQuaHan));
+            OnPropertyChanged(nameof(SoNgayQuaHanText));
             OnPropertyChanged(nameof(HasOverdue));
-            OnPropertyChanged(nameof(PhuPhiMoiGio));
+            OnPropertyChanged(nameof(PhuPhiMoiNgay));
             OnPropertyChanged(nameof(TienCoc));
             OnPropertyChanged(nameof(TienCocText));
             OnPropertyChanged(nameof(TongTienPhong));
