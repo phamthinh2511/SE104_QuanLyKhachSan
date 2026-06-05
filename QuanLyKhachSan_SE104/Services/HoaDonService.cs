@@ -82,7 +82,7 @@ namespace QuanLyKhachSan_SE104.Services
 
             var danhSachDichVu = allSegments
                 .SelectMany(ct => ct.ChiTietDichVus ?? Enumerable.Empty<ChiTietDichVu>())
-                .Where(x => x.DichVu != null && !IsExtensionSurcharge(x))
+                .Where(x => x.DichVu != null)
                 .Select(x => new ChiTietDichVuDTO
                 {
                     TenDichVu = x.DichVu.TenDichVu,
@@ -110,7 +110,7 @@ namespace QuanLyKhachSan_SE104.Services
             var tongTienDichVu = danhSachDichVu.Sum(x => x.ThanhTien);
 
             // 3. Phụ phí tổng bây giờ sẽ bằng: Phụ phí dịch vụ phát sinh + Phụ phí quá hạn theo ngày (75,000đ)
-            var phuPhi = extensionSurcharge + currentOverdueSurcharge;
+            var phuPhi = currentOverdueSurcharge;
             var depositDeduction = depositAlreadyApplied ? 0 : datPhong.TienCoc;
             var tongThanhToan = isPaid
                 ? hoaDon!.TongThanhToan
@@ -245,13 +245,8 @@ namespace QuanLyKhachSan_SE104.Services
                 {
                     if (isPaid && hoaDon != null)
                     {
-                        // Khi đã thanh toán: Số ngày quá hạn phải dựa trên khoảng cách giữa 
-                        // Ngày thanh toán thực tế VÀ Ngày check-out hợp đồng ban đầu.
-                        // Nếu ở Vị trí 1 bạn lỡ ghi đè NgayCheckOut trong DB, bạn cần trừ đi số đêm gốc tại đây.
 
                         var ngayCheckInGoc = segment.NgayCheckIn;
-                        // Giả sử hạn gốc là ngày CheckIn + 1 đêm (hoặc lấy từ một trường hạn gốc nếu có)
-                        // Nếu bạn đã sửa Vị trí 1 (không ghi đè nữa) thì dòng dưới này chạy chuẩn 100%:
                         var days = CalculateOverdueDays(hoaDon.NgayThanhToan, segment.NgayCheckOut);
 
                         result[segment.MaChiTietDatPhong] = new OverdueCharge(days, days * dailyRate);
@@ -285,10 +280,6 @@ namespace QuanLyKhachSan_SE104.Services
             return nextSegment?.NgayCheckIn ?? segment.NgayCheckOut;
         }
 
-        private static int CalculateOverdueHours(DateTime referenceTime, DateTime deadline)
-            => referenceTime > deadline
-                ? (int)Math.Floor((referenceTime - deadline).TotalHours)
-                : 0;
         private static int CalculateOverdueDays(DateTime referenceTime, DateTime deadline)
         {
             if (referenceTime <= deadline) return 0;
