@@ -48,7 +48,7 @@ namespace QuanLyKhachSan_SE104.Services
                     CCCD_Passport = req.CCCD.Trim(),
                     GioiTinh = req.GioiTinh.Trim(),
                     QuocTich = req.QuocTich.Trim(),
-                    DiaChi = string.Empty
+                    DiaChi = req.DiaChi.Trim()
                 };
 
                 ctx.KhachHangs.Add(customer);
@@ -86,6 +86,22 @@ namespace QuanLyKhachSan_SE104.Services
 
                 foreach (var room in rooms)
                 {
+                    req.SoNguoiPerRoom.TryGetValue(room.MaPhong, out var soNguoi);
+                    if (soNguoi <= 0)
+                    {
+                        return BookingResult.ValidationError(
+                            $"Số người ở tại phòng {room.TenPhong} không hợp lệ (phải lớn hơn 0).");
+                    }
+
+                    var maxNguoi = room.LoaiPhong?.SoNguoiToiDa ?? int.MaxValue;
+                    if (soNguoi > maxNguoi)
+                    {
+                        tx.Rollback();
+                        return BookingResult.ValidationError(
+                            $"Phòng {room.TenPhong} chỉ chứa tối đa {maxNguoi} người " +
+                            $"(bạn nhập {soNguoi} người).");
+                    }
+
                     room.TrangThai = req.IsWalkIn ? 2 : 1;
                     var soDem = CalculateChargeableNights(req.NgayCheckIn, req.NgayCheckOut, minimumOneNight: true);
 
@@ -98,7 +114,7 @@ namespace QuanLyKhachSan_SE104.Services
                         GiaDat = room.LoaiPhong?.GiaMacDinh ?? 0,
                         SoDem = soDem,
                         ThanhTien = soDem * (room.LoaiPhong?.GiaMacDinh ?? 0),
-                        SoNguoi = 1,
+                        SoNguoi = soNguoi,
                         TrangThaiSegment = req.IsWalkIn
                             ? TrangThaiSegment.DangO
                             : TrangThaiSegment.ChoNhanPhong

@@ -409,8 +409,12 @@
                 <Setter TargetName="RoomCard"      Property="Background"  Value="#FFF0F0"/>
                 <Setter TargetName="StatusSideBar" Property="Background"  Value="#F44336"/>
                 <Setter TargetName="StatusText"    Property="Text"        Value="QUÁ HẠN"/>
+                <Setter TargetName="GuestName"     Property="Text"        Value="Khách đang ở"/>
                 <Setter TargetName="StatusText"    Property="Foreground"  Value="#C62828"/>
                 <Setter TargetName="StatusIcon"    Property="Foreground"  Value="#F44336"/>
+                <Setter TargetName="GuestSeparator" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="GuestName"     Property="Foreground"  Value="#1E293B"/>
+                <Setter TargetName="GuestName"     Property="FontStyle"   Value="Normal"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding TrangThai}" Value="4">
