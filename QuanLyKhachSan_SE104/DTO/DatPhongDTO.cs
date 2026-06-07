@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace QuanLyKhachSan_SE104.DTO
 {
@@ -57,8 +59,21 @@ namespace QuanLyKhachSan_SE104.DTO
         public string RoomName { get; set; }
 
         // Binding: Capacity (TwoWay)
-        public int Capacity { get; set; }
+        private int _capacity = 1; // Mặc định ban đầu là 1 người
+        public int Capacity
+        {
+            get => _capacity;
+            set
+            {
+                _capacity = value;
+                OnPropertyChanged();
+            }
+        }
 
         public int MaPhong { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

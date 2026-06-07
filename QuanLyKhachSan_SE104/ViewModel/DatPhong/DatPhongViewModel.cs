@@ -469,14 +469,21 @@ public class DatPhongViewModel : INotifyPropertyChanged
     // ── Room list helpers ─────────────────────────────────────────────────
     private void AddRoomToList(Phong phong)
     {
+        if (phong == null) return;
+
+        // Nếu phòng này chưa có trong danh sách chọn
         if (!SelectedRoomsList.Any(x => x.MaPhong == phong.MaPhong))
         {
+            // QUYẾT ĐỊNH: Xóa phòng cũ để đảm bảo CHỈ ĐẶT 1 PHÒNG
+            SelectedRoomsList.Clear();
+
             SelectedRoomsList.Add(new SelectedRoomItem
             {
                 MaPhong = phong.MaPhong,
                 RoomName = phong.TenPhong,
                 Capacity = 1
             });
+
             RecalculateDefaultDeposit();
             CommandManager.InvalidateRequerySuggested();
         }
@@ -498,7 +505,12 @@ public class DatPhongViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(SelectedRoom));
             }
         }
-        else AddRoomToList(phong);
+        else
+        {
+            _selectedRoom = phong;
+            OnPropertyChanged(nameof(SelectedRoom));
+            AddRoomToList(phong);
+        }
 
         RecalculateDefaultDeposit();
         CommandManager.InvalidateRequerySuggested();
@@ -510,24 +522,13 @@ public class DatPhongViewModel : INotifyPropertyChanged
         if (Mode == DatPhongMode.GiaHan)
             return _chiTietDatPhong != null;
 
-        return SelectedRoomsList.Count > 0 && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
+        return SelectedRoomsList.Count == 1 && !string.IsNullOrWhiteSpace(NewCustomer?.HoTen);
     }
 
     private void ExecuteSave()
     {
         var validationMessage = ValidateBeforeSave();
-
-        // Validate checkout is after check-in
-        if (NgayCheckOut <= NgayCheckIn)
-        {
-            MessageBox.Show(
-                "Thời điểm check-out phải sau thời điểm check-in.",
-                "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        // Validate deposit minimum (skip for GiaHan and DoiPhong)
-        if (Mode == DatPhongMode.Normal && TienCoc < MinTienCoc)
+        if (!string.IsNullOrEmpty(validationMessage))
         {
             MessageBox.Show(validationMessage, "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -567,7 +568,7 @@ public class DatPhongViewModel : INotifyPropertyChanged
         if (Mode != DatPhongMode.GiaHan)
         {
             if (SelectedRoomsList.Count == 0)
-                return "Vui lòng chọn ít nhất một phòng.";
+                return "Vui lòng chọn một phòng để đặt.";
 
             if (string.IsNullOrWhiteSpace(NewCustomer?.HoTen))
                 return "Vui lòng nhập họ tên khách hàng.";
@@ -598,14 +599,32 @@ public class DatPhongViewModel : INotifyPropertyChanged
 
     private string ValidateSelectedRoomCapacities()
     {
+        if (SelectedRoomsList == null || !SelectedRoomsList.Any()) return string.Empty;
+
         using var ctx = new QuanLyKhachSanContext();
+        var selectedIds = SelectedRoomsList.Select(item => item.MaPhong).ToList();
+
+        // Tải thông tin phòng để đối chiếu số người tối đa
+        var phongsDb = ctx.Phongs.Include(p => p.LoaiPhong)
+                                 .Where(p => selectedIds.Contains(p.MaPhong))
+                                 .ToDictionary(p => p.MaPhong);
 
         foreach (var item in SelectedRoomsList)
         {
-            var phong = ctx.Phongs.Include(p => p.LoaiPhong)
-                                  .FirstOrDefault(p => p.MaPhong == item.MaPhong);
-            if (phong != null && item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
-                return $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người.";
+            // 1. Kiểm tra cảnh báo số người nhỏ hơn hoặc bằng 0
+            if (item.Capacity <= 0)
+            {
+                return $"Số người ở tại phòng {item.RoomName} không hợp lệ (phải lớn hơn 0).";
+            }
+
+            // 2. Kiểm tra cảnh báo số người vượt định mức tối đa
+            if (phongsDb.TryGetValue(item.MaPhong, out var phong))
+            {
+                if (item.Capacity > phong.LoaiPhong.SoNguoiToiDa)
+                {
+                    return $"Phòng {item.RoomName} chỉ cho phép tối đa {phong.LoaiPhong.SoNguoiToiDa} người.";
+                }
+            }
         }
 
         return string.Empty;
@@ -625,9 +644,11 @@ public class DatPhongViewModel : INotifyPropertyChanged
             CCCD = NewCustomer?.CCCD_Passport ?? string.Empty,
             GioiTinh = NewCustomer?.GioiTinh ?? string.Empty,
             QuocTich = NewCustomer?.QuocTich ?? string.Empty,
+            DiaChi = NewCustomer?.DiaChi ?? string.Empty,
             TienCoc = TienCoc,
             IsWalkIn = Mode == DatPhongMode.WalkIn,
-            MaNhanVien = LoginSession.CurrentNhanVienId
+            MaNhanVien = LoginSession.CurrentNhanVienId,
+            SoNguoiPerRoom = SelectedRoomsList.ToDictionary(r => r.MaPhong, r => r.Capacity)
         };
     }
 
